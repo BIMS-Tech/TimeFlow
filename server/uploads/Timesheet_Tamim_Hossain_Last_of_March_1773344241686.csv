@@ -1,0 +1,23 @@
+TIMESHEET REPORT
+
+Employee Name,Tamim Hossain
+Employee ID,001
+Department,Products
+Position,Jr Software Engineer
+Period,Last of March
+Start Date,Sun Mar 15
+End Date,Sun Mar 29
+Currency,USD
+
+SUMMARY
+Total Hours,0.82
+Regular Hours,0.82
+Overtime Hours,0.00
+Hourly Rate,2.00
+Gross Amount,1.64
+
+TASK BREAKDOWN
+Date,Task,Project,Hours,Description
+Sat Mar 28,"[IEAELY3UJQAOBKCM] Adding time entries,Creating comments, updating tasks statuses.Checking inbox.(Overall wrike Activity)",N/A,0.82,"[IEAELY3UJQAOBKCM] Adding time entries,Creating comments, updating tasks statuses.Checking inbox.(Overall wrike Activity)"
+
+TOTAL,,,,0.82

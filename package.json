@@ -1,0 +1,18 @@
+{
+  "name": "timesheet-ext",
+  "version": "1.0.0",
+  "description": "Timesheet and Payslip Management System with Wrike Integration",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm start",
+    "start:server": "cd server && npm start",
+    "install:all": "cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "author": "Tamim Hossain",
+  "license": "MIT",
+  "packageManager": "yarn@3.2.1+sha512.2e8753234dc01d8cc7ed64c98e459a382c68cf239ce06102b2bec91cbbdf383ba520010e85df0f70fc400648d0706ac5bf37b59d99e3488c44a5436b50bf4204"
+}
