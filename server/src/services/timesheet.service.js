@@ -462,14 +462,18 @@ class TimesheetService {
    */
   async getDashboardStats() {
     const currentPeriod = await PayPeriod.getCurrentPeriod();
-    const summaryStats = await TimeEntriesSummary.getStatistics(currentPeriod?.id);
-    const payslipStats = await Payslip.getStatistics(currentPeriod?.id);
+
+    // All stats are global (all periods) so the 4 cards are always consistent
+    const summaryStats   = await TimeEntriesSummary.getStatistics(null);
+    const grossByCurrency = await TimeEntriesSummary.getGrossByCurrency(null);
+    const payslipStats   = await Payslip.getStatistics(null);
+    const netByCurrency  = await Payslip.getNetByCurrency(null);
     const pendingApprovals = await TimeEntriesSummary.getPendingApprovals();
 
     return {
       currentPeriod,
-      summaries: summaryStats,
-      payslips: payslipStats,
+      summaries: { ...summaryStats, grossByCurrency },
+      payslips:  { ...payslipStats,  netByCurrency },
       pendingApprovals: pendingApprovals.length
     };
   }

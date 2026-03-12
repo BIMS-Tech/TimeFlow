@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { portalAPI } from '../api';
+import { useThemeMode } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -27,6 +28,8 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 
 const DRAWER_W = 240;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -44,7 +47,7 @@ function StatusChip({ status }) {
   return <Chip label={s.label} size="small" sx={{ bgcolor: s.bg, color: s.color, fontWeight: 700, fontSize: '0.72rem', borderRadius: '4px' }} />;
 }
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.25, px: 2, bgcolor: '#f8fafc' };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.25, px: 2, bgcolor: 'action.hover' };
 const TD = { fontSize: '0.875rem', py: 1.25, px: 2 };
 
 // ─── NAV ITEMS ────────────────────────────────────────────────────────────────
@@ -59,7 +62,7 @@ const NAV_ITEMS = [
 function TimesheetRow({ ts, currency, onApprove, onReject }) {
   const [expanded, setExpanded] = useState(false);
   const [acting, setActing] = useState(false);
-  const cur = currency || 'BDT';
+  const cur = currency || '';
   const token = localStorage.getItem('token');
 
   return (
@@ -69,9 +72,9 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
         <TableCell sx={{ ...TD, fontWeight: 600 }}>{ts.period_name}</TableCell>
         <TableCell sx={TD}>{fmt(ts.start_date)} – {fmt(ts.end_date)}</TableCell>
         <TableCell sx={{ ...TD, fontWeight: 600 }}>{parseFloat(ts.total_hours || 0).toFixed(1)}h</TableCell>
-        <TableCell sx={{ ...TD, fontWeight: 700, color: '#0f172a' }}>{cur} {parseFloat(ts.gross_amount || 0).toLocaleString()}</TableCell>
+        <TableCell sx={{ ...TD, fontWeight: 700, color: 'text.primary' }}>{cur} {parseFloat(ts.gross_amount || 0).toLocaleString()}</TableCell>
         <TableCell sx={TD}>
-          <IconButton size="small" sx={{ color: '#94a3b8' }}>{expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}</IconButton>
+          <IconButton size="small" sx={{ color: 'text.disabled' }}>{expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}</IconButton>
         </TableCell>
       </TableRow>
       {expanded && (
@@ -90,7 +93,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
                 ].map(([label, val]) => (
                   <Grid item xs={6} sm={4} md={2} key={label}>
                     <Box sx={{ bgcolor: 'white', border: '1px solid #e2e8f0', p: 1.25 }}>
-                      <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
+                      <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled', mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'capitalize' }}>{val}</Typography>
                     </Box>
                   </Grid>
@@ -112,7 +115,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
                     <Button size="small" variant="contained" startIcon={acting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <CheckCircleIcon />}
                       onClick={async (e) => { e.stopPropagation(); setActing(true); try { await onApprove(ts); } finally { setActing(false); } }}
                       disabled={acting}
-                      sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, background: 'none', backgroundColor: '#10b981' }}>
+                      sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>
                       Approve
                     </Button>
                     <Button size="small" variant="outlined" startIcon={<CancelIcon />}
@@ -134,7 +137,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
 // ─── SECTIONS ────────────────────────────────────────────────────────────────
 
 function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
-  const cur = employee?.currency || 'BDT';
+  const cur = employee?.currency || '';
   const pending  = timesheets.filter(t => t.approval_status === 'pending');
   const approved = timesheets.filter(t => t.approval_status === 'approved');
   const totalEarned = approved.reduce((s, t) => s + parseFloat(t.gross_amount || 0), 0);
@@ -149,8 +152,8 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
             {employee.name?.slice(0, 2).toUpperCase()}
           </Avatar>
           <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Welcome back</Typography>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a', lineHeight: 1.2 }}>{employee.name}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Welcome back</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: 'text.primary', lineHeight: 1.2 }}>{employee.name}</Typography>
             <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mt: 0.25 }}>
               {employee.employee_id} · {employee.department || 'N/A'} · {employee.position || 'N/A'}
             </Typography>
@@ -168,9 +171,9 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
         ].map(({ label, value, sub, color, border }) => (
           <Grid item xs={6} sm={3} key={label}>
             <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderTop: `3px solid ${border}`, p: 2, borderRadius: 0 }}>
-              <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{label}</Typography>
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{label}</Typography>
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color, lineHeight: 1 }}>{value}</Typography>
-              <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', mt: 0.25 }}>{sub}</Typography>
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.25 }}>{sub}</Typography>
             </Paper>
           </Grid>
         ))}
@@ -187,7 +190,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
             </Box>
           </Box>
           <Button size="small" variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('timesheets')}
-            sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, background: 'none', backgroundColor: '#f59e0b', boxShadow: 'none' }}>
+            sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, boxShadow: 'none' }}>
             Review Now
           </Button>
         </Paper>
@@ -208,11 +211,11 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
             <Box key={p.id} sx={{ px: 2.5, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: i < 2 ? '1px solid #f1f5f9' : 'none' }}>
               <Box>
                 <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace' }}>{p.payslip_number}</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: 'monospace' }}>{p.payslip_number}</Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography sx={{ fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{employee?.currency || 'BDT'} {parseFloat(p.net_amount || 0).toLocaleString()}</Typography>
-                <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8' }}>net pay</Typography>
+                <Typography sx={{ fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{employee?.currency || ''} {parseFloat(p.net_amount || 0).toLocaleString()}</Typography>
+                <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>net pay</Typography>
               </Box>
             </Box>
           ))}
@@ -228,7 +231,7 @@ function TimesheetsSection({ timesheets, currency, onApprove, onReject }) {
   const rejected = timesheets.filter(t => t.approval_status === 'rejected');
 
   if (timesheets.length === 0) return (
-    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8', borderRadius: 0 }}>
+    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
       <DescriptionIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
       <Typography sx={{ fontWeight: 600, color: '#475569', mb: 0.5 }}>No Timesheets Yet</Typography>
       <Typography sx={{ fontSize: '0.875rem' }}>Your manager will send timesheets for your review.</Typography>
@@ -270,11 +273,11 @@ function TimesheetsSection({ timesheets, currency, onApprove, onReject }) {
 }
 
 function PayslipsSection({ payslips, currency }) {
-  const cur = currency || 'BDT';
+  const cur = currency || '';
   const token = localStorage.getItem('token');
 
   if (payslips.length === 0) return (
-    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8', borderRadius: 0 }}>
+    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
       <ReceiptLongIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
       <Typography sx={{ fontWeight: 600, color: '#475569', mb: 0.5 }}>No Payslips Yet</Typography>
       <Typography sx={{ fontSize: '0.875rem' }}>Payslips are generated after your timesheet is approved.</Typography>
@@ -296,7 +299,7 @@ function PayslipsSection({ payslips, currency }) {
                 <TableCell sx={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem', color: '#6366f1', fontWeight: 600 }}>{p.payslip_number}</TableCell>
                 <TableCell sx={TD}>
                   <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{fmt(p.start_date)} – {fmt(p.end_date)}</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{fmt(p.start_date)} – {fmt(p.end_date)}</Typography>
                 </TableCell>
                 <TableCell sx={TD}>{parseFloat(p.total_hours || 0).toFixed(1)}h</TableCell>
                 <TableCell sx={TD}>{cur} {parseFloat(p.gross_amount || 0).toLocaleString()}</TableCell>
@@ -356,10 +359,10 @@ function SettingsSection({ user }) {
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField fullWidth label="Current Password" type={showCurrent ? 'text' : 'password'} value={form.current}
               onChange={e => setForm(f => ({ ...f, current: e.target.value }))} required
-              slotProps={{ input: { endAdornment: <IconButton size="small" onClick={() => setShowCurrent(v => !v)} sx={{ color: '#94a3b8' }}>{showCurrent ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}</IconButton> } }} />
+              slotProps={{ input: { endAdornment: <IconButton size="small" onClick={() => setShowCurrent(v => !v)} sx={{ color: 'text.disabled' }}>{showCurrent ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}</IconButton> } }} />
             <TextField fullWidth label="New Password" type={showNew ? 'text' : 'password'} value={form.newP}
               onChange={e => setForm(f => ({ ...f, newP: e.target.value }))} required
-              slotProps={{ input: { endAdornment: <IconButton size="small" onClick={() => setShowNew(v => !v)} sx={{ color: '#94a3b8' }}>{showNew ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}</IconButton> } }} />
+              slotProps={{ input: { endAdornment: <IconButton size="small" onClick={() => setShowNew(v => !v)} sx={{ color: 'text.disabled' }}>{showNew ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}</IconButton> } }} />
             <TextField fullWidth label="Confirm New Password" type="password" value={form.confirm}
               onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} required />
             <Button type="submit" variant="contained" disabled={loading} fullWidth
@@ -367,7 +370,7 @@ function SettingsSection({ user }) {
               {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Change Password'}
             </Button>
           </Box>
-          <Typography sx={{ mt: 2, fontSize: '0.75rem', color: '#94a3b8', p: 1.5, bgcolor: '#f8fafc', borderRadius: '4px' }}>
+          <Typography sx={{ mt: 2, fontSize: '0.75rem', color: 'text.disabled', p: 1.5, bgcolor: '#f8fafc', borderRadius: '4px' }}>
             Forgot your password? Contact your admin — they can reset it from the Employees page.
           </Typography>
         </Box>
@@ -408,7 +411,7 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
             <Box sx={{ mt: 1 }}>
               {files.map((f, i) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.5 }}>
-                  <AttachFileIcon sx={{ fontSize: 14, color: '#94a3b8' }} />
+                  <AttachFileIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                   <Typography sx={{ fontSize: '0.8rem', color: '#64748b' }}>{f.name}</Typography>
                 </Box>
               ))}
@@ -420,7 +423,7 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
         <Button onClick={onClose} sx={{ color: '#64748b' }}>Cancel</Button>
         <Button variant="contained" startIcon={loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <CancelIcon />}
           onClick={handleSubmit} disabled={loading}
-          sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' }, background: 'none', backgroundColor: '#ef4444' }}>
+          sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
           Submit Rejection
         </Button>
       </DialogActions>
@@ -431,6 +434,7 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
 // ─── MAIN PORTAL ─────────────────────────────────────────────────────────────
 export default function EmployeePortal() {
   const { user, logout } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
   const [section, setSection] = useState('dashboard');
   const [employee, setEmployee] = useState(null);
@@ -548,6 +552,11 @@ export default function EmployeePortal() {
               </Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Employee</Typography>
             </Box>
+            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
+              <IconButton size="small" onClick={toggleTheme} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
+                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Logout" arrow>
               <IconButton size="small" onClick={handleLogout} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
                 <LogoutIcon fontSize="small" />
@@ -562,7 +571,7 @@ export default function EmployeePortal() {
         <Box sx={{ maxWidth: 900, mx: 'auto' }}>
           {/* Page header */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>
               {sectionTitle}
             </Typography>
           </Box>

@@ -18,9 +18,12 @@ import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstruct
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useThemeMode } from './context/ThemeContext';
 import { timesheetAPI } from './api';
 
 // Pages
@@ -116,6 +119,7 @@ function SidebarNav({ counts }) {
 
 function AppLayout() {
   const { user, logout } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
   const [counts, setCounts] = useState({ pending: 0, rejected: 0 });
 
@@ -142,7 +146,7 @@ function AppLayout() {
     : 'TF';
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f1f5f9' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Sidebar */}
       <Drawer
         variant="permanent"
@@ -214,6 +218,12 @@ function AppLayout() {
                 {user?.role}
               </Typography>
             </Box>
+            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
+              <IconButton onClick={toggleTheme} size="small"
+                sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
+                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Logout" arrow>
               <IconButton onClick={handleLogout} size="small"
                 sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>

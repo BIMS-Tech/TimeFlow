@@ -18,14 +18,14 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { timesheetAPI } from '../api';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.25, px: 2 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function InfoRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
       <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>{label}</Typography>
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>{value}</Typography>
+      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
     </Box>
   );
 }
@@ -115,13 +115,13 @@ export default function PendingApprovals() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Approvals</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Approvals</Typography>
           <Typography sx={{ color: '#64748b', fontSize: '0.875rem', mt: 0.25 }}>
             {pending.length} pending · {rejected.length} rejected by employee
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchAll}
-          sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+          sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
           Refresh
         </Button>
       </Box>
@@ -145,30 +145,30 @@ export default function PendingApprovals() {
       {/* PENDING TAB */}
       {tab === 0 && (
         pending.length === 0 ? (
-          <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', color: '#94a3b8' }}>
+          <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
             <CheckCircleIcon sx={{ fontSize: 56, color: '#10b981', opacity: 0.4, mb: 1.5 }} />
-            <Typography sx={{ fontWeight: 700, color: '#475569', mb: 0.5 }}>All Caught Up!</Typography>
+            <Typography sx={{ fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>All Caught Up!</Typography>
             <Typography sx={{ fontSize: '0.875rem' }}>No pending approvals at the moment</Typography>
           </Paper>
         ) : (
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>
                     {['Employee', 'Period', 'Hours', 'Gross', 'Days Pending', 'Wrike Task', 'Actions'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {pending.map(s => (
-                    <TableRow key={s.id} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                    <TableRow key={s.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell sx={TD}>
                         <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.employee_name}</Typography>
-                        <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{s.email}</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{s.email}</Typography>
                       </TableCell>
                       <TableCell sx={TD}>{s.period_name}</TableCell>
                       <TableCell sx={TD}>{s.total_hours}h</TableCell>
-                      <TableCell sx={TD}>{s.currency || 'BDT'} {s.gross_amount?.toLocaleString()}</TableCell>
+                      <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                       <TableCell sx={TD}>
                         <Chip label={`${s.days_since_updated || 0} days`} size="small"
                           sx={{ bgcolor: (s.days_since_updated || 0) > 3 ? '#ef444415' : '#f59e0b15', color: (s.days_since_updated || 0) > 3 ? '#ef4444' : '#f59e0b', fontWeight: 600, fontSize: '0.72rem' }} />
@@ -203,13 +203,13 @@ export default function PendingApprovals() {
       {/* REJECTED TAB */}
       {tab === 1 && (
         rejected.length === 0 ? (
-          <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', color: '#94a3b8' }}>
+          <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
             <CheckCircleIcon sx={{ fontSize: 56, color: '#10b981', opacity: 0.4, mb: 1.5 }} />
-            <Typography sx={{ fontWeight: 700, color: '#475569', mb: 0.5 }}>No Rejected Timesheets</Typography>
+            <Typography sx={{ fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>No Rejected Timesheets</Typography>
             <Typography sx={{ fontSize: '0.875rem' }}>Employees haven't raised any disputes</Typography>
           </Paper>
         ) : (
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
               <Alert severity="warning" sx={{ borderRadius: 0 }}>
                 These timesheets were <strong>rejected by employees</strong> who found discrepancies. Review the reason, make corrections if needed, then resubmit.
@@ -217,7 +217,7 @@ export default function PendingApprovals() {
             </Box>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>
                     {['Employee', 'Period', 'Hours', 'Gross', 'Since Rejection', 'Reason', 'Actions'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                   </TableRow>
@@ -226,14 +226,14 @@ export default function PendingApprovals() {
                   {rejected.map(s => {
                     const files = (() => { try { return s.rejection_files ? JSON.parse(s.rejection_files) : []; } catch { return []; } })();
                     return (
-                      <TableRow key={s.id} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                      <TableRow key={s.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                         <TableCell sx={TD}>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.employee_name}</Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{s.email}</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{s.email}</Typography>
                         </TableCell>
                         <TableCell sx={TD}>{s.period_name}</TableCell>
                         <TableCell sx={TD}>{s.total_hours}h</TableCell>
-                        <TableCell sx={TD}>{s.currency || 'BDT'} {s.gross_amount?.toLocaleString()}</TableCell>
+                        <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                         <TableCell sx={TD}>
                           <Chip label={`${s.days_since_updated || 0} days`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 600, fontSize: '0.72rem' }} />
                         </TableCell>
@@ -243,8 +243,8 @@ export default function PendingApprovals() {
                           </Typography>
                           {files.length > 0 && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <AttachFileIcon sx={{ fontSize: 12, color: '#94a3b8' }} />
-                              <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8' }}>{files.length} file{files.length > 1 ? 's' : ''}</Typography>
+                              <AttachFileIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+                              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{files.length} file{files.length > 1 ? 's' : ''}</Typography>
                             </Box>
                           )}
                         </TableCell>
@@ -275,7 +275,7 @@ export default function PendingApprovals() {
               <Grid item xs={6}><InfoRow label="Employee" value={selectedSummary.employee_name} /></Grid>
               <Grid item xs={6}><InfoRow label="Period" value={selectedSummary.period_name} /></Grid>
               <Grid item xs={6}><InfoRow label="Total Hours" value={`${selectedSummary.total_hours}h`} /></Grid>
-              <Grid item xs={6}><InfoRow label="Gross Amount" value={`${selectedSummary.currency || 'BDT'} ${selectedSummary.gross_amount?.toLocaleString()}`} /></Grid>
+              <Grid item xs={6}><InfoRow label="Gross Amount" value={`${selectedSummary.currency || ''} ${selectedSummary.gross_amount?.toLocaleString()}`} /></Grid>
             </Grid>
           )}
         </DialogContent>
@@ -322,7 +322,7 @@ export default function PendingApprovals() {
                 <Grid item xs={6}><InfoRow label="Employee" value={showRejectionDetail.employee_name} /></Grid>
                 <Grid item xs={6}><InfoRow label="Period" value={showRejectionDetail.period_name} /></Grid>
                 <Grid item xs={6}><InfoRow label="Total Hours" value={`${showRejectionDetail.total_hours}h`} /></Grid>
-                <Grid item xs={6}><InfoRow label="Gross Amount" value={`${showRejectionDetail.currency || 'BDT'} ${showRejectionDetail.gross_amount?.toLocaleString()}`} /></Grid>
+                <Grid item xs={6}><InfoRow label="Gross Amount" value={`${showRejectionDetail.currency || ''} ${showRejectionDetail.gross_amount?.toLocaleString()}`} /></Grid>
               </Grid>
               <Box sx={{ bgcolor: '#fff8e1', borderRadius: 0, p: 2, mb: 2 }}>
                 <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#92400e', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -339,7 +339,7 @@ export default function PendingApprovals() {
                     <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Attached Files</Typography>
                   </Box>
                   {showRejectionDetail.parsedFiles.map((f, i) => (
-                    <Box key={i} sx={{ px: 1.5, py: 1, bgcolor: '#f8fafc', borderRadius: 1, mb: 0.5, fontSize: '0.875rem', color: '#475569' }}>
+                    <Box key={i} sx={{ px: 1.5, py: 1, bgcolor: 'action.hover', borderRadius: 1, mb: 0.5, fontSize: '0.875rem', color: 'text.secondary' }}>
                       {f.name} ({Math.round(f.size / 1024)} KB)
                     </Box>
                   ))}

@@ -14,14 +14,14 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { timesheetAPI } from '../api';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.25, px: 2 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function InfoRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
       <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>{label}</Typography>
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>{value}</Typography>
+      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
     </Box>
   );
 }
@@ -72,21 +72,21 @@ export default function Payslips() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Payslips</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Payslips</Typography>
       </Box>
 
       <Grid container spacing={2}>
         {/* Periods sidebar */}
         <Grid item xs={12} md={3}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9' }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>Periods</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>Periods</Typography>
             </Box>
             <Box sx={{ maxHeight: 480, overflowY: 'auto' }}>
               {loading ? (
                 <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#6366f1' }} /></Box>
               ) : periods.length === 0 ? (
-                <Box sx={{ py: 4, textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>No periods</Box>
+                <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled', fontSize: '0.875rem' }}>No periods</Box>
               ) : periods.map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
                   sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
@@ -95,7 +95,7 @@ export default function Payslips() {
                   <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : '#0f172a' }}>
                     {p.period_name}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mt: 0.25, textTransform: 'capitalize' }}>{p.status}</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25, textTransform: 'capitalize' }}>{p.status}</Typography>
                 </Box>
               ))}
             </Box>
@@ -104,47 +104,47 @@ export default function Payslips() {
 
         {/* Payslips table */}
         <Grid item xs={12} md={9}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
                 {selectedPeriod ? selectedPeriod.period_name : 'Select a Period'}
               </Typography>
               <TextField
                 placeholder="Search payslips…" value={search} onChange={e => setSearch(e.target.value)} size="small"
                 sx={{ width: 220, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
-                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#94a3b8', fontSize: 18 }} /></InputAdornment> } }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.disabled', fontSize: 18 }} /></InputAdornment> } }}
               />
             </Box>
 
             {!selectedPeriod ? (
-              <Box sx={{ py: 12, textAlign: 'center', color: '#94a3b8' }}>
+              <Box sx={{ py: 12, textAlign: 'center', color: 'text.disabled' }}>
                 <CalendarMonthIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1 }} />
                 <Typography sx={{ fontSize: '0.875rem' }}>Select a period to view payslips</Typography>
               </Box>
             ) : filtered.length === 0 ? (
-              <Box sx={{ py: 12, textAlign: 'center', color: '#94a3b8' }}>
+              <Box sx={{ py: 12, textAlign: 'center', color: 'text.disabled' }}>
                 <ReceiptLongIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1 }} />
                 <Typography sx={{ fontSize: '0.875rem' }}>No payslips generated for this period</Typography>
               </Box>
             ) : (
               <TableContainer>
                 <Table size="small">
-                  <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                  <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>
                       {['Payslip No.', 'Employee', 'Hours', 'Gross', 'Net', 'Status', 'Actions'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {filtered.map(p => (
-                      <TableRow key={p.id} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                      <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                         <TableCell sx={{ ...TD, fontFamily: 'monospace', fontWeight: 600, fontSize: '0.8rem', color: '#6366f1' }}>{p.payslip_number}</TableCell>
                         <TableCell sx={TD}>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.employee_name}</Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{p.employee_id}</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{p.employee_id}</Typography>
                         </TableCell>
                         <TableCell sx={TD}>{p.total_hours}h</TableCell>
-                        <TableCell sx={TD}>{p.currency || 'BDT'} {p.gross_amount?.toLocaleString()}</TableCell>
-                        <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>{p.currency || 'BDT'} {p.net_amount?.toLocaleString()}</TableCell>
+                        <TableCell sx={TD}>{p.currency || ''} {p.gross_amount?.toLocaleString()}</TableCell>
+                        <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>{p.currency || ''} {p.net_amount?.toLocaleString()}</TableCell>
                         <TableCell sx={TD}>
                           <Chip label={p.status} size="small" sx={{
                             bgcolor: p.status === 'paid' ? '#10b98115' : '#6366f115',
@@ -194,21 +194,21 @@ export default function Payslips() {
         <DialogContent>
           {selected && (
             <>
-              <Box sx={{ bgcolor: '#f8fafc', borderRadius: 0, p: 2, mb: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mb: 0.25 }}>Payslip Number</Typography>
+              <Box sx={{ bgcolor: 'action.hover', borderRadius: 0, p: 2, mb: 2 }}>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mb: 0.25 }}>Payslip Number</Typography>
                 <Typography sx={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1.1rem', color: '#6366f1' }}>{selected.payslip_number}</Typography>
               </Box>
               <Divider sx={{ mb: 1.5 }} />
               <InfoRow label="Employee" value={selected.employee_name} />
               <InfoRow label="Period" value={selected.period_name} />
               <InfoRow label="Total Hours" value={`${selected.total_hours}h`} />
-              <InfoRow label="Hourly Rate" value={`${selected.currency || 'BDT'} ${selected.hourly_rate}`} />
-              <InfoRow label="Gross Amount" value={`${selected.currency || 'BDT'} ${selected.gross_amount?.toLocaleString()}`} />
-              <InfoRow label="Deductions" value={`${selected.currency || 'BDT'} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
+              <InfoRow label="Hourly Rate" value={`${selected.currency || ''} ${selected.hourly_rate}`} />
+              <InfoRow label="Gross Amount" value={`${selected.currency || ''} ${selected.gross_amount?.toLocaleString()}`} />
+              <InfoRow label="Deductions" value={`${selected.currency || ''} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
               <Box sx={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', borderRadius: 0, p: 2, mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography sx={{ color: 'white', fontWeight: 600 }}>Net Amount</Typography>
                 <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.4rem' }}>
-                  {selected.currency || 'BDT'} {selected.net_amount?.toLocaleString()}
+                  {selected.currency || ''} {selected.net_amount?.toLocaleString()}
                 </Typography>
               </Box>
             </>

@@ -21,10 +21,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { employeesAPI, wrikeAPI } from '../api';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.5, px: 2 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
 
-const EMPTY_FORM = { employee_id: '', name: '', email: '', department: '', position: '', hourly_rate: 500, currency: 'BDT', wrike_user_id: '', hire_date: '' };
+const EMPTY_FORM = { employee_id: '', name: '', email: '', department: '', position: '', hourly_rate: 500, currency: 'USD', wrike_user_id: '', hire_date: '' };
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -57,7 +57,7 @@ export default function Employees() {
     setForm(emp ? {
       employee_id: emp.employee_id, name: emp.name, email: emp.email,
       department: emp.department || '', position: emp.position || '',
-      hourly_rate: emp.hourly_rate, currency: emp.currency || 'BDT',
+      hourly_rate: emp.hourly_rate, currency: emp.currency || 'USD',
       wrike_user_id: emp.wrike_user_id || '',
       hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : ''
     } : EMPTY_FORM);
@@ -160,7 +160,7 @@ export default function Employees() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Employees</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Employees</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => openModal()}
           sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
           Add Employee
@@ -168,22 +168,22 @@ export default function Employees() {
       </Box>
 
       {/* Search */}
-      <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', mb: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', mb: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <TextField
           placeholder="Search by name, email or ID…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           size="small"
           sx={{ width: 340, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
-          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#94a3b8', fontSize: 20 }} /></InputAdornment> } }}
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.disabled', fontSize: 20 }} /></InputAdornment> } }}
         />
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
         <TableContainer>
           <Table>
-            <TableHead sx={{ bgcolor: '#f8fafc' }}>
+            <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
                 {['Employee', 'Contact', 'Department', 'Rate', 'Wrike', 'Portal', 'Status', 'Actions'].map(h => (
                   <TableCell key={h} sx={TH}>{h}</TableCell>
@@ -194,25 +194,25 @@ export default function Employees() {
               {loading ? (
                 <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>No employees found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
               ) : filtered.map(emp => {
                 const hasPortal = !!emp.portal_user_id;
                 const portalActive = emp.id in portalOverrides ? portalOverrides[emp.id] : !!emp.portal_active;
                 return (
-                  <TableRow key={emp.id} sx={{ '&:hover': { bgcolor: '#f8fafc' }, opacity: emp.is_active ? 1 : 0.6 }}>
+                  <TableRow key={emp.id} sx={{ '&:hover': { bgcolor: 'action.hover' }, opacity: emp.is_active ? 1 : 0.6 }}>
                     <TableCell sx={TD}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Avatar sx={{ width: 34, height: 34, fontSize: '0.8rem', fontWeight: 700, bgcolor: '#6366f115', color: '#6366f1' }}>
                           {emp.name.slice(0, 2).toUpperCase()}
                         </Avatar>
                         <Box>
-                          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>{emp.name}</Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{emp.employee_id}</Typography>
+                          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{emp.name}</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.employee_id}</Typography>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell sx={TD}>{emp.email}</TableCell>
-                    <TableCell sx={TD}>{emp.department || <span style={{ color: '#94a3b8' }}>—</span>}</TableCell>
+                    <TableCell sx={TD}>{emp.department || <span style={{ color: 'text.disabled' }}>—</span>}</TableCell>
                     <TableCell sx={TD}>{emp.currency} {emp.hourly_rate}/hr</TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {emp.wrike_user_id
@@ -223,7 +223,7 @@ export default function Employees() {
                       {hasPortal
                         ? <Chip label={portalActive ? emp.portal_username : 'Revoked'} size="small"
                             sx={{ bgcolor: portalActive ? '#10b98115' : '#ef444415', color: portalActive ? '#10b981' : '#ef4444', fontWeight: 600, fontSize: '0.72rem' }} />
-                        : <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>No account</Typography>}
+                        : <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>No account</Typography>}
                     </TableCell>
                     <TableCell sx={TD}>
                       <Chip label={emp.is_active ? 'Active' : 'Inactive'} size="small"
@@ -283,7 +283,7 @@ export default function Employees() {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField fullWidth label="Wrike User ID" value={form.wrike_user_id} onChange={e => setForm(f => ({ ...f, wrike_user_id: e.target.value }))} placeholder="e.g. ABCDE123" size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
                 <Button variant="outlined" startIcon={loadingContacts ? <CircularProgress size={14} /> : <LinkIcon />} onClick={handleLookupWrike} disabled={loadingContacts}
-                  sx={{ whiteSpace: 'nowrap', borderRadius: '10px', textTransform: 'none', borderColor: '#e2e8f0', color: '#475569', minWidth: 140 }}>
+                  sx={{ whiteSpace: 'nowrap', borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', minWidth: 140 }}>
                   Find in Wrike
                 </Button>
               </Box>
@@ -296,9 +296,9 @@ export default function Employees() {
                   <Box sx={{ overflowY: 'auto' }}>
                     {filteredContacts.map(c => (
                       <Box key={c.id} onClick={() => { setForm(f => ({ ...f, wrike_user_id: c.id })); setShowContactPicker(false); toast.success(`Linked to ${c.firstName} ${c.lastName}`); }}
-                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(99,102,241,0.07)' : 'transparent', '&:hover': { bgcolor: '#f8fafc' }, borderBottom: '1px solid #f1f5f9' }}>
+                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(99,102,241,0.07)' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, borderBottom: '1px solid #f1f5f9' }}>
                         <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{c.firstName} {c.lastName}</Typography>
-                        <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{c.profiles?.[0]?.email || '—'} · {c.id}</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{c.profiles?.[0]?.email || '—'} · {c.id}</Typography>
                       </Box>
                     ))}
                   </Box>
@@ -334,8 +334,8 @@ export default function Employees() {
             { label: 'Username', value: portalCreds?.username },
             { label: portalCreds?.isReset ? 'New Password' : 'Temp Password', value: portalCreds?.tempPassword || portalCreds?.newPassword },
           ].map(({ label, value }) => (
-            <Box key={label} sx={{ bgcolor: '#f8fafc', borderRadius: 0, p: 1.5, mb: 1 }}>
-              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mb: 0.5 }}>{label}</Typography>
+            <Box key={label} sx={{ bgcolor: 'action.hover', borderRadius: 0, p: 1.5, mb: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mb: 0.5 }}>{label}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem', flex: 1 }}>{value}</Typography>
                 <IconButton size="small" onClick={() => { navigator.clipboard.writeText(value); toast.success('Copied'); }}>

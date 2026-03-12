@@ -22,8 +22,8 @@ import { timesheetAPI } from '../api';
 
 const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', pending_approval: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
 const STATUS_OPTIONS = ['open', 'processing', 'pending_approval', 'approved', 'rejected', 'paid'];
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.25, px: 2 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function StatusChip({ status }) {
   const color = STATUS_COLORS[status] || '#6366f1';
@@ -32,10 +32,10 @@ function StatusChip({ status }) {
 
 function MiniStat({ icon, label, value, color }) {
   return (
-    <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 0, bgcolor: '#f8fafc' }}>
+    <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 0, bgcolor: 'action.hover' }}>
       {React.cloneElement(icon, { sx: { fontSize: 22, color, mb: 0.5 } })}
-      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</Typography>
-      <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', mt: 0.25 }}>{label}</Typography>
+      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>{value}</Typography>
+      <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.25 }}>{label}</Typography>
     </Box>
   );
 }
@@ -175,7 +175,7 @@ export default function Periods() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Pay Periods</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Pay Periods</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowCreateModal(true)}
           sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
           New Period
@@ -185,15 +185,15 @@ export default function Periods() {
       <Grid container spacing={2}>
         {/* Periods list */}
         <Grid item xs={12} md={4}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9' }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>All Periods</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>All Periods</Typography>
             </Box>
             <Box sx={{ maxHeight: 520, overflowY: 'auto' }}>
               {loading ? (
                 <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}><CircularProgress size={28} sx={{ color: '#6366f1' }} /></Box>
               ) : periods.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: 'center', color: '#94a3b8' }}>
+                <Box sx={{ py: 6, textAlign: 'center', color: 'text.disabled' }}>
                   <CalendarMonthIcon sx={{ fontSize: 40, opacity: 0.3, mb: 1 }} />
                   <Typography sx={{ fontSize: '0.875rem' }}>No periods yet</Typography>
                   <Button size="small" startIcon={<AddIcon />} onClick={() => setShowCreateModal(true)}
@@ -209,19 +209,19 @@ export default function Periods() {
                       <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {p.period_name}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mt: 0.25 }}>
+                      <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
                         {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
                       <StatusChip status={p.status} />
                       <Tooltip title="Edit">
-                        <IconButton size="small" onClick={(e) => openEdit(p, e)} sx={{ color: '#94a3b8', '&:hover': { color: '#6366f1', bgcolor: '#6366f108' }, p: 0.4 }}>
+                        <IconButton size="small" onClick={(e) => openEdit(p, e)} sx={{ color: 'text.disabled', '&:hover': { color: '#6366f1', bgcolor: '#6366f108' }, p: 0.4 }}>
                           <EditIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" onClick={(e) => openDelete(p, e)} sx={{ color: '#94a3b8', '&:hover': { color: '#ef4444', bgcolor: '#ef444408' }, p: 0.4 }}>
+                        <IconButton size="small" onClick={(e) => openDelete(p, e)} sx={{ color: 'text.disabled', '&:hover': { color: '#ef4444', bgcolor: '#ef444408' }, p: 0.4 }}>
                           <DeleteOutlineIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
@@ -235,9 +235,9 @@ export default function Periods() {
 
         {/* Period detail */}
         <Grid item xs={12} md={8}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
             {!selectedPeriod ? (
-              <Box sx={{ py: 12, textAlign: 'center', color: '#94a3b8' }}>
+              <Box sx={{ py: 12, textAlign: 'center', color: 'text.disabled' }}>
                 <CalendarMonthIcon sx={{ fontSize: 56, opacity: 0.2, mb: 1.5 }} />
                 <Typography sx={{ fontWeight: 600, mb: 0.5 }}>Select a Period</Typography>
                 <Typography sx={{ fontSize: '0.875rem' }}>Choose a period from the list to view details</Typography>
@@ -247,18 +247,18 @@ export default function Periods() {
                 {/* Detail header */}
                 <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{selectedPeriod.period_name}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>{selectedPeriod.period_name}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>
                       {new Date(selectedPeriod.start_date).toLocaleDateString()} – {new Date(selectedPeriod.end_date).toLocaleDateString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button variant="outlined" size="small" startIcon={<EditIcon />} onClick={(e) => openEdit(selectedPeriod, e)}
-                      sx={{ borderRadius: '2px', textTransform: 'none', fontSize: '0.8rem', borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                      sx={{ borderRadius: '2px', textTransform: 'none', fontSize: '0.8rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
                       Edit
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={() => handleProcess(selectedPeriod.id)}
-                      sx={{ borderRadius: '2px', textTransform: 'none', fontSize: '0.8rem', borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                      sx={{ borderRadius: '2px', textTransform: 'none', fontSize: '0.8rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
                       Process
                     </Button>
                   </Box>
@@ -277,24 +277,24 @@ export default function Periods() {
                 {/* Summaries table */}
                 <TableContainer>
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                    <TableHead sx={{ bgcolor: 'action.hover' }}>
                       <TableRow>
                         {['Employee', 'Hours', 'Gross', 'Status', 'Actions'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {summaries.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 5, color: '#94a3b8', fontSize: '0.875rem' }}>
+                        <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 5, color: 'text.disabled', fontSize: '0.875rem' }}>
                           No summaries yet. Process the period to generate timesheets.
                         </TableCell></TableRow>
                       ) : summaries.map(s => (
-                        <TableRow key={s.id} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                        <TableRow key={s.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                           <TableCell sx={TD}>
                             <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.employee_name}</Typography>
-                            <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{s.employee_id}</Typography>
+                            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{s.employee_id}</Typography>
                           </TableCell>
                           <TableCell sx={TD}>{s.total_hours}h</TableCell>
-                          <TableCell sx={TD}>{s.currency || 'BDT'} {s.gross_amount?.toLocaleString()}</TableCell>
+                          <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                           <TableCell sx={TD}><StatusChip status={s.approval_status} /></TableCell>
                           <TableCell sx={TD}>
                             <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -350,14 +350,14 @@ export default function Periods() {
               </Grid>
             </Grid>
             {createDuration && (
-              <Box sx={{ bgcolor: '#f8fafc', px: 2, py: 1.25 }}>
+              <Box sx={{ bgcolor: 'action.hover', px: 2, py: 1.25 }}>
                 <Typography sx={{ fontSize: '0.875rem', color: '#6366f1', fontWeight: 600 }}>Duration: {createDuration} day{createDuration !== 1 ? 's' : ''}</Typography>
               </Box>
             )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowCreateModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={() => setShowCreateModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleCreate} variant="contained" disabled={createSaving}
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', minWidth: 120 }}>
             {createSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Create Period'}
@@ -399,14 +399,14 @@ export default function Periods() {
               </Select>
             </FormControl>
             {editDuration && (
-              <Box sx={{ bgcolor: '#f8fafc', px: 2, py: 1.25 }}>
+              <Box sx={{ bgcolor: 'action.hover', px: 2, py: 1.25 }}>
                 <Typography sx={{ fontSize: '0.875rem', color: '#6366f1', fontWeight: 600 }}>Duration: {editDuration} day{editDuration !== 1 ? 's' : ''}</Typography>
               </Box>
             )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowEditModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={() => setShowEditModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleEdit} variant="contained" disabled={editSaving}
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', minWidth: 100 }}>
             {editSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Changes'}
@@ -419,7 +419,7 @@ export default function Periods() {
         slotProps={{ paper: { sx: { borderRadius: '4px' } } }}>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Delete Period?</DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: '#475569', fontSize: '0.875rem' }}>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
             Are you sure you want to delete <strong>{deleteTarget?.period_name}</strong>?
           </Typography>
           <Typography sx={{ color: '#ef4444', fontSize: '0.8rem', mt: 1 }}>
@@ -427,7 +427,7 @@ export default function Periods() {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteTarget(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={() => setDeleteTarget(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleDelete} variant="contained" disabled={deleteLoading}
             sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' }, minWidth: 100 }}>
             {deleteLoading ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Delete'}

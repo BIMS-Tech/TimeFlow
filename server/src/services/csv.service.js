@@ -19,7 +19,7 @@ class CsvService {
     const fileName = `Timesheet_${safeName}_${safePeriod}_${Date.now()}.csv`;
     const filePath = path.join(uploadsDir, fileName);
 
-    const currency = employee.currency || process.env.CURRENCY || 'BDT';
+    const currency = employee.currency || process.env.CURRENCY || '';
     const lines = [];
 
     // ── Header block ──────────────────────────────────────────────────────────

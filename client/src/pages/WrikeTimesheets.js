@@ -41,8 +41,8 @@ function formatCurrency(amount, currency) {
   return `${sym}${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 1.5 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.5, px: 1.5 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 1.5 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 1.5 };
 
 export default function WrikeTimesheets() {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date().toISOString().split('T')[0]));
@@ -102,7 +102,7 @@ export default function WrikeTimesheets() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Wrike Timesheets</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Wrike Timesheets</Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>All Employees</InputLabel>
@@ -117,7 +117,7 @@ export default function WrikeTimesheets() {
             </Select>
           </FormControl>
           <Button variant="outlined" onClick={() => setWeekStart(getMondayOf(new Date().toISOString().split('T')[0]))}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
             This Week
           </Button>
           <Button variant="contained" startIcon={importing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
@@ -127,7 +127,7 @@ export default function WrikeTimesheets() {
           </Button>
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
-              sx={{ border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+              sx={{ border: '1px solid #e2e8f0', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
               <RefreshIcon sx={{ fontSize: 18, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             </IconButton>
           </Tooltip>
@@ -135,14 +135,14 @@ export default function WrikeTimesheets() {
       </Box>
 
       {/* Week navigator */}
-      <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <IconButton onClick={() => setWeekStart(p => addDays(p, -7))} size="small"
           sx={{ border: '1px solid #e2e8f0', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
         <Box sx={{ textAlign: 'center', flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a' }}>{weekLabel}</Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', mt: 0.25 }}>Week of {weekStart}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>{weekLabel}</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>Week of {weekStart}</Typography>
         </Box>
         <IconButton onClick={() => setWeekStart(p => addDays(p, 7))} size="small"
           sx={{ border: '1px solid #e2e8f0', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
@@ -163,7 +163,7 @@ export default function WrikeTimesheets() {
 
       {/* Loading */}
       {loading && (
-        <Paper elevation={0} sx={{ p: 6, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', color: '#94a3b8' }}>
+        <Paper elevation={0} sx={{ p: 6, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
           <CircularProgress size={32} sx={{ color: '#6366f1', mb: 2 }} />
           <Typography sx={{ fontSize: '0.875rem' }}>Fetching timelogs from Wrike…</Typography>
         </Paper>
@@ -171,16 +171,16 @@ export default function WrikeTimesheets() {
 
       {/* Table */}
       {!loading && visibleData.length > 0 && (
-        <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
           <TableContainer>
             <Table size="small">
-              <TableHead sx={{ bgcolor: '#f8fafc' }}>
+              <TableHead sx={{ bgcolor: 'action.hover' }}>
                 <TableRow>
                   <TableCell sx={{ ...TH, minWidth: 180 }}>Employee</TableCell>
                   {days.map((d, i) => (
                     <TableCell key={d} sx={{ ...TH, textAlign: 'center', minWidth: 72 }}>
                       <div>{DAY_LABELS[i]}</div>
-                      <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
+                      <div style={{ fontWeight: 400, color: 'text.disabled', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
                     </TableCell>
                   ))}
                   <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>Total</TableCell>
@@ -195,10 +195,10 @@ export default function WrikeTimesheets() {
                   const expanded = expandedRows[emp.id];
                   return (
                     <React.Fragment key={emp.id}>
-                      <TableRow sx={{ opacity: emp.is_active ? 1 : 0.5, '&:hover': { bgcolor: '#f8fafc' } }}>
+                      <TableRow sx={{ opacity: emp.is_active ? 1 : 0.5, '&:hover': { bgcolor: 'action.hover' } }}>
                         <TableCell sx={TD}>
-                          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>{emp.name}</Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{emp.department || emp.employee_id}</Typography>
+                          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{emp.name}</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.department || emp.employee_id}</Typography>
                           {!emp.wrike_user_id && <Typography sx={{ fontSize: '0.65rem', color: '#f59e0b', mt: 0.25 }}>No Wrike ID linked</Typography>}
                         </TableCell>
                         {days.map(d => {
@@ -222,13 +222,13 @@ export default function WrikeTimesheets() {
                           <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : '#94a3b8', fontSize: '0.875rem' }}>
                             {hasLogs ? formatCurrency(row.pay, emp.currency) : '—'}
                           </Typography>
-                          <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
                             {CURRENCY_SYMBOLS[emp.currency] || emp.currency}{emp.hourly_rate}/hr
                           </Typography>
                         </TableCell>
                         <TableCell sx={TD}>
                           {row.taskDetails?.length > 0 && (
-                            <IconButton size="small" onClick={() => toggleRow(emp.id)} sx={{ color: '#94a3b8' }}>
+                            <IconButton size="small" onClick={() => toggleRow(emp.id)} sx={{ color: 'text.disabled' }}>
                               {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
                             </IconButton>
                           )}
@@ -236,13 +236,13 @@ export default function WrikeTimesheets() {
                       </TableRow>
                       {expanded && row.taskDetails?.length > 0 && (
                         <TableRow>
-                          <TableCell colSpan={days.length + 4} sx={{ p: 0, bgcolor: '#f8fafc' }}>
+                          <TableCell colSpan={days.length + 4} sx={{ p: 0, bgcolor: 'action.hover' }}>
                             <Box sx={{ px: 3, py: 1.5 }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
                                     {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => (
-                                      <TableCell key={h} sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', py: 0.75, textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>
+                                      <TableCell key={h} sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.disabled', py: 0.75, textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>
                                     ))}
                                   </TableRow>
                                 </TableHead>
@@ -251,7 +251,7 @@ export default function WrikeTimesheets() {
                                     <TableRow key={i}>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, whiteSpace: 'nowrap' }}>{fmtDay(t.date)}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: '#6366f1', maxWidth: 200 }}>{t.taskTitle}</TableCell>
-                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: '#94a3b8', maxWidth: 200 }}>{t.comment || '—'}</TableCell>
+                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: 'text.disabled', maxWidth: 200 }}>{t.comment || '—'}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, fontWeight: 700, textAlign: 'right' }}>{t.hours.toFixed(2)}h</TableCell>
                                     </TableRow>
                                   ))}
@@ -274,7 +274,7 @@ export default function WrikeTimesheets() {
                     return <TableCell key={d} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{dt > 0 ? `${dt.toFixed(1)}h` : '—'}</TableCell>;
                   })}
                   <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{totalHours.toFixed(1)}h</TableCell>
-                  <TableCell colSpan={2} sx={{ ...TD, textAlign: 'right', color: '#94a3b8', fontSize: '0.8rem' }}>Mixed currencies</TableCell>
+                  <TableCell colSpan={2} sx={{ ...TD, textAlign: 'right', color: 'text.disabled', fontSize: '0.8rem' }}>Mixed currencies</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -283,9 +283,9 @@ export default function WrikeTimesheets() {
       )}
 
       {!loading && !error && visibleData.length === 0 && (
-        <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', color: '#94a3b8' }}>
+        <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
           <PeopleIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
-          <Typography sx={{ fontWeight: 600, mb: 0.5, color: '#475569' }}>No timesheet data</Typography>
+          <Typography sx={{ fontWeight: 600, mb: 0.5, color: 'text.secondary' }}>No timesheet data</Typography>
           <Typography sx={{ fontSize: '0.875rem' }}>
             {selectedEmpId ? 'No hours logged for this employee this week.' : 'No employees have a Wrike user ID linked, or no time was logged this week.'}
           </Typography>

@@ -265,26 +265,38 @@ class TimeEntriesSummary {
   }
 
   /**
-   * Get statistics
+   * Get statistics (counts + total hours, currency-neutral)
    */
   static async getStatistics(periodId = null) {
     let sql = `
-      SELECT 
+      SELECT
         COUNT(*) as total_summaries,
         SUM(total_hours) as total_hours,
-        SUM(gross_amount) as total_gross,
         SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) as approved_count,
         SUM(CASE WHEN approval_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
         SUM(CASE WHEN approval_status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
       FROM time_entries_summary
     `;
-    
     if (periodId) {
       sql += ' WHERE period_id = ?';
       return db.getOne(sql, [periodId]);
     }
-    
     return db.getOne(sql);
+  }
+
+  /**
+   * Get gross amounts grouped by currency
+   */
+  static async getGrossByCurrency(periodId = null) {
+    let sql = `
+      SELECT e.currency, SUM(tes.gross_amount) as total_gross
+      FROM time_entries_summary tes
+      JOIN employees e ON tes.employee_id = e.id
+    `;
+    const params = [];
+    if (periodId) { sql += ' WHERE tes.period_id = ?'; params.push(periodId); }
+    sql += ' GROUP BY e.currency ORDER BY e.currency';
+    return db.query(sql, params);
   }
 
   /**

@@ -188,23 +188,34 @@ class Payslip {
    */
   static async getStatistics(periodId = null) {
     let sql = `
-      SELECT 
+      SELECT
         COUNT(*) as total_payslips,
-        SUM(gross_amount) as total_gross,
-        SUM(net_amount) as total_net,
         SUM(CASE WHEN status = 'generated' THEN 1 ELSE 0 END) as generated_count,
         SUM(CASE WHEN status = 'uploaded' THEN 1 ELSE 0 END) as uploaded_count,
         SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent_count,
         SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count
       FROM payslips
     `;
-    
     if (periodId) {
       sql += ' WHERE period_id = ?';
       return db.getOne(sql, [periodId]);
     }
-    
     return db.getOne(sql);
+  }
+
+  /**
+   * Get net amounts grouped by currency
+   */
+  static async getNetByCurrency(periodId = null) {
+    let sql = `
+      SELECT e.currency, SUM(p.net_amount) as total_net
+      FROM payslips p
+      JOIN employees e ON p.employee_id = e.id
+    `;
+    const params = [];
+    if (periodId) { sql += ' WHERE p.period_id = ?'; params.push(periodId); }
+    sql += ' GROUP BY e.currency ORDER BY e.currency';
+    return db.query(sql, params);
   }
 
   /**

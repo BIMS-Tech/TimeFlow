@@ -73,8 +73,8 @@ function Steps({ current }) {
 }
 
 const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', pending_approval: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
-const TD = { fontSize: '0.875rem', color: '#1e293b', py: 1.25, px: 2 };
+const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 export default function TimesheetGenerator() {
   const [employees, setEmployees] = useState([]);
@@ -160,10 +160,10 @@ export default function TimesheetGenerator() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Generate Timesheet</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Generate Timesheet</Typography>
         {(selectedEmp || preview) && (
           <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={handleReset}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
             Start Over
           </Button>
         )}
@@ -177,7 +177,7 @@ export default function TimesheetGenerator() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
             {/* Employee select */}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                 <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <PeopleIcon sx={{ fontSize: 14, color: '#6366f1' }} />
@@ -197,8 +197,8 @@ export default function TimesheetGenerator() {
               )}
               {selectedEmp && (
                 <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#6366f108', borderRadius: 0 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>{selectedEmp.name}</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mt: 0.25 }}>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{selectedEmp.name}</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
                     {selectedEmp.employee_id} · {selectedEmp.department || 'No dept'} · {currency} {selectedEmp.hourly_rate}/hr
                   </Typography>
                 </Box>
@@ -206,7 +206,7 @@ export default function TimesheetGenerator() {
             </Paper>
 
             {/* Period select */}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: selectedEmp ? 1 : 0.5, pointerEvents: selectedEmp ? 'auto' : 'none' }}>
+            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: selectedEmp ? 1 : 0.5, pointerEvents: selectedEmp ? 'auto' : 'none' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -222,7 +222,7 @@ export default function TimesheetGenerator() {
 
               {periodsLoading ? <CircularProgress size={20} sx={{ color: '#6366f1' }} /> : periods.length === 0 ? (
                 <Box sx={{ py: 2, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '0.875rem', color: '#94a3b8', mb: 1 }}>No pay periods created yet.</Typography>
+                  <Typography sx={{ fontSize: '0.875rem', color: 'text.disabled', mb: 1 }}>No pay periods created yet.</Typography>
                   <Button variant="outlined" size="small" component={Link} to="/periods" startIcon={<AddIcon />}
                     sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1' }}>
                     Create a Period
@@ -244,7 +244,7 @@ export default function TimesheetGenerator() {
                       <MenuItem key={p.id} value={p.id}>
                         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                           <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>{p.period_name}</Typography>
-                          <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
                             {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}
                           </Typography>
                         </Box>
@@ -257,8 +257,8 @@ export default function TimesheetGenerator() {
               {selectedPeriod && (
                 <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#6366f108', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>{selectedPeriod.period_name}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mt: 0.25 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{selectedPeriod.period_name}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
                       {fmtDate(startDate)} – {fmtDate(endDate)}
                     </Typography>
                   </Box>
@@ -324,53 +324,53 @@ export default function TimesheetGenerator() {
                   { icon: <ReceiptLongIcon />, label: 'Gross Pay', value: fmt(preview.grossAmount, currency), color: '#10b981' },
                 ].map(c => (
                   <Grid item xs={4} key={c.label}>
-                    <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: c.color }}>
                         {React.cloneElement(c.icon, { sx: { fontSize: 18 } })}
                         <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.label}</Typography>
                       </Box>
-                      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{c.value}</Typography>
+                      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: 'text.primary' }}>{c.value}</Typography>
                     </Paper>
                   </Grid>
                 ))}
               </Grid>
 
               {/* Period info */}
-              <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
-                    <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mb: 0.25 }}>Period</Typography>
+                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Period</Typography>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmtDate(startDate)} – {fmtDate(endDate)}</Typography>
                   </Grid>
                   <Grid item xs={4}>
-                    <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mb: 0.25 }}>Hourly Rate</Typography>
+                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Hourly Rate</Typography>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
                   </Grid>
                   <Grid item xs={4}>
-                    <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mb: 0.25 }}>Regular Pay</Typography>
+                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Regular Pay</Typography>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
                   </Grid>
                 </Grid>
                 {preview.overtimeHours > 0 && (
                   <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 2, fontSize: '0.875rem' }}>
-                    <Box><Typography component="span" sx={{ color: '#94a3b8', fontSize: '0.8rem' }}>OT Rate </Typography><strong>{fmt(preview.hourlyRate * 1.5, currency)}/hr</strong></Box>
-                    <Box><Typography component="span" sx={{ color: '#94a3b8', fontSize: '0.8rem' }}>OT Pay </Typography><strong>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</strong></Box>
+                    <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Rate </Typography><strong>{fmt(preview.hourlyRate * 1.5, currency)}/hr</strong></Box>
+                    <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Pay </Typography><strong>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</strong></Box>
                   </Box>
                 )}
               </Paper>
 
               {/* Daily breakdown (collapsible) */}
               {dailyEntries.length > 0 && (
-                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                   <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
                     onClick={() => setExpandedDays(v => !v)}>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Daily Breakdown ({dailyEntries.length} days)</Typography>
-                    {expandedDays ? <ExpandLessIcon sx={{ fontSize: 20, color: '#94a3b8' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: '#94a3b8' }} />}
+                    {expandedDays ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
                   </Box>
                   <Collapse in={expandedDays}>
                     <TableContainer>
                       <Table size="small">
-                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                        <TableHead sx={{ bgcolor: 'action.hover' }}>
                           <TableRow>
                             <TableCell sx={TH}>Date</TableCell>
                             <TableCell sx={{ ...TH, textAlign: 'right' }}>Hours</TableCell>
@@ -379,7 +379,7 @@ export default function TimesheetGenerator() {
                         </TableHead>
                         <TableBody>
                           {dailyEntries.map(([date, hours]) => (
-                            <TableRow key={date} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                            <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                               <TableCell sx={TD}>{fmtDay(date)}</TableCell>
                               <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{hours.toFixed(2)}h</TableCell>
                               <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>
@@ -399,7 +399,7 @@ export default function TimesheetGenerator() {
 
               {/* Task details */}
               {sortedTasks.length > 0 && (
-                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                   <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Task Details ({sortedTasks.length} entries)</Typography>
                   </Box>
@@ -407,15 +407,15 @@ export default function TimesheetGenerator() {
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => <TableCell key={h} sx={{ ...TH, bgcolor: '#f8fafc', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>)}
+                          {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => <TableCell key={h} sx={{ ...TH, bgcolor: 'action.hover', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>)}
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {sortedTasks.map((t, i) => (
-                          <TableRow key={i} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                          <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                             <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{fmtDay(t.date)}</TableCell>
                             <TableCell sx={{ ...TD, color: '#6366f1', maxWidth: 200, fontSize: '0.8rem' }}>{t.taskTitle}</TableCell>
-                            <TableCell sx={{ ...TD, color: '#94a3b8', maxWidth: 180, fontSize: '0.8rem' }}>{t.comment || '—'}</TableCell>
+                            <TableCell sx={{ ...TD, color: 'text.disabled', maxWidth: 180, fontSize: '0.8rem' }}>{t.comment || '—'}</TableCell>
                             <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.8rem' }}>{t.hours.toFixed(2)}h</TableCell>
                           </TableRow>
                         ))}
@@ -426,9 +426,9 @@ export default function TimesheetGenerator() {
               )}
 
               {preview.totalHours === 0 && (
-                <Paper elevation={0} sx={{ p: 5, borderRadius: 0, border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', color: '#94a3b8' }}>
+                <Paper elevation={0} sx={{ p: 5, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
                   <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
-                  <Typography sx={{ fontWeight: 600, mb: 0.5, color: '#475569' }}>No hours found</Typography>
+                  <Typography sx={{ fontWeight: 600, mb: 0.5, color: 'text.secondary' }}>No hours found</Typography>
                   <Typography sx={{ fontSize: '0.875rem' }}>
                     No time was logged in Wrike for <strong>{preview.employee.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.
                   </Typography>
