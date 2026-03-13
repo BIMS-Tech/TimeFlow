@@ -186,7 +186,7 @@ export default function Periods() {
         {/* Periods list */}
         <Grid item xs={12} md={4}>
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9' }}>
+            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>All Periods</Typography>
             </Box>
             <Box sx={{ maxHeight: 520, overflowY: 'auto' }}>
@@ -203,10 +203,10 @@ export default function Periods() {
                 </Box>
               ) : periods.map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
-                  sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9', cursor: 'pointer', bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.06)' : 'transparent', transition: 'background 0.15s', '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : '#f8fafc' } }}>
+                  sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer', bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.06)' : 'transparent', transition: 'background 0.15s', '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : 'action.hover' } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                      <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {p.period_name}
                       </Typography>
                       <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
@@ -245,7 +245,7 @@ export default function Periods() {
             ) : (
               <>
                 {/* Detail header */}
-                <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
                     <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>{selectedPeriod.period_name}</Typography>
                     <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>

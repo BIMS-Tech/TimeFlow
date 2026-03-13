@@ -67,7 +67,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
 
   return (
     <>
-      <TableRow sx={{ cursor: 'pointer', bgcolor: expanded ? '#f8faff' : 'white' }} onClick={() => setExpanded(v => !v)}>
+      <TableRow sx={{ cursor: 'pointer', bgcolor: expanded ? 'action.hover' : 'background.paper' }} onClick={() => setExpanded(v => !v)}>
         <TableCell sx={TD}><StatusChip status={ts.approval_status} /></TableCell>
         <TableCell sx={{ ...TD, fontWeight: 600 }}>{ts.period_name}</TableCell>
         <TableCell sx={TD}>{fmt(ts.start_date)} – {fmt(ts.end_date)}</TableCell>
@@ -79,7 +79,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
       </TableRow>
       {expanded && (
         <TableRow>
-          <TableCell colSpan={6} sx={{ p: 0, bgcolor: '#f8faff', borderBottom: '1px solid #e2e8f0' }}>
+          <TableCell colSpan={6} sx={{ p: 0, bgcolor: 'action.hover', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
             <Box sx={{ p: 2.5 }}>
               {/* Detail tiles */}
               <Grid container spacing={1.5} sx={{ mb: 2 }}>
@@ -92,7 +92,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
                   ts.approved_at ? ['Approved On', fmt(ts.approved_at)] : ['Submitted', fmt(ts.created_at)],
                 ].map(([label, val]) => (
                   <Grid item xs={6} sm={4} md={2} key={label}>
-                    <Box sx={{ bgcolor: 'white', border: '1px solid #e2e8f0', p: 1.25 }}>
+                    <Box sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', p: 1.25 }}>
                       <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled', mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'capitalize' }}>{val}</Typography>
                     </Box>
@@ -107,7 +107,7 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <Button size="small" variant="outlined" startIcon={<DownloadIcon />}
                   component="a" href={`${API_BASE}/portal/timesheets/${ts.id}/csv?token=${token}`} rel="noopener noreferrer"
-                  sx={{ borderColor: '#e2e8f0', color: '#475569', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                  sx={{ borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
                   Download CSV
                 </Button>
                 {ts.approval_status === 'pending' && (
@@ -147,14 +147,14 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
     <Box>
       {/* Welcome banner */}
       {employee && (
-        <Paper elevation={0} sx={{ mb: 2.5, border: '1px solid #e2e8f0', borderLeft: '4px solid #6366f1', p: 2.5, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 0 }}>
+        <Paper elevation={0} sx={{ mb: 2.5, border: '1px solid', borderColor: 'divider', borderLeft: '4px solid #6366f1', p: 2.5, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 0 }}>
           <Avatar sx={{ width: 48, height: 48, bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, fontSize: '1rem', borderRadius: '4px' }}>
             {employee.name?.slice(0, 2).toUpperCase()}
           </Avatar>
           <Box>
             <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Welcome back</Typography>
             <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: 'text.primary', lineHeight: 1.2 }}>{employee.name}</Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mt: 0.25 }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.25 }}>
               {employee.employee_id} · {employee.department || 'N/A'} · {employee.position || 'N/A'}
             </Typography>
           </Box>
@@ -170,7 +170,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
           { label: 'Total Hours', value: `${totalHours.toFixed(1)}h`, sub: 'approved periods', color: '#0ea5e9', border: '#0ea5e9' },
         ].map(({ label, value, sub, color, border }) => (
           <Grid item xs={6} sm={3} key={label}>
-            <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderTop: `3px solid ${border}`, p: 2, borderRadius: 0 }}>
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderTop: `3px solid ${border}`, p: 2, borderRadius: 0 }}>
               <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{label}</Typography>
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color, lineHeight: 1 }}>{value}</Typography>
               <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.25 }}>{sub}</Typography>
@@ -198,8 +198,8 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
 
       {/* Recent payslips */}
       {payslips.length > 0 && (
-        <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 0, overflow: 'hidden' }}>
-          <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+          <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Recent Payslips</Typography>
             {payslips.length > 3 && (
               <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('payslips')} sx={{ color: '#6366f1', fontSize: '0.75rem' }}>
@@ -208,7 +208,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
             )}
           </Box>
           {payslips.slice(0, 3).map((p, i) => (
-            <Box key={p.id} sx={{ px: 2.5, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: i < 2 ? '1px solid #f1f5f9' : 'none' }}>
+            <Box key={p.id} sx={{ px: 2.5, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: i < 2 ? '1px solid' : 'none', borderBottomColor: i < 2 ? 'divider' : undefined }}>
               <Box>
                 <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
                 <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: 'monospace' }}>{p.payslip_number}</Typography>
@@ -231,9 +231,9 @@ function TimesheetsSection({ timesheets, currency, onApprove, onReject }) {
   const rejected = timesheets.filter(t => t.approval_status === 'rejected');
 
   if (timesheets.length === 0) return (
-    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
+    <Paper elevation={0} sx={{ p: 8, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
       <DescriptionIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
-      <Typography sx={{ fontWeight: 600, color: '#475569', mb: 0.5 }}>No Timesheets Yet</Typography>
+      <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>No Timesheets Yet</Typography>
       <Typography sx={{ fontSize: '0.875rem' }}>Your manager will send timesheets for your review.</Typography>
     </Paper>
   );
@@ -252,7 +252,7 @@ function TimesheetsSection({ timesheets, currency, onApprove, onReject }) {
             <Box sx={{ width: 3, height: 16, bgcolor: color, borderRadius: 0 }} />
             <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color }}>{label} ({items.length})</Typography>
           </Box>
-          <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 0, overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -277,15 +277,15 @@ function PayslipsSection({ payslips, currency }) {
   const token = localStorage.getItem('token');
 
   if (payslips.length === 0) return (
-    <Paper elevation={0} sx={{ p: 8, border: '1px solid #e2e8f0', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
+    <Paper elevation={0} sx={{ p: 8, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
       <ReceiptLongIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
-      <Typography sx={{ fontWeight: 600, color: '#475569', mb: 0.5 }}>No Payslips Yet</Typography>
+      <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>No Payslips Yet</Typography>
       <Typography sx={{ fontSize: '0.875rem' }}>Payslips are generated after your timesheet is approved.</Typography>
     </Paper>
   );
 
   return (
-    <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 0, overflow: 'hidden' }}>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
       <TableContainer>
         <Table size="small">
           <TableHead>
@@ -295,7 +295,7 @@ function PayslipsSection({ payslips, currency }) {
           </TableHead>
           <TableBody>
             {payslips.map(p => (
-              <TableRow key={p.id} sx={{ '&:hover td': { bgcolor: '#f8faff' } }}>
+              <TableRow key={p.id} sx={{ '&:hover td': { bgcolor: 'action.hover' } }}>
                 <TableCell sx={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem', color: '#6366f1', fontWeight: 600 }}>{p.payslip_number}</TableCell>
                 <TableCell sx={TD}>
                   <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
@@ -347,8 +347,8 @@ function SettingsSection({ user }) {
 
   return (
     <Box sx={{ maxWidth: 440 }}>
-      <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 0, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <KeyIcon sx={{ color: '#6366f1', fontSize: 20 }} />
           <Typography sx={{ fontWeight: 700 }}>Change Password</Typography>
         </Box>
@@ -370,7 +370,7 @@ function SettingsSection({ user }) {
               {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Change Password'}
             </Button>
           </Box>
-          <Typography sx={{ mt: 2, fontSize: '0.75rem', color: 'text.disabled', p: 1.5, bgcolor: '#f8fafc', borderRadius: '4px' }}>
+          <Typography sx={{ mt: 2, fontSize: '0.75rem', color: 'text.disabled', p: 1.5, bgcolor: 'action.hover', borderRadius: '4px' }}>
             Forgot your password? Contact your admin — they can reset it from the Employees page.
           </Typography>
         </Box>
@@ -396,14 +396,14 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
     <Dialog open={!!timesheet} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Reject Timesheet</DialogTitle>
       <DialogContent>
-        <Typography sx={{ color: '#64748b', fontSize: '0.875rem', mb: 2 }}>
+        <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 2 }}>
           Period: <strong>{timesheet?.period_name}</strong>
         </Typography>
         <TextField fullWidth multiline rows={4} label="Reason *" placeholder="Describe the issue or discrepancy…"
           value={reason} onChange={e => setReason(e.target.value)} sx={{ mb: 2 }} />
         <Box>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 1 }}>Supporting files (optional)</Typography>
-          <Box component="label" sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, border: '1px dashed #cbd5e1', cursor: 'pointer', color: '#64748b', fontSize: '0.875rem', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+          <Box component="label" sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, border: '1px dashed #cbd5e1', cursor: 'pointer', color: 'text.secondary', fontSize: '0.875rem', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
             <UploadFileIcon sx={{ fontSize: 18 }} /> Attach files
             <input type="file" multiple hidden onChange={e => setFiles(Array.from(e.target.files))} />
           </Box>
@@ -412,7 +412,7 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
               {files.map((f, i) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.5 }}>
                   <AttachFileIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                  <Typography sx={{ fontSize: '0.8rem', color: '#64748b' }}>{f.name}</Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{f.name}</Typography>
                 </Box>
               ))}
             </Box>
@@ -420,7 +420,7 @@ function RejectDialog({ timesheet, onClose, onConfirm }) {
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button onClick={onClose} sx={{ color: '#64748b' }}>Cancel</Button>
+        <Button onClick={onClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
         <Button variant="contained" startIcon={loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <CancelIcon />}
           onClick={handleSubmit} disabled={loading}
           sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
@@ -480,7 +480,7 @@ export default function EmployeePortal() {
   const initials = employee?.name?.slice(0, 2).toUpperCase() || user?.username?.slice(0, 2).toUpperCase() || 'ME';
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f1f5f9' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Sidebar */}
       <Drawer variant="permanent" sx={{
         width: DRAWER_W, flexShrink: 0,

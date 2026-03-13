@@ -23,8 +23,8 @@ const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function InfoRow({ label, value }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-      <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>{label}</Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>{label}</Typography>
       <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
     </Box>
   );
@@ -116,7 +116,7 @@ export default function PendingApprovals() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Approvals</Typography>
-          <Typography sx={{ color: '#64748b', fontSize: '0.875rem', mt: 0.25 }}>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.25 }}>
             {pending.length} pending · {rejected.length} rejected by employee
           </Typography>
         </Box>
@@ -186,7 +186,7 @@ export default function PendingApprovals() {
                       <TableCell sx={TD}>
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
                           <Tooltip title="View Details"><IconButton size="small" onClick={() => setSelectedSummary(s)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                          <Tooltip title="Resend"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: '#64748b', '&:hover': { bgcolor: '#64748b15' } }}><SendIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                          <Tooltip title="Resend"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#64748b15' } }}><SendIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           <Tooltip title="Approve"><IconButton size="small" onClick={() => handleApprove(s.id)} disabled={processingId === s.id} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}><CheckCircleIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           <Tooltip title="Reject"><IconButton size="small" onClick={() => { setSelectedSummary(s); setRejectReason(''); setShowRejectModal(true); }} disabled={processingId === s.id} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}><CancelIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                         </Box>
@@ -210,7 +210,7 @@ export default function PendingApprovals() {
           </Paper>
         ) : (
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Alert severity="warning" sx={{ borderRadius: 0 }}>
                 These timesheets were <strong>rejected by employees</strong> who found discrepancies. Review the reason, make corrections if needed, then resubmit.
               </Alert>
@@ -280,7 +280,7 @@ export default function PendingApprovals() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <Button onClick={() => setSelectedSummary(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Close</Button>
+          <Button onClick={() => setSelectedSummary(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
           <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => setShowRejectModal(true)}
             sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#ef4444', color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}>
             Reject
@@ -303,7 +303,7 @@ export default function PendingApprovals() {
             sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowRejectModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={() => setShowRejectModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button variant="contained" startIcon={<CancelIcon />} onClick={handleReject}
             sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
             Confirm Rejection
@@ -335,7 +335,7 @@ export default function PendingApprovals() {
               {showRejectionDetail.parsedFiles?.length > 0 && (
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-                    <AttachFileIcon sx={{ fontSize: 16, color: '#64748b' }} />
+                    <AttachFileIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                     <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Attached Files</Typography>
                   </Box>
                   {showRejectionDetail.parsedFiles.map((f, i) => (
@@ -349,7 +349,7 @@ export default function PendingApprovals() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <Button onClick={() => setShowRejectionDetail(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Close</Button>
+          <Button onClick={() => setShowRejectionDetail(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
           <Button variant="outlined" startIcon={<ReplayIcon />}
             onClick={() => { handleResend(showRejectionDetail.id); setShowRejectionDetail(null); }}
             disabled={processingId === showRejectionDetail?.id}

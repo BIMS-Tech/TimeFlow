@@ -160,7 +160,7 @@ export default function Dashboard() {
             </Box>
             <Divider sx={{ mb: 1.5 }} />
             <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', mb: 0.75 }}>Gross Pay by Currency</Typography>
-            {summaries?.grossByCurrency?.length > 0 ? summaries.grossByCurrency.map(({ currency, total_gross }) => (
+            {summaries?.grossByCurrency?.filter(r => r.currency !== 'BDT').length > 0 ? summaries.grossByCurrency.filter(r => r.currency !== 'BDT').map(({ currency, total_gross }) => (
               <Box key={currency} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
                 <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>{currency || 'N/A'}</Typography>
                 <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'text.primary' }}>
@@ -186,7 +186,7 @@ export default function Dashboard() {
             </Box>
             <Divider sx={{ mb: 1.5 }} />
             <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', mb: 0.75 }}>Net Pay by Currency</Typography>
-            {payslips?.netByCurrency?.length > 0 ? payslips.netByCurrency.map(({ currency, total_net }) => (
+            {payslips?.netByCurrency?.filter(r => r.currency !== 'BDT').length > 0 ? payslips.netByCurrency.filter(r => r.currency !== 'BDT').map(({ currency, total_net }) => (
               <Box key={currency} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
                 <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>{currency || 'N/A'}</Typography>
                 <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: '#10b981' }}>

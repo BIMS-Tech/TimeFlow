@@ -127,7 +127,7 @@ export default function WrikeTimesheets() {
           </Button>
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
-              sx={{ border: '1px solid #e2e8f0', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
               <RefreshIcon sx={{ fontSize: 18, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             </IconButton>
           </Tooltip>
@@ -137,7 +137,7 @@ export default function WrikeTimesheets() {
       {/* Week navigator */}
       <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <IconButton onClick={() => setWeekStart(p => addDays(p, -7))} size="small"
-          sx={{ border: '1px solid #e2e8f0', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
         <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -145,7 +145,7 @@ export default function WrikeTimesheets() {
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>Week of {weekStart}</Typography>
         </Box>
         <IconButton onClick={() => setWeekStart(p => addDays(p, 7))} size="small"
-          sx={{ border: '1px solid #e2e8f0', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronRightIcon fontSize="small" />
         </IconButton>
         <Chip icon={<AccessTimeIcon />} label={`${totalHours.toFixed(1)}h total`} size="small"
@@ -180,7 +180,7 @@ export default function WrikeTimesheets() {
                   {days.map((d, i) => (
                     <TableCell key={d} sx={{ ...TH, textAlign: 'center', minWidth: 72 }}>
                       <div>{DAY_LABELS[i]}</div>
-                      <div style={{ fontWeight: 400, color: 'text.disabled', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
+                      <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
                     </TableCell>
                   ))}
                   <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>Total</TableCell>
@@ -219,7 +219,7 @@ export default function WrikeTimesheets() {
                           {row.totalHours.toFixed(1)}h
                         </TableCell>
                         <TableCell sx={{ ...TD, textAlign: 'right' }}>
-                          <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : '#94a3b8', fontSize: '0.875rem' }}>
+                          <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : 'text.disabled', fontSize: '0.875rem' }}>
                             {hasLogs ? formatCurrency(row.pay, emp.currency) : '—'}
                           </Typography>
                           <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
@@ -267,7 +267,7 @@ export default function WrikeTimesheets() {
               </TableBody>
               {/* Footer totals */}
               <TableBody>
-                <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ ...TD, fontWeight: 700 }}>Totals</TableCell>
                   {days.map(d => {
                     const dt = visibleData.reduce((s, r) => s + (r.dailyHours?.[d] || 0), 0);

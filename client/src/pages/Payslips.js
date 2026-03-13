@@ -19,8 +19,8 @@ const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function InfoRow({ label, value }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-      <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>{label}</Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>{label}</Typography>
       <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
     </Box>
   );
@@ -79,7 +79,7 @@ export default function Payslips() {
         {/* Periods sidebar */}
         <Grid item xs={12} md={3}>
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9' }}>
+            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>Periods</Typography>
             </Box>
             <Box sx={{ maxHeight: 480, overflowY: 'auto' }}>
@@ -89,10 +89,10 @@ export default function Payslips() {
                 <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled', fontSize: '0.875rem' }}>No periods</Box>
               ) : periods.map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
-                  sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                  sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer',
                     bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.06)' : 'transparent',
-                    '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : '#f8fafc' } }}>
-                  <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : '#0f172a' }}>
+                    '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : 'action.hover' } }}>
+                  <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : 'text.primary' }}>
                     {p.period_name}
                   </Typography>
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25, textTransform: 'capitalize' }}>{p.status}</Typography>
@@ -105,7 +105,7 @@ export default function Payslips() {
         {/* Payslips table */}
         <Grid item xs={12} md={9}>
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
                 {selectedPeriod ? selectedPeriod.period_name : 'Select a Period'}
               </Typography>
@@ -215,7 +215,7 @@ export default function Payslips() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setSelected(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Close</Button>
+          <Button onClick={() => setSelected(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
           {selected?.drive_file_url && (
             <Button variant="contained" startIcon={<OpenInNewIcon />} component="a" href={selected.drive_file_url} target="_blank" rel="noopener noreferrer"
               sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>

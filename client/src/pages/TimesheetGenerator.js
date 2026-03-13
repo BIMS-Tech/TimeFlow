@@ -44,12 +44,12 @@ function StepBubble({ num, label, active, done }) {
         width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 700, fontSize: '0.85rem', flexShrink: 0, transition: 'all 0.2s',
         background: done ? '#10b981' : active ? 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' : '#e2e8f0',
-        color: done || active ? 'white' : '#94a3b8',
+        color: done || active ? 'white' : 'text.disabled',
         boxShadow: active ? '0 4px 12px rgba(99,102,241,0.4)' : 'none',
       }}>
         {done ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : num}
       </Box>
-      <Typography sx={{ fontSize: '0.68rem', mt: 0.5, fontWeight: active ? 700 : 400, color: active ? '#6366f1' : done ? '#10b981' : '#94a3b8', whiteSpace: 'nowrap' }}>
+      <Typography sx={{ fontSize: '0.68rem', mt: 0.5, fontWeight: active ? 700 : 400, color: active ? '#6366f1' : done ? '#10b981' : 'text.disabled', whiteSpace: 'nowrap' }}>
         {label}
       </Typography>
     </Box>
@@ -352,7 +352,7 @@ export default function TimesheetGenerator() {
                   </Grid>
                 </Grid>
                 {preview.overtimeHours > 0 && (
-                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 2, fontSize: '0.875rem' }}>
+                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 2, fontSize: '0.875rem' }}>
                     <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Rate </Typography><strong>{fmt(preview.hourlyRate * 1.5, currency)}/hr</strong></Box>
                     <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Pay </Typography><strong>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</strong></Box>
                   </Box>
@@ -385,7 +385,7 @@ export default function TimesheetGenerator() {
                               <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>
                             </TableRow>
                           ))}
-                          <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                          <TableRow sx={{ bgcolor: 'action.hover' }}>
                             <TableCell sx={{ ...TD, fontWeight: 700 }}>Total</TableCell>
                             <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700 }}>{preview.totalHours}h</TableCell>
                             <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>
@@ -400,7 +400,7 @@ export default function TimesheetGenerator() {
               {/* Task details */}
               {sortedTasks.length > 0 && (
                 <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
+                  <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Task Details ({sortedTasks.length} entries)</Typography>
                   </Box>
                   <TableContainer sx={{ maxHeight: 320 }}>

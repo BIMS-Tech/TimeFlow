@@ -212,7 +212,7 @@ export default function Employees() {
                       </Box>
                     </TableCell>
                     <TableCell sx={TD}>{emp.email}</TableCell>
-                    <TableCell sx={TD}>{emp.department || <span style={{ color: 'text.disabled' }}>—</span>}</TableCell>
+                    <TableCell sx={TD}>{emp.department || <span style={{ color: '#94a3b8' }}>—</span>}</TableCell>
                     <TableCell sx={TD}>{emp.currency} {emp.hourly_rate}/hr</TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {emp.wrike_user_id
@@ -235,7 +235,7 @@ export default function Employees() {
                         <Tooltip title={emp.is_active ? 'Deactivate' : 'Activate'}><IconButton size="small" onClick={() => handleToggleActive(emp)} sx={{ color: emp.is_active ? '#f59e0b' : '#10b981', '&:hover': { bgcolor: emp.is_active ? '#f59e0b15' : '#10b98115' } }}>{emp.is_active ? <PersonOffIcon sx={{ fontSize: 16 }} /> : <PersonIcon sx={{ fontSize: 16 }} />}</IconButton></Tooltip>
                         {!hasPortal && <Tooltip title="Create portal account"><IconButton size="small" onClick={() => handleCreatePortal(emp)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
                         {hasPortal && <>
-                          <Tooltip title="Reset password"><IconButton size="small" onClick={() => handleResetPassword(emp)} sx={{ color: '#64748b', '&:hover': { bgcolor: '#64748b15' } }}><KeyIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                          <Tooltip title="Reset password"><IconButton size="small" onClick={() => handleResetPassword(emp)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#64748b15' } }}><KeyIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           {portalActive
                             ? <Tooltip title="Revoke access"><IconButton size="small" onClick={() => handleRevokeAccess(emp)} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}><ShieldOutlinedIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                             : <Tooltip title="Restore access"><IconButton size="small" onClick={() => handleRestoreAccess(emp)} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
@@ -272,7 +272,6 @@ export default function Employees() {
               <FormControl fullWidth size="small">
                 <InputLabel>Currency</InputLabel>
                 <Select label="Currency" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} sx={{ borderRadius: '10px' }}>
-                  <MenuItem value="BDT">BDT ৳</MenuItem>
                   <MenuItem value="USD">USD $</MenuItem>
                   <MenuItem value="PHP">PHP ₱</MenuItem>
                 </Select>
@@ -290,13 +289,13 @@ export default function Employees() {
               {/* Wrike contact picker */}
               {showContactPicker && filteredContacts.length > 0 && (
                 <Paper elevation={3} sx={{ mt: 1, borderRadius: 0, maxHeight: 220, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ p: 1, borderBottom: '1px solid #f1f5f9' }}>
+                  <Box sx={{ p: 1, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                     <TextField fullWidth placeholder="Search contacts…" value={contactSearch} onChange={e => setContactSearch(e.target.value)} size="small" autoFocus sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '0.85rem' } }} />
                   </Box>
                   <Box sx={{ overflowY: 'auto' }}>
                     {filteredContacts.map(c => (
                       <Box key={c.id} onClick={() => { setForm(f => ({ ...f, wrike_user_id: c.id })); setShowContactPicker(false); toast.success(`Linked to ${c.firstName} ${c.lastName}`); }}
-                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(99,102,241,0.07)' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, borderBottom: '1px solid #f1f5f9' }}>
+                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(99,102,241,0.07)' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                         <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{c.firstName} {c.lastName}</Typography>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{c.profiles?.[0]?.email || '—'} · {c.id}</Typography>
                       </Box>
@@ -313,7 +312,7 @@ export default function Employees() {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeModal} sx={{ borderRadius: '10px', textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={closeModal} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained" disabled={saving}
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', minWidth: 100 }}>
             {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : editing ? 'Update' : 'Create'}
@@ -327,7 +326,7 @@ export default function Employees() {
           {portalCreds?.isReset ? 'New Credentials' : 'Portal Account Created'}
         </DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: '#64748b', fontSize: '0.875rem', mb: 2 }}>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 2 }}>
             {portalCreds?.isReset ? 'Password has been reset. Share with the employee.' : 'Portal login created. Share with the employee.'}
           </Typography>
           {[
