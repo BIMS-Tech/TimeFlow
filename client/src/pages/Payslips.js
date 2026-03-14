@@ -34,7 +34,7 @@ export default function Payslips() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => { fetchPeriods(); }, []);
+  useEffect(() => { fetchPeriods(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchPeriods = async () => {
     try {
