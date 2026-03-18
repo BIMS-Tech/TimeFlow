@@ -201,6 +201,24 @@ router.post('/timesheet/entries/bulk', timesheetController.bulkImportEntries.bin
  */
 router.get('/timesheet/payslips/:id', timesheetController.getPayslip.bind(timesheetController));
 
+/**
+ * @route GET /api/timesheet/payslips/:id/pdf
+ * @desc Download payslip PDF file
+ */
+router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF.bind(timesheetController));
+
+/**
+ * @route POST /api/timesheet/bulk-generate-payslips
+ * @desc Bulk approve & generate payslips for a period (all or selected employees)
+ */
+router.post('/timesheet/bulk-generate-payslips', timesheetController.bulkGeneratePayslips.bind(timesheetController));
+
+/**
+ * @route GET /api/payroll/bank-file
+ * @desc Generate bank transfer file for a period (?periodId=X&type=local|foreign)
+ */
+router.get('/payroll/bank-file', timesheetController.generateBankFile.bind(timesheetController));
+
 // ============================================
 // EMPLOYEE ROUTES
 // ============================================
@@ -351,6 +369,7 @@ router.post('/webhooks/test', webhookController.testWebhook.bind(webhookControll
 // ============================================
 
 router.get('/portal/me', requireEmployee, portalController.getMe.bind(portalController));
+router.put('/portal/profile', requireEmployee, portalController.updateProfile.bind(portalController));
 router.get('/portal/timesheets', requireEmployee, portalController.getMyTimesheets.bind(portalController));
 router.get('/portal/timesheets/:id', requireEmployee, portalController.getTimesheetDetail.bind(portalController));
 router.get('/portal/timesheets/:id/csv', requireEmployee, portalController.downloadCSV.bind(portalController));

@@ -15,6 +15,8 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import KeyIcon from '@mui/icons-material/Key';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -55,6 +57,7 @@ const NAV_ITEMS = [
   { key: 'dashboard',  label: 'Dashboard',      icon: <DashboardIcon /> },
   { key: 'timesheets', label: 'My Timesheets',   icon: <DescriptionIcon /> },
   { key: 'payslips',   label: 'My Payslips',     icon: <ReceiptLongIcon /> },
+  { key: 'profile',    label: 'My Profile',      icon: <AccountCircleIcon /> },
   { key: 'settings',   label: 'Change Password', icon: <KeyIcon /> },
 ];
 
@@ -323,6 +326,110 @@ function PayslipsSection({ payslips, currency }) {
   );
 }
 
+const EMP_TYPE_LABELS = { full_time: 'Full-Time', part_time: 'Part-Time', contractor: 'Contractor' };
+const HIRE_CAT_LABELS = { local: 'Local', foreign: 'Foreign' };
+
+function ProfileSection({ employee, onUpdated }) {
+  const [bank, setBank] = useState({
+    bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (employee) {
+      setBank({
+        bank_name: employee.bank_name || '',
+        bank_account_number: employee.bank_account_number || '',
+        bank_account_name: employee.bank_account_name || '',
+        bank_branch: employee.bank_branch || '',
+        bank_swift_code: employee.bank_swift_code || '',
+      });
+    }
+  }, [employee]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await portalAPI.updateProfile(bank);
+      if (res.success) { toast.success('Profile updated'); onUpdated(res.data); }
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to update profile'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 600 }}>
+      {/* Employment Info (read-only) */}
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />
+          <Typography sx={{ fontWeight: 700 }}>Employment Details</Typography>
+        </Box>
+        <Box sx={{ p: 2.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          {[
+            ['Employee ID', employee?.employee_id],
+            ['Full Name', employee?.name],
+            ['Department', employee?.department || '—'],
+            ['Position', employee?.position || '—'],
+            ['Employment Type', EMP_TYPE_LABELS[employee?.employment_type] || '—'],
+            ['Hire Category', HIRE_CAT_LABELS[employee?.hire_category] || '—'],
+            ['Hire Date', employee?.hire_date ? new Date(employee.hire_date).toLocaleDateString() : '—'],
+            ['Currency', employee?.currency || '—'],
+          ].map(([label, val]) => (
+            <Box key={label}>
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{label}</Typography>
+              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{val}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+
+      {/* Bank Details (editable) */}
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />
+          <Typography sx={{ fontWeight: 700 }}>Bank Details</Typography>
+          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 0.5 }}>— used for payroll transfers</Typography>
+        </Box>
+        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Bank Name" size="small" value={bank.bank_name}
+                onChange={e => setBank(b => ({ ...b, bank_name: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Account Name" size="small" value={bank.bank_account_name}
+                onChange={e => setBank(b => ({ ...b, bank_account_name: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Account Number" size="small" value={bank.bank_account_number}
+                onChange={e => setBank(b => ({ ...b, bank_account_number: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Branch" size="small" value={bank.bank_branch}
+                onChange={e => setBank(b => ({ ...b, bank_branch: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+            </Grid>
+            {employee?.hire_category === 'foreign' && (
+              <Grid item xs={12}>
+                <TextField fullWidth label="SWIFT / BIC Code" size="small" value={bank.bank_swift_code}
+                  onChange={e => setBank(b => ({ ...b, bank_swift_code: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+              </Grid>
+            )}
+          </Grid>
+          <Button variant="contained" onClick={handleSave} disabled={saving}
+            sx={{ alignSelf: 'flex-start', borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)', px: 3 }}>
+            {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Bank Details'}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
+  );
+}
+
 function SettingsSection({ user }) {
   const [form, setForm] = useState({ current: '', newP: '', confirm: '' });
   const [showCurrent, setShowCurrent] = useState(false);
@@ -585,6 +692,7 @@ export default function EmployeePortal() {
               {section === 'dashboard'  && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
               {section === 'timesheets' && <TimesheetsSection timesheets={timesheets} currency={employee?.currency} onApprove={handleApprove} onReject={setRejectTarget} />}
               {section === 'payslips'   && <PayslipsSection payslips={payslips} currency={employee?.currency} />}
+              {section === 'profile'    && <ProfileSection employee={employee} onUpdated={setEmployee} />}
               {section === 'settings'   && <SettingsSection user={user} />}
             </>
           )}

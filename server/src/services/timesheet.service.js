@@ -134,7 +134,7 @@ class TimesheetService {
     const taskBreakdown = await this.getTaskBreakdown(employee.id, period);
     await TimeEntriesSummary.saveTaskBreakdown(summary.id, taskBreakdown);
 
-    // Generate timesheet CSV (for employee review/approval)
+    // Generate timesheet CSV (for records)
     const csvResult = await csvService.generateTimesheetCSV(
       summary,
       employee,
@@ -147,14 +147,17 @@ class TimesheetService {
       timesheet_pdf_path: csvResult.filePath
     });
 
-    // Mark as pending internal approval (employee reviews via portal)
+    // Mark pending first (required state for processApproval), then auto-approve
     await TimeEntriesSummary.markPendingApproval(summary.id);
+    const pendingSummary = await TimeEntriesSummary.findById(summary.id);
+    const approvalResult = await this.processApproval(pendingSummary, 'auto');
 
-    console.log(`✅ Timesheet pending approval for ${employee.name} — employee will review in portal`);
+    console.log(`✅ Timesheet auto-approved and payslip generated for ${employee.name}`);
 
     return {
       success: true,
-      summary: await TimeEntriesSummary.findById(summary.id),
+      summary: approvalResult.summary,
+      payslip: approvalResult.payslip,
       csvResult
     };
   }
@@ -470,11 +473,26 @@ class TimesheetService {
     const netByCurrency  = await Payslip.getNetByCurrency(null);
     const pendingApprovals = await TimeEntriesSummary.getPendingApprovals();
 
+    // Monthly category breakdown — hours per project/task category for current month
+    const categoryBreakdown = await db.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(project_name), ''), 'Uncategorized') AS category,
+        ROUND(SUM(hours_worked), 2)                               AS total_hours,
+        COUNT(DISTINCT employee_id)                               AS employee_count
+      FROM time_entries
+      WHERE MONTH(entry_date) = MONTH(CURRENT_DATE())
+        AND YEAR(entry_date)  = YEAR(CURRENT_DATE())
+      GROUP BY COALESCE(NULLIF(TRIM(project_name), ''), 'Uncategorized')
+      ORDER BY total_hours DESC
+      LIMIT 15
+    `);
+
     return {
       currentPeriod,
       summaries: { ...summaryStats, grossByCurrency },
       payslips:  { ...payslipStats,  netByCurrency },
-      pendingApprovals: pendingApprovals.length
+      pendingApprovals: pendingApprovals.length,
+      categoryBreakdown
     };
   }
 
@@ -518,7 +536,8 @@ class TimesheetService {
     let wrikeError = null;
 
     try {
-      const timelogs  = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
+      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
+      timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
       const byUser    = wrikeService.groupTimeLogsByUser(timelogs);
       const userLogs  = byUser[employee.wrike_user_id] || [];
       const taskTitles = await wrikeService.getTaskTitles(userLogs.map(l => l.taskId).filter(Boolean));
@@ -617,8 +636,9 @@ class TimesheetService {
       period = await PayPeriod.create({ period_name: name, start_date: startDate, end_date: endDate });
     }
 
-    // Fetch and import Wrike timelogs for this employee + range
-    const timelogs  = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
+    // Fetch and import only APPROVED Wrike timelogs for this employee + range
+    let timelogs = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
+    timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
     const byUser    = wrikeService.groupTimeLogsByUser(timelogs);
     const userLogs  = byUser[employee.wrike_user_id] || [];
     const taskTitles = await wrikeService.getTaskTitles(userLogs.map(l => l.taskId).filter(Boolean));
@@ -669,6 +689,113 @@ class TimesheetService {
       throw new Error(`Cannot approve — timesheet is already ${summary.approval_status}`);
     }
     return await this.processApproval(summary, approvedBy);
+  }
+
+  /**
+   * Bulk approve & generate payslips for a period.
+   * employeeIds = array of employee DB ids, or null/empty = all employees.
+   */
+  async bulkApproveAndGenerate(periodId, employeeIds = null) {
+    const period = await PayPeriod.findById(periodId);
+    if (!period) throw new Error('Period not found');
+
+    const summaries = await TimeEntriesSummary.findByPeriod(periodId);
+    const targets = employeeIds && employeeIds.length
+      ? summaries.filter(s => employeeIds.includes(s.employee_id))
+      : summaries;
+
+    const results = { generated: 0, skipped: 0, errors: [] };
+
+    for (const s of targets) {
+      try {
+        // Auto-approve if still pending
+        if (s.approval_status === 'pending') {
+          await this.processApproval(s, 'admin:bulk');
+          results.generated++;
+        } else if (s.approval_status === 'approved') {
+          // Already approved — ensure payslip exists
+          const existing = await Payslip.findBySummaryId(s.id);
+          if (!existing) {
+            const fullSummary = await TimeEntriesSummary.getWithDetails(s.id);
+            await this.generatePayslip(fullSummary, period);
+            results.generated++;
+          } else {
+            results.skipped++;
+          }
+        } else {
+          results.skipped++;
+        }
+      } catch (err) {
+        results.errors.push({ summaryId: s.id, employeeName: s.employee_name || s.employee_id, error: err.message });
+      }
+    }
+
+    return { period: period.period_name, ...results };
+  }
+
+  /**
+   * Generate bank transfer file content for a period.
+   * type = 'local' (CSV) | 'foreign' (SWIFT text)
+   */
+  async generateBankFile(periodId, type = 'local') {
+    const period = await PayPeriod.findById(periodId);
+    if (!period) throw new Error('Period not found');
+
+    const payslips = await Payslip.findByPeriod(periodId);
+    if (!payslips.length) throw new Error('No payslips found for this period');
+
+    // Fetch employee bank details for each payslip
+    const rows = [];
+    for (const p of payslips) {
+      const emp = await Employee.findById(p.employee_id);
+      if (!emp) continue;
+      rows.push({ payslip: p, emp });
+    }
+
+    if (type === 'foreign') {
+      // SWIFT / international wire format
+      const lines = [
+        `INTERNATIONAL PAYROLL TRANSFER - ${period.period_name}`,
+        `Generated: ${new Date().toISOString().split('T')[0]}`,
+        `${'─'.repeat(80)}`,
+        'No. | Employee Name           | Bank Name           | SWIFT Code    | Account Number     | Net Amount | CCY',
+        `${'─'.repeat(80)}`
+      ];
+      rows.forEach((r, i) => {
+        const { payslip: p, emp } = r;
+        lines.push([
+          String(i + 1).padStart(3),
+          (emp.name || '').padEnd(23),
+          (emp.bank_name || '—').padEnd(20),
+          (emp.bank_swift_code || '—').padEnd(14),
+          (emp.bank_account_number || '—').padEnd(19),
+          String(Number(p.net_amount).toFixed(2)).padStart(10),
+          (emp.currency || 'USD').padEnd(4)
+        ].join(' | '));
+      });
+      lines.push(`${'─'.repeat(80)}`);
+      const total = rows.reduce((s, r) => s + Number(r.payslip.net_amount), 0);
+      lines.push(`TOTAL: ${total.toFixed(2)}`);
+      return { content: lines.join('\n'), filename: `bank_transfer_foreign_${periodId}.txt`, contentType: 'text/plain' };
+    }
+
+    // Local bank transfer CSV
+    const csvLines = [
+      'Employee Name,Account Name,Bank Name,Branch,Account Number,Net Amount,Currency'
+    ];
+    rows.forEach(({ payslip: p, emp }) => {
+      const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+      csvLines.push([
+        escape(emp.name),
+        escape(emp.bank_account_name || emp.name),
+        escape(emp.bank_name),
+        escape(emp.bank_branch),
+        escape(emp.bank_account_number),
+        Number(p.net_amount).toFixed(2),
+        emp.currency || 'USD'
+      ].join(','));
+    });
+    return { content: csvLines.join('\n'), filename: `bank_transfer_local_${periodId}.csv`, contentType: 'text/csv' };
   }
 
   /**

@@ -7,7 +7,6 @@ import {
 import PeopleIcon from '@mui/icons-material/People';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -99,7 +98,8 @@ export default function Dashboard() {
     );
   }
 
-  const { currentPeriod, summaries, payslips, pendingApprovals } = stats || {};
+  const { currentPeriod, summaries, payslips, categoryBreakdown } = stats || {};
+  const maxCategoryHours = categoryBreakdown?.length ? Math.max(...categoryBreakdown.map(c => c.total_hours)) : 1;
 
   return (
     <Box>
@@ -131,16 +131,16 @@ export default function Dashboard() {
       {/* Stat cards */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<PeopleIcon />} label="Total Summaries" value={summaries?.total_summaries || 0} color="#6366f1" />
+          <StatCard icon={<PeopleIcon />} label="Total Employees" value={summaries?.total_summaries || 0} color="#6366f1" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<HourglassEmptyIcon />} label="Pending Approvals" value={pendingApprovals || 0} color="#f59e0b" />
+          <StatCard icon={<HourglassEmptyIcon />} label="Total Hours" value={`${Number(summaries?.total_hours || 0).toFixed(1)}h`} color="#f59e0b" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<CheckCircleOutlineIcon />} label="Approved" value={summaries?.approved_count || 0} color="#10b981" gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)" />
+          <StatCard icon={<CheckCircleOutlineIcon />} label="Payslips Generated" value={payslips?.total_payslips || 0} color="#10b981" gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<CancelOutlinedIcon />} label="Rejected" value={summaries?.rejected_count || 0} color="#ef4444" />
+          <StatCard icon={<ReceiptLongIcon />} label="Categories" value={categoryBreakdown?.length || 0} color="#6366f1" />
         </Grid>
       </Grid>
 
@@ -205,7 +205,7 @@ export default function Dashboard() {
         <Typography sx={{ fontWeight: 700, color: 'text.primary', mb: 2 }}>Quick Actions</Typography>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {[
-            { label: `Pending Approvals (${pendingApprovals || 0})`, to: '/pending', icon: <HourglassEmptyIcon fontSize="small" /> },
+            { label: 'Generate Payslips', to: '/generate', icon: <ReceiptLongIcon fontSize="small" /> },
             { label: 'Manage Periods', to: '/periods', icon: <TrendingUpIcon fontSize="small" /> },
             { label: 'Manage Employees', to: '/employees', icon: <PeopleIcon fontSize="small" /> },
           ].map(({ label, to, icon }) => (
@@ -216,6 +216,34 @@ export default function Dashboard() {
           ))}
         </Box>
       </Paper>
+
+      {/* Monthly category breakdown */}
+      {categoryBreakdown?.length > 0 && (
+        <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>Hours by Category</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+              {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {categoryBreakdown.map(({ category, total_hours, employee_count }) => (
+              <Box key={category}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary' }}>{category}</Typography>
+                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>{employee_count} emp</Typography>
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1' }}>{Number(total_hours).toFixed(1)}h</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ height: 6, borderRadius: 0, bgcolor: 'action.hover', overflow: 'hidden' }}>
+                  <Box sx={{ height: '100%', borderRadius: 0, bgcolor: '#6366f1', width: `${(total_hours / maxCategoryHours) * 100}%`, transition: 'width 0.4s ease' }} />
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Paper>
+      )}
 
       {/* Current period detail */}
       <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Typography, Avatar, Divider, Chip, Tooltip, IconButton
+  Typography, Avatar, Divider, Tooltip, IconButton
 } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -11,7 +10,6 @@ import toast from 'react-hot-toast';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
@@ -23,14 +21,12 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useThemeMode } from './context/ThemeContext';
-import { timesheetAPI } from './api';
 
 // Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import Periods from './pages/Periods';
-import PendingApprovals from './pages/PendingApprovals';
 import Payslips from './pages/Payslips';
 import WrikeTimesheets from './pages/WrikeTimesheets';
 import TimesheetGenerator from './pages/TimesheetGenerator';
@@ -42,7 +38,6 @@ const NAV_ITEMS = [
   { label: 'Dashboard',          icon: <DashboardIcon />,               path: '/',         end: true },
   { label: 'Employees',          icon: <PeopleIcon />,                  path: '/employees' },
   { label: 'Pay Periods',        icon: <CalendarMonthIcon />,           path: '/periods'   },
-  { label: 'Approvals',          icon: <HourglassEmptyIcon />,          path: '/pending',  countKey: 'both' },
   { label: 'Payslips',           icon: <ReceiptLongIcon />,             path: '/payslips'  },
   { label: 'Generate Timesheet', icon: <AddchartIcon />,                path: '/generate'  },
   { label: 'Wrike Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike'     },
@@ -53,65 +48,44 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-function SidebarNav({ counts }) {
+function SidebarNav() {
   return (
     <List sx={{ px: 1.5 }}>
-      {NAV_ITEMS.map((item) => {
-        const badgeCount = item.countKey === 'both'
-          ? (counts.pending || 0) + (counts.rejected || 0)
-          : 0;
-        const hasRejected = (counts.rejected || 0) > 0;
-
-        return (
-          <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              component={NavLink}
-              to={item.path}
-              end={item.end}
-              sx={{
-                borderRadius: '12px',
-                px: 2,
-                py: 1.1,
-                color: 'rgba(255,255,255,0.6)',
-                transition: 'all 0.2s',
-                '&.active': {
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)',
-                  color: 'white',
-                  boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
-                  '& .MuiListItemIcon-root': { color: 'white' },
-                },
-                '&:hover:not(.active)': {
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'white',
-                  '& .MuiListItemIcon-root': { color: 'rgba(255,255,255,0.9)' },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'rgba(255,255,255,0.5)', minWidth: 38 }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
-              />
-              {badgeCount > 0 && (
-                <Chip
-                  label={badgeCount}
-                  size="small"
-                  sx={{
-                    height: 20,
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    bgcolor: hasRejected ? '#ef4444' : '#f59e0b',
-                    color: 'white',
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
-                />
-              )}
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
+      {NAV_ITEMS.map((item) => (
+        <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            component={NavLink}
+            to={item.path}
+            end={item.end}
+            sx={{
+              borderRadius: '12px',
+              px: 2,
+              py: 1.1,
+              color: 'rgba(255,255,255,0.6)',
+              transition: 'all 0.2s',
+              '&.active': {
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
+                '& .MuiListItemIcon-root': { color: 'white' },
+              },
+              '&:hover:not(.active)': {
+                background: 'rgba(255,255,255,0.08)',
+                color: 'white',
+                '& .MuiListItemIcon-root': { color: 'rgba(255,255,255,0.9)' },
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'rgba(255,255,255,0.5)', minWidth: 38 }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText
+              primary={item.label}
+              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+            />
+          </ListItemButton>
+        </ListItem>
+      ))}
     </List>
   );
 }
@@ -120,19 +94,6 @@ function AppLayout() {
   const { user, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
-  const [counts, setCounts] = useState({ pending: 0, rejected: 0 });
-
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await timesheetAPI.getCounts();
-        if (res.success) setCounts(res.data);
-      } catch {}
-    };
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -190,7 +151,7 @@ function AppLayout() {
           <Typography sx={{ px: 3, py: 0.75, fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             Main Menu
           </Typography>
-          <SidebarNav counts={counts} />
+          <SidebarNav />
         </Box>
 
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
@@ -239,7 +200,6 @@ function AppLayout() {
           <Route path="/"           element={<Dashboard />} />
           <Route path="/employees"  element={<Employees />} />
           <Route path="/periods"    element={<Periods />} />
-          <Route path="/pending"    element={<PendingApprovals />} />
           <Route path="/payslips"   element={<Payslips />} />
           <Route path="/generate"   element={<TimesheetGenerator />} />
           <Route path="/wrike"      element={<WrikeTimesheets />} />

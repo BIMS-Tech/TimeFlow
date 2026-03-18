@@ -350,7 +350,8 @@ class WrikeService {
     const start = String(startDate).substring(0, 10);
     const end   = String(endDate).substring(0, 10);
     const params = {
-      trackedDate: JSON.stringify({ start, end })
+      trackedDate: JSON.stringify({ start, end }),
+      fields: '["approvalStatus","billingType"]'
     };
 
     try {
@@ -408,7 +409,8 @@ class WrikeService {
         hours: parseFloat(log.hours) || 0,
         taskId: log.taskId,
         comment: log.comment || '',
-        logId: log.id
+        logId: log.id,
+        approvalStatus: log.approvalStatus || null
       });
     }
     return grouped;
@@ -427,6 +429,25 @@ class WrikeService {
       const map = {};
       for (const t of response.data.data || []) {
         map[t.id] = t.title;
+      }
+      return map;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Fetch task statuses for a list of task IDs.
+   * Returns { taskId: status } where status is Wrike's task status string.
+   */
+  async getTaskStatuses(taskIds) {
+    if (!taskIds.length) return {};
+    try {
+      const ids = [...new Set(taskIds)].slice(0, 100).join(',');
+      const response = await this.client.get(`/tasks/${ids}`);
+      const map = {};
+      for (const t of response.data.data || []) {
+        map[t.id] = t.status;
       }
       return map;
     } catch {

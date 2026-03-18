@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, CircularProgress, Grid, Divider
+  Button, CircularProgress, Grid, Divider, Checkbox, FormControlLabel,
+  List, ListItem, ListItemText
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -12,7 +13,9 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { timesheetAPI } from '../api';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import { timesheetAPI, payslipsAPI, employeesAPI } from '../api';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -34,7 +37,15 @@ export default function Payslips() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => { fetchPeriods(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Bulk generation state
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
+  const [selectAll, setSelectAll] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+
+  useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchPeriods = async () => {
     try {
@@ -48,6 +59,13 @@ export default function Payslips() {
     finally { setLoading(false); }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const res = await employeesAPI.getAll(true);
+      if (res.success) setEmployees(res.data || []);
+    } catch { /* non-critical */ }
+  };
+
   const fetchPayslips = async (periodId) => {
     try {
       const res = await timesheetAPI.getPeriodPayslips(periodId);
@@ -55,13 +73,40 @@ export default function Payslips() {
     } catch { toast.error('Failed to load payslips'); }
   };
 
-  const handleSelectPeriod = (p) => { setSelectedPeriod(p); fetchPayslips(p.id); };
+  const handleSelectPeriod = (p) => { setSelectedPeriod(p); fetchPayslips(p.id); setBulkResult(null); };
 
   const handleViewPayslip = async (id) => {
     try {
-      const res = await timesheetAPI.getPayslip(id);
+      const res = await payslipsAPI.getById(id);
       if (res.success) setSelected(res.data);
     } catch { toast.error('Failed to load payslip details'); }
+  };
+
+  const handleToggleEmployee = (id) => {
+    setSelectedEmployeeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (checked) => {
+    setSelectAll(checked);
+    setSelectedEmployeeIds(checked ? [] : []);
+  };
+
+  const handleBulkGenerate = async () => {
+    if (!selectedPeriod) return toast.error('Select a period first');
+    setGenerating(true);
+    setBulkResult(null);
+    try {
+      const empIds = selectAll ? null : selectedEmployeeIds;
+      const res = await payslipsAPI.bulkGenerate(selectedPeriod.id, empIds);
+      if (res.success) {
+        setBulkResult(res.data);
+        toast.success(`Generated ${res.data.generated} payslip(s)`);
+        fetchPayslips(selectedPeriod.id);
+      }
+    } catch (e) { toast.error(e.response?.data?.error || 'Bulk generation failed'); }
+    finally { setGenerating(false); }
   };
 
   const filtered = payslips.filter(p =>
@@ -73,7 +118,87 @@ export default function Payslips() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Payslips</Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => setShowBulkPanel(v => !v)}
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: showBulkPanel ? '#6366f1' : 'divider', color: showBulkPanel ? '#6366f1' : 'text.secondary' }}>
+            Generate Payslips
+          </Button>
+          {selectedPeriod && payslips.length > 0 && (
+            <>
+              <Tooltip title="Download local bank transfer file">
+                <Button variant="outlined" startIcon={<AccountBalanceIcon />}
+                  component="a" href={payslipsAPI.bankFileUrl(selectedPeriod.id, 'local')} download
+                  sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                  Local Bank File
+                </Button>
+              </Tooltip>
+              <Tooltip title="Download foreign/SWIFT transfer file">
+                <Button variant="outlined" startIcon={<AccountBalanceIcon />}
+                  component="a" href={payslipsAPI.bankFileUrl(selectedPeriod.id, 'foreign')} download
+                  sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                  Foreign Bank File
+                </Button>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       </Box>
+
+      {/* Bulk Generate Panel */}
+      {showBulkPanel && (
+        <Paper elevation={0} sx={{ mb: 2, border: '1px solid', borderColor: '#6366f130', bgcolor: 'rgba(99,102,241,0.02)', borderRadius: 0, overflow: 'hidden' }}>
+          <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AutoAwesomeIcon sx={{ color: '#6366f1', fontSize: 18 }} />
+            <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Bulk Generate Payslips</Typography>
+            {selectedPeriod && <Chip label={selectedPeriod.period_name} size="small" sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 600 }} />}
+          </Box>
+          <Box sx={{ p: 2.5 }}>
+            <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2 }}>
+              Auto-approves pending timesheets and generates payslips. Select employees or generate for all at once.
+            </Typography>
+            <FormControlLabel
+              control={<Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
+              label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>All Employees</Typography>}
+              sx={{ mb: selectAll ? 0 : 1 }}
+            />
+            {!selectAll && (
+              <Box sx={{ maxHeight: 200, overflowY: 'auto', border: '1px solid', borderColor: 'divider', mt: 1 }}>
+                <List dense disablePadding>
+                  {employees.map(emp => (
+                    <ListItem key={emp.id} disablePadding
+                      secondaryAction={
+                        <Checkbox checked={selectedEmployeeIds.includes(emp.id)}
+                          onChange={() => handleToggleEmployee(emp.id)} size="small"
+                          sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                      }
+                      sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                      <ListItemText
+                        primary={emp.name}
+                        secondary={emp.employee_id}
+                        sx={{ pl: 1.5, '& .MuiListItemText-primary': { fontSize: '0.875rem' }, '& .MuiListItemText-secondary': { fontSize: '0.72rem' } }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+            <Box sx={{ mt: 2, display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <Button variant="contained" startIcon={generating ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <AutoAwesomeIcon />}
+                onClick={handleBulkGenerate} disabled={generating || !selectedPeriod || (!selectAll && selectedEmployeeIds.length === 0)}
+                sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                {generating ? 'Generating…' : 'Generate Now'}
+              </Button>
+              {bulkResult && (
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Chip label={`${bulkResult.generated} generated`} size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
+                  {bulkResult.skipped > 0 && <Chip label={`${bulkResult.skipped} skipped`} size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700 }} />}
+                  {bulkResult.errors?.length > 0 && <Chip label={`${bulkResult.errors.length} errors`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
       <Grid container spacing={2}>
         {/* Periods sidebar */}
@@ -168,8 +293,8 @@ export default function Payslips() {
                               </Tooltip>
                             )}
                             {p.pdf_path && (
-                              <Tooltip title="Download PDF">
-                                <IconButton size="small" component="a" href={`/uploads/${p.pdf_path.split('/').pop()}`} target="_blank" rel="noopener noreferrer"
+                              <Tooltip title="View / Download PDF">
+                                <IconButton size="small" component="a" href={payslipsAPI.pdfUrl(p.id)} target="_blank" rel="noopener noreferrer"
                                   sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
                                   <DownloadIcon sx={{ fontSize: 16 }} />
                                 </IconButton>

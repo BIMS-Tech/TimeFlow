@@ -4,12 +4,12 @@ import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, CircularProgress, Grid,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  FormControl, InputLabel, Select, MenuItem, Alert, Collapse, Chip
+  FormControl, InputLabel, Select, MenuItem, Alert, Collapse, Chip,
+  Checkbox, Divider, LinearProgress
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CalculateIcon from '@mui/icons-material/Calculate';
-import SendIcon from '@mui/icons-material/Send';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -18,6 +18,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AddIcon from '@mui/icons-material/Add';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { employeesAPI, timesheetAPI, timesheetGeneratorAPI } from '../api';
 
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
@@ -57,7 +59,7 @@ function StepBubble({ num, label, active, done }) {
 }
 
 function Steps({ current }) {
-  const steps = ['Select Employee', 'Select Period', 'Calculate', 'Send for Approval'];
+  const steps = ['Select Employees', 'Select Period', 'Generate Payslips'];
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
       {steps.map((s, i) => (
@@ -79,19 +81,31 @@ const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 export default function TimesheetGenerator() {
   const [employees, setEmployees] = useState([]);
   const [empLoading, setEmpLoading] = useState(true);
-  const [selectedEmp, setSelectedEmp] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const [periods, setPeriods] = useState([]);
   const [periodsLoading, setPeriodsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
 
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+
+  // Single-employee result (detailed)
   const [preview, setPreview] = useState(null);
-  const [calculating, setCalculating] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [expandedDays, setExpandedDays] = useState(false);
 
-  const step = submitted ? 3 : preview ? 2 : (selectedEmp && selectedPeriod) ? 1 : selectedEmp ? 1 : 0;
+  // Multi-employee result (summary table)
+  const [bulkResults, setBulkResults] = useState(null);
+
+  const hasSelection = selectedIds.size > 0;
+  const allSelected = employees.length > 0 && selectedIds.size === employees.length;
+  const isSingle = selectedIds.size === 1;
+  const isDone = isSingle ? !!submitted : !!bulkResults;
+  const step = isDone ? 2 : (hasSelection && selectedPeriod) ? 1 : 0;
+
+  const startDate = selectedPeriod?.start_date ? String(selectedPeriod.start_date).substring(0, 10) : '';
+  const endDate = selectedPeriod?.end_date ? String(selectedPeriod.end_date).substring(0, 10) : '';
 
   useEffect(() => {
     employeesAPI.getAll(true)
@@ -105,63 +119,100 @@ export default function TimesheetGenerator() {
       .finally(() => setPeriodsLoading(false));
   }, []);
 
-  const handleCalculate = async () => {
-    if (!selectedEmp || !selectedPeriod) return;
-    setCalculating(true);
-    setPreview(null);
-    setSubmitted(null);
-    try {
-      const res = await timesheetGeneratorAPI.preview(selectedEmp.id, startDate, endDate);
-      setPreview(res.data);
-      if (res.data.wrikeError) toast(`Wrike fetch failed: ${res.data.wrikeError}`, { icon: '⚠️', duration: 6000 });
-      if (res.data.totalHours === 0) toast('No hours found for this period.', { icon: '⚠️' });
-      else if (res.data.source === 'db') toast('Showing imported hours from database.', { icon: 'ℹ️', duration: 5000 });
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to fetch timelogs');
-    } finally {
-      setCalculating(false);
-    }
+  const toggleEmployee = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+    setPreview(null); setSubmitted(null); setBulkResults(null);
   };
 
-  const handleSubmit = async () => {
-    if (!preview || !selectedPeriod) return;
-    setSubmitting(true);
-    try {
-      const res = await timesheetGeneratorAPI.submit(
-        selectedEmp.id,
-        startDate,
-        endDate,
-        selectedPeriod.period_name
-      );
-      setSubmitted(res.data);
-      if (res.data?.alreadyPending) toast('This timesheet is already pending approval.', { icon: 'ℹ️', duration: 5000 });
-      else toast.success('Timesheet sent for employee approval!');
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit');
-    } finally {
-      setSubmitting(false);
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(employees.map(e => e.id)));
+    }
+    setPreview(null); setSubmitted(null); setBulkResults(null);
+  };
+
+  const handleGenerate = async () => {
+    if (!hasSelection || !selectedPeriod) return;
+    setGenerating(true);
+    setPreview(null); setSubmitted(null); setBulkResults(null);
+
+    const empIds = [...selectedIds];
+
+    if (isSingle) {
+      // Single employee: detailed preview + submit
+      const emp = employees.find(e => e.id === empIds[0]);
+      try {
+        const previewRes = await timesheetGeneratorAPI.preview(emp.id, startDate, endDate);
+        setPreview(previewRes.data);
+        if (previewRes.data.wrikeError) toast(`Wrike fetch failed: ${previewRes.data.wrikeError}`, { icon: '⚠️', duration: 6000 });
+        if (previewRes.data.totalHours === 0) {
+          toast('No hours found for this period.', { icon: '⚠️' });
+          return;
+        }
+        if (previewRes.data.source === 'db') toast('Using imported hours from database.', { icon: 'ℹ️', duration: 5000 });
+        const res = await timesheetGeneratorAPI.submit(emp.id, startDate, endDate, selectedPeriod.period_name);
+        setSubmitted(res.data);
+        if (res.data?.alreadyPending) toast('This timesheet has already been processed.', { icon: 'ℹ️', duration: 5000 });
+        else toast.success('Payslip generated successfully!');
+      } catch (err) {
+        toast.error(err.response?.data?.error || 'Failed to generate payslip');
+      } finally {
+        setGenerating(false);
+      }
+    } else {
+      // Multiple employees: loop and collect results
+      const results = [];
+      setProgress({ done: 0, total: empIds.length });
+
+      for (let i = 0; i < empIds.length; i++) {
+        const emp = employees.find(e => e.id === empIds[i]);
+        try {
+          const previewRes = await timesheetGeneratorAPI.preview(emp.id, startDate, endDate);
+          if (previewRes.data.totalHours === 0) {
+            results.push({ emp, status: 'no_hours' });
+          } else {
+            const res = await timesheetGeneratorAPI.submit(emp.id, startDate, endDate, selectedPeriod.period_name);
+            results.push({ emp, status: res.data?.alreadyPending ? 'exists' : 'generated', hours: previewRes.data.totalHours, gross: previewRes.data.grossAmount });
+          }
+        } catch (err) {
+          results.push({ emp, status: 'error', error: err.response?.data?.error || 'Failed' });
+        }
+        setProgress({ done: i + 1, total: empIds.length });
+      }
+
+      setBulkResults(results);
+      const generated = results.filter(r => r.status === 'generated').length;
+      const errors = results.filter(r => r.status === 'error').length;
+      if (errors > 0) toast(`Generated ${generated}, ${errors} failed`, { icon: '⚠️' });
+      else toast.success(`Generated ${generated} of ${empIds.length} payslips`);
+      setGenerating(false);
     }
   };
 
   const handleReset = () => {
-    setSelectedEmp(null);
+    setSelectedIds(new Set());
     setSelectedPeriod(null);
-    setPreview(null);
-    setSubmitted(null);
+    setPreview(null); setSubmitted(null); setBulkResults(null);
   };
 
-  const currency = selectedEmp?.currency || 'USD';
+  const singleEmp = isSingle ? employees.find(e => selectedIds.has(e.id)) : null;
+  const currency = singleEmp?.currency || 'USD';
   const sortedTasks = preview?.taskDetails ? [...preview.taskDetails].sort((a, b) => a.date.localeCompare(b.date)) : [];
   const dailyEntries = preview?.dailyHours ? Object.entries(preview.dailyHours).filter(([, h]) => h > 0).sort(([a], [b]) => a.localeCompare(b)) : [];
 
-  const startDate = selectedPeriod?.start_date ? String(selectedPeriod.start_date).substring(0, 10) : '';
-  const endDate = selectedPeriod?.end_date ? String(selectedPeriod.end_date).substring(0, 10) : '';
+  const showRightPanel = (isSingle && preview) || (!isSingle && bulkResults);
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Generate Timesheet</Typography>
-        {(selectedEmp || preview) && (
+        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Generate Payslip</Typography>
+        {hasSelection && (
           <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={handleReset}
             sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
             Start Over
@@ -173,40 +224,81 @@ export default function TimesheetGenerator() {
 
       <Grid container spacing={2} sx={{ alignItems: 'start' }}>
         {/* Left panel */}
-        <Grid item xs={12} md={preview ? 4 : 6}>
+        <Grid item xs={12} md={showRightPanel ? 4 : 6}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-            {/* Employee select */}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <PeopleIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+            {/* Employee multi-select */}
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+              <Box sx={{ p: 2, pb: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <PeopleIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Select Employees</Typography>
+                  </Box>
+                  {selectedIds.size > 0 && (
+                    <Chip label={`${selectedIds.size} selected`} size="small"
+                      sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, fontSize: '0.72rem' }} />
+                  )}
                 </Box>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Select Employee</Typography>
               </Box>
-              {empLoading ? <CircularProgress size={20} sx={{ color: '#6366f1' }} /> : (
-                <FormControl fullWidth size="small">
-                  <InputLabel>Choose an employee</InputLabel>
-                  <Select label="Choose an employee" value={selectedEmp?.id || ''}
-                    onChange={e => { const emp = employees.find(em => em.id === parseInt(e.target.value)); setSelectedEmp(emp || null); setPreview(null); setSubmitted(null); }}
-                    sx={{ borderRadius: '10px' }}>
-                    <MenuItem value="">— Choose an employee —</MenuItem>
-                    {employees.map(e => <MenuItem key={e.id} value={e.id}>{e.name}{e.department ? ` · ${e.department}` : ''}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              )}
-              {selectedEmp && (
-                <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#6366f108', borderRadius: 0 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{selectedEmp.name}</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
-                    {selectedEmp.employee_id} · {selectedEmp.department || 'No dept'} · {currency} {selectedEmp.hourly_rate}/hr
-                  </Typography>
-                </Box>
+
+              {empLoading ? (
+                <Box sx={{ p: 2 }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
+              ) : (
+                <>
+                  {/* Select All row */}
+                  <Box
+                    onClick={toggleAll}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, cursor: 'pointer', bgcolor: 'action.hover', borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', '&:hover': { bgcolor: 'action.selected' } }}>
+                    <Checkbox
+                      size="small"
+                      checked={allSelected}
+                      indeterminate={selectedIds.size > 0 && !allSelected}
+                      onChange={toggleAll}
+                      onClick={e => e.stopPropagation()}
+                      sx={{ p: 0, color: '#6366f1', '&.Mui-checked': { color: '#6366f1' }, '&.MuiCheckbox-indeterminate': { color: '#6366f1' } }}
+                    />
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.primary' }}>
+                      {allSelected ? 'Deselect All' : 'Select All'} ({employees.length})
+                    </Typography>
+                  </Box>
+
+                  {/* Employee list */}
+                  <Box sx={{ maxHeight: 280, overflowY: 'auto' }}>
+                    {employees.map((emp, idx) => {
+                      const checked = selectedIds.has(emp.id);
+                      return (
+                        <Box key={emp.id}>
+                          <Box
+                            onClick={() => toggleEmployee(emp.id)}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.1, cursor: 'pointer', bgcolor: checked ? '#6366f108' : 'transparent', '&:hover': { bgcolor: checked ? '#6366f112' : 'action.hover' }, transition: 'background 0.15s' }}>
+                            <Checkbox
+                              size="small"
+                              checked={checked}
+                              onChange={() => toggleEmployee(emp.id)}
+                              onClick={e => e.stopPropagation()}
+                              sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#6366f1' } }}
+                            />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: checked ? 600 : 400, fontSize: '0.875rem', color: 'text.primary', lineHeight: 1.3 }}>{emp.name}</Typography>
+                              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+                                {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''} · {emp.currency || 'USD'} {emp.hourly_rate}/hr
+                              </Typography>
+                            </Box>
+                          </Box>
+                          {idx < employees.length - 1 && <Divider />}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </>
               )}
             </Paper>
 
             {/* Period select */}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: selectedEmp ? 1 : 0.5, pointerEvents: selectedEmp ? 'auto' : 'none' }}>
+            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -232,12 +324,7 @@ export default function TimesheetGenerator() {
                 <FormControl fullWidth size="small">
                   <InputLabel>Choose a pay period</InputLabel>
                   <Select label="Choose a pay period" value={selectedPeriod?.id || ''}
-                    onChange={e => {
-                      const p = periods.find(p => p.id === parseInt(e.target.value));
-                      setSelectedPeriod(p || null);
-                      setPreview(null);
-                      setSubmitted(null);
-                    }}
+                    onChange={e => { const p = periods.find(p => p.id === parseInt(e.target.value)); setSelectedPeriod(p || null); setPreview(null); setSubmitted(null); setBulkResults(null); }}
                     sx={{ borderRadius: '10px' }}>
                     <MenuItem value="">— Choose a period —</MenuItem>
                     {periods.map(p => (
@@ -265,50 +352,45 @@ export default function TimesheetGenerator() {
                   <Chip
                     label={selectedPeriod.status.replace('_', ' ')}
                     size="small"
-                    sx={{
-                      bgcolor: `${STATUS_COLORS[selectedPeriod.status] || '#6366f1'}18`,
-                      color: STATUS_COLORS[selectedPeriod.status] || '#6366f1',
-                      fontWeight: 600, fontSize: '0.65rem', textTransform: 'capitalize'
-                    }}
+                    sx={{ bgcolor: `${STATUS_COLORS[selectedPeriod.status] || '#6366f1'}18`, color: STATUS_COLORS[selectedPeriod.status] || '#6366f1', fontWeight: 600, fontSize: '0.65rem', textTransform: 'capitalize' }}
                   />
                 </Box>
               )}
             </Paper>
 
-            {/* Calculate */}
-            <Button variant="contained" fullWidth startIcon={calculating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <CalculateIcon />}
-              onClick={handleCalculate} disabled={!selectedEmp || !selectedPeriod || calculating}
-              sx={{ py: 1.5, borderRadius: '4px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
-              {calculating ? 'Calculating…' : 'Calculate Hours'}
-            </Button>
-
-            {/* Send for approval */}
-            {preview && !submitted && (
-              <Button variant="contained" fullWidth startIcon={submitting ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <SendIcon />}
-                onClick={handleSubmit} disabled={submitting || preview.totalHours === 0}
-                sx={{ py: 1.5, borderRadius: '4px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>
-                {submitting ? 'Submitting…' : 'Send for Approval'}
-              </Button>
+            {/* Generate button + progress */}
+            {!isDone && (
+              <Box>
+                <Button variant="contained" fullWidth
+                  startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
+                  onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating}
+                  sx={{ py: 1.5, borderRadius: '4px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>
+                  {generating
+                    ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)
+                    : `Generate Payslip${selectedIds.size !== 1 ? 's' : ''}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                </Button>
+                {generating && !isSingle && progress.total > 0 && (
+                  <LinearProgress variant="determinate" value={(progress.done / progress.total) * 100}
+                    sx={{ mt: 1, borderRadius: 1, height: 6, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#10b981' } }} />
+                )}
+              </Box>
             )}
           </Box>
         </Grid>
 
-        {/* Right panel — results */}
-        {preview && (
+        {/* Right panel — single employee detailed results */}
+        {isSingle && preview && (
           <Grid item xs={12} md={8}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Success banner */}
               {submitted && (
                 <Alert severity={submitted.alreadyPending ? 'info' : 'success'} sx={{ borderRadius: 0 }}>
-                  <strong>{submitted.alreadyPending ? 'Already Pending Approval' : 'Routed for Employee Approval'}</strong>
-                  <br />
+                  <strong>{submitted.alreadyPending ? 'Already Processed' : 'Payslip Generated'}</strong><br />
                   {submitted.alreadyPending
-                    ? 'This timesheet is already waiting for approval — no duplicate created.'
-                    : `The timesheet CSV has been generated and is now visible to ${selectedEmp?.name} in their portal.`}
+                    ? 'This timesheet has already been processed — no duplicate created.'
+                    : `The payslip for ${singleEmp?.name} has been generated successfully.`}
                 </Alert>
               )}
 
-              {/* Source warning */}
               {(preview.source === 'db' || preview.wrikeError) && (
                 <Alert severity={preview.wrikeError ? 'error' : 'warning'} sx={{ borderRadius: 0 }}>
                   {preview.wrikeError && <><strong>Wrike API error:</strong> {preview.wrikeError}<br /></>}
@@ -316,7 +398,6 @@ export default function TimesheetGenerator() {
                 </Alert>
               )}
 
-              {/* Summary tiles */}
               <Grid container spacing={1.5}>
                 {[
                   { icon: <AccessTimeIcon />, label: 'Total Hours', value: `${preview.totalHours}h`, color: '#6366f1' },
@@ -335,7 +416,6 @@ export default function TimesheetGenerator() {
                 ))}
               </Grid>
 
-              {/* Period info */}
               <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <Grid container spacing={2}>
                   <Grid item xs={4}>
@@ -359,7 +439,6 @@ export default function TimesheetGenerator() {
                 )}
               </Paper>
 
-              {/* Daily breakdown (collapsible) */}
               {dailyEntries.length > 0 && (
                 <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                   <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
@@ -397,7 +476,6 @@ export default function TimesheetGenerator() {
                 </Paper>
               )}
 
-              {/* Task details */}
               {sortedTasks.length > 0 && (
                 <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                   <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
@@ -430,11 +508,72 @@ export default function TimesheetGenerator() {
                   <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
                   <Typography sx={{ fontWeight: 600, mb: 0.5, color: 'text.secondary' }}>No hours found</Typography>
                   <Typography sx={{ fontSize: '0.875rem' }}>
-                    No time was logged in Wrike for <strong>{preview.employee.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.
+                    No time was logged for <strong>{preview.employee?.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.
                   </Typography>
                 </Paper>
               )}
             </Box>
+          </Grid>
+        )}
+
+        {/* Right panel — bulk results */}
+        {!isSingle && bulkResults && (
+          <Grid item xs={12} md={8}>
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+              <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Generation Results</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {[
+                    { label: `${bulkResults.filter(r => r.status === 'generated').length} Generated`, color: '#10b981' },
+                    { label: `${bulkResults.filter(r => r.status === 'exists').length} Already Exist`, color: '#6366f1' },
+                    { label: `${bulkResults.filter(r => r.status === 'no_hours').length} No Hours`, color: '#f59e0b' },
+                    { label: `${bulkResults.filter(r => r.status === 'error').length} Errors`, color: '#ef4444' },
+                  ].filter(s => parseInt(s.label) > 0).map(s => (
+                    <Chip key={s.label} label={s.label} size="small"
+                      sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 700, fontSize: '0.72rem' }} />
+                  ))}
+                </Box>
+              </Box>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: 'action.hover' }}>
+                    <TableRow>
+                      {['Employee', 'Department', 'Hours', 'Gross', 'Status'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bulkResults.map((r, i) => {
+                      const statusMap = {
+                        generated: { label: 'Generated', color: '#10b981', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        exists: { label: 'Already Exists', color: '#6366f1', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        no_hours: { label: 'No Hours', color: '#f59e0b', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
+                        error: { label: 'Error', color: '#ef4444', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
+                      };
+                      const s = statusMap[r.status];
+                      return (
+                        <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                          <TableCell sx={TD}>
+                            <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.emp.name}</Typography>
+                            <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{r.emp.employee_id}</Typography>
+                          </TableCell>
+                          <TableCell sx={{ ...TD, color: 'text.secondary' }}>{r.emp.department || '—'}</TableCell>
+                          <TableCell sx={TD}>{r.hours ? `${r.hours}h` : '—'}</TableCell>
+                          <TableCell sx={TD}>{r.gross ? fmt(r.gross, r.emp.currency || 'USD') : '—'}</TableCell>
+                          <TableCell sx={TD}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: s.color }}>
+                              {s.icon}
+                              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: s.color }}>
+                                {r.status === 'error' ? r.error : s.label}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
           </Grid>
         )}
       </Grid>

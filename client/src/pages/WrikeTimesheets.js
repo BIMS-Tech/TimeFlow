@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, Chip, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel, Alert
+  IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel, Alert,
+  FormControlLabel, Switch
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -54,6 +55,7 @@ export default function WrikeTimesheets() {
   const [error, setError] = useState(null);
   const [selectedEmpId, setSelectedEmpId] = useState('');
   const [employees, setEmployees] = useState([]);
+  const [approvedOnly, setApprovedOnly] = useState(false);
 
   useEffect(() => {
     employeesAPI.getAll(false).then(res => setEmployees(res.data || [])).catch(() => {});
@@ -63,7 +65,7 @@ export default function WrikeTimesheets() {
     setLoading(true);
     setError(null);
     try {
-      const res = await wrikeAPI.getWeeklyTimelogs(weekStart);
+      const res = await wrikeAPI.getWeeklyTimelogs(weekStart, approvedOnly);
       setData(res.data || []);
       setDays(res.days || []);
     } catch (err) {
@@ -73,14 +75,14 @@ export default function WrikeTimesheets() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart]);
+  }, [weekStart, approvedOnly]);
 
   useEffect(() => { fetchTimelogs(); }, [fetchTimelogs]);
 
   const handleImport = async () => {
     setImporting(true);
     try {
-      const res = await wrikeAPI.importWeek(weekStart);
+      const res = await wrikeAPI.importWeek(weekStart, approvedOnly);
       toast.success(res.message);
       fetchTimelogs();
     } catch (err) {
@@ -116,6 +118,13 @@ export default function WrikeTimesheets() {
               ))}
             </Select>
           </FormControl>
+          <FormControlLabel
+            control={
+              <Switch checked={approvedOnly} onChange={e => setApprovedOnly(e.target.checked)} size="small"
+                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#10b981' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10b981' } }} />
+            }
+            label={<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: approvedOnly ? '#10b981' : 'text.secondary' }}>Approved Timesheets Only</Typography>}
+          />
           <Button variant="outlined" onClick={() => setWeekStart(getMondayOf(new Date().toISOString().split('T')[0]))}
             sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
             This Week
@@ -123,7 +132,7 @@ export default function WrikeTimesheets() {
           <Button variant="contained" startIcon={importing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
             onClick={handleImport} disabled={importing || loading}
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-            {importing ? 'Importing…' : 'Import to DB'}
+            {importing ? 'Importing…' : `Import${approvedOnly ? ' (Approved)' : ''} to DB`}
           </Button>
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
@@ -141,7 +150,10 @@ export default function WrikeTimesheets() {
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
         <Box sx={{ textAlign: 'center', flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>{weekLabel}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>{weekLabel}</Typography>
+            {approvedOnly && <Chip label="Approved timesheets only" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
+          </Box>
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>Week of {weekStart}</Typography>
         </Box>
         <IconButton onClick={() => setWeekStart(p => addDays(p, 7))} size="small"

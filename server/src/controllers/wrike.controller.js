@@ -37,13 +37,15 @@ function weekDays(weekStart) {
 
 class WrikeController {
   /**
-   * GET /api/wrike/timelogs?date=YYYY-MM-DD
+   * GET /api/wrike/timelogs?date=YYYY-MM-DD&approvedOnly=true
    * Fetches Wrike timelogs for the week containing `date` (defaults to current week),
    * matches them to employees and returns a weekly breakdown per employee.
+   * When approvedOnly=true, only timelogs from Completed/Approved tasks are included.
    */
   async getWeeklyTimelogs(req, res) {
     try {
       const date = req.query.date || new Date().toISOString().split('T')[0];
+      const approvedOnly = req.query.approvedOnly === 'true';
       const startDate = getWeekStart(date);
       const endDate   = getWeekEnd(date);
       const days      = weekDays(startDate);
@@ -53,13 +55,25 @@ class WrikeController {
       const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
       const wrikeIds = linkedEmployees.map(e => e.wrike_user_id);
 
-      // Fetch timelogs from Wrike
-      const timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
-      const byUser   = wrikeService.groupTimeLogsByUser(timelogs);
+      // Fetch timelogs from Wrike then filter client-side by approval status
+      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+
+      // Debug: log unique approvalStatus values to confirm Wrike returns them
+      const statusValues = [...new Set(timelogs.map(l => l.approvalStatus))];
+      console.log(`[Wrike] ${timelogs.length} timelogs fetched. approvalStatus values:`, statusValues);
+
+      if (approvedOnly) {
+        const before = timelogs.length;
+        timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+        console.log(`[Wrike] approvedOnly filter: ${before} → ${timelogs.length} timelogs`);
+      }
 
       // Optionally fetch task titles
       const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
       const taskTitles = await wrikeService.getTaskTitles(allTaskIds);
+
+      // Group by Wrike user ID, mapping raw fields to processed shape
+      const byUser = wrikeService.groupTimeLogsByUser(timelogs);
 
       // Build per-employee weekly rows
       const rows = allEmployees.map(emp => {
@@ -123,11 +137,12 @@ class WrikeController {
 
   /**
    * POST /api/wrike/import
-   * Body: { date: 'YYYY-MM-DD' }  — imports the full week into time_entries
+   * Body: { date: 'YYYY-MM-DD', approvedOnly: true }  — imports the full week into time_entries
    */
   async importWeekTimelogs(req, res) {
     try {
-      const date      = req.body.date || new Date().toISOString().split('T')[0];
+      const date         = req.body.date || new Date().toISOString().split('T')[0];
+      const approvedOnly = req.body.approvedOnly === true;
       const startDate = getWeekStart(date);
       const endDate   = getWeekEnd(date);
 
@@ -135,13 +150,18 @@ class WrikeController {
       const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
       const wrikeIds       = linkedEmployees.map(e => e.wrike_user_id);
 
-      const timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
-      const byUser   = wrikeService.groupTimeLogsByUser(timelogs);
-      const taskTitles = await wrikeService.getTaskTitles(
-        timelogs.map(l => l.taskId).filter(Boolean)
-      );
+      // Fetch timelogs from Wrike then filter client-side by approval status
+      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+      if (approvedOnly) {
+        timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+      }
 
-      // Build a map: wrike_user_id → employee
+      const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
+      const taskTitles = await wrikeService.getTaskTitles(allTaskIds);
+
+      // Group by Wrike user ID, mapping raw fields to processed shape
+      const byUser = wrikeService.groupTimeLogsByUser(timelogs);
+
       const empByWrikeId = {};
       for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
 

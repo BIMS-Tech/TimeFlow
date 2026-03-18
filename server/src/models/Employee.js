@@ -74,6 +74,13 @@ class Employee {
       position: data.position || null,
       hourly_rate: data.hourly_rate || 500.00,
       currency: data.currency || 'USD',
+      employment_type: data.employment_type || 'full_time',
+      hire_category: data.hire_category || 'local',
+      bank_name: data.bank_name || null,
+      bank_account_number: data.bank_account_number || null,
+      bank_account_name: data.bank_account_name || null,
+      bank_branch: data.bank_branch || null,
+      bank_swift_code: data.bank_swift_code || null,
       wrike_user_id: data.wrike_user_id || null,
       hire_date: data.hire_date || null,
       is_active: data.is_active !== undefined ? data.is_active : true

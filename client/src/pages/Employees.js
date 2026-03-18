@@ -24,7 +24,12 @@ import { employeesAPI, wrikeAPI } from '../api';
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
 
-const EMPTY_FORM = { employee_id: '', name: '', email: '', department: '', position: '', hourly_rate: 500, currency: 'USD', wrike_user_id: '', hire_date: '' };
+const EMPTY_FORM = {
+  employee_id: '', name: '', email: '', department: '', position: '',
+  hourly_rate: 500, currency: 'USD', employment_type: 'full_time', hire_category: 'local',
+  wrike_user_id: '', hire_date: '',
+  bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: ''
+};
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -58,8 +63,13 @@ export default function Employees() {
       employee_id: emp.employee_id, name: emp.name, email: emp.email,
       department: emp.department || '', position: emp.position || '',
       hourly_rate: emp.hourly_rate, currency: emp.currency || 'USD',
+      employment_type: emp.employment_type || 'full_time',
+      hire_category: emp.hire_category || 'local',
       wrike_user_id: emp.wrike_user_id || '',
-      hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : ''
+      hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
+      bank_name: emp.bank_name || '', bank_account_number: emp.bank_account_number || '',
+      bank_account_name: emp.bank_account_name || '', bank_branch: emp.bank_branch || '',
+      bank_swift_code: emp.bank_swift_code || ''
     } : EMPTY_FORM);
     setShowModal(true);
     setShowContactPicker(false);
@@ -278,6 +288,36 @@ export default function Employees() {
               </FormControl>
             </Grid>
             <Grid item xs={3}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Employment Type</InputLabel>
+                <Select label="Employment Type" value={form.employment_type} onChange={e => setForm(f => ({ ...f, employment_type: e.target.value }))} sx={{ borderRadius: '10px' }}>
+                  <MenuItem value="full_time">Full-Time</MenuItem>
+                  <MenuItem value="part_time">Part-Time</MenuItem>
+                  <MenuItem value="contractor">Contractor</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Hire Category</InputLabel>
+                <Select label="Hire Category" value={form.hire_category} onChange={e => setForm(f => ({ ...f, hire_category: e.target.value }))} sx={{ borderRadius: '10px' }}>
+                  <MenuItem value="local">Local</MenuItem>
+                  <MenuItem value="foreign">Foreign</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            {/* Bank Details */}
+            <Grid item xs={12}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>Bank Details</Typography>
+            </Grid>
+            <Grid item xs={6}><TextField fullWidth label="Bank Name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            {form.hire_category === 'foreign' && (
+              <Grid item xs={12}><TextField fullWidth label="SWIFT / BIC Code" value={form.bank_swift_code} onChange={e => setForm(f => ({ ...f, bank_swift_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            )}
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField fullWidth label="Wrike User ID" value={form.wrike_user_id} onChange={e => setForm(f => ({ ...f, wrike_user_id: e.target.value }))} placeholder="e.g. ABCDE123" size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />

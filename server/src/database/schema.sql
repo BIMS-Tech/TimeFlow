@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS employees (
     department VARCHAR(100),
     position VARCHAR(100),
     hourly_rate DECIMAL(10, 2) DEFAULT 500.00,
+    currency VARCHAR(10) DEFAULT 'USD',
+    employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
+    hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+    bank_name VARCHAR(100) DEFAULT NULL,
+    bank_account_number VARCHAR(100) DEFAULT NULL,
+    bank_account_name VARCHAR(255) DEFAULT NULL,
+    bank_branch VARCHAR(100) DEFAULT NULL,
+    bank_swift_code VARCHAR(50) DEFAULT NULL,
     wrike_user_id VARCHAR(100),
     hire_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -451,5 +459,19 @@ BEGIN
 END //
 
 DELIMITER ;
+
+-- ============================================
+-- MIGRATION: Employee employment type & bank details
+-- Run these ALTER statements once on existing databases.
+-- schema.sql already includes these columns for fresh installs.
+-- ============================================
+ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
+  ADD COLUMN IF NOT EXISTS hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+  ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL;
 
 -- End of schema

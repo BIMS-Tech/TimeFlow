@@ -110,6 +110,12 @@ export const timesheetAPI = {
 // ============================================
 export const payslipsAPI = {
   getById: (id) => api.get(`/timesheet/payslips/${id}`),
+  bulkGenerate: (periodId, employeeIds) =>
+    api.post('/timesheet/bulk-generate-payslips', { periodId, employeeIds }),
+  pdfUrl: (id) =>
+    `${API_BASE_URL}/timesheet/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
+  bankFileUrl: (periodId, type) =>
+    `${API_BASE_URL}/payroll/bank-file?periodId=${periodId}&type=${type}&token=${localStorage.getItem('token')}`,
 };
 
 // ============================================
@@ -126,8 +132,9 @@ export const timesheetGeneratorAPI = {
 // Wrike API
 // ============================================
 export const wrikeAPI = {
-  getWeeklyTimelogs: (date) => api.get(`/wrike/timelogs${date ? `?date=${date}` : ''}`),
-  importWeek: (date) => api.post('/wrike/import', { date }),
+  getWeeklyTimelogs: (date, approvedOnly = false) =>
+    api.get(`/wrike/timelogs${date ? `?date=${date}` : '?'}${approvedOnly ? '&approvedOnly=true' : ''}`),
+  importWeek: (date, approvedOnly = false) => api.post('/wrike/import', { date, approvedOnly }),
   getContacts: () => api.get('/wrike/contacts'),
 };
 
@@ -146,6 +153,7 @@ export const webhooksAPI = {
 // ============================================
 export const portalAPI = {
   getMe: () => api.get('/portal/me'),
+  updateProfile: (data) => api.put('/portal/profile', data),
   getTimesheets: () => api.get('/portal/timesheets'),
   getTimesheetDetail: (id) => api.get(`/portal/timesheets/${id}`),
   approve: (id) => api.post(`/portal/timesheets/${id}/approve`),

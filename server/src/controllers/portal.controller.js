@@ -168,6 +168,28 @@ class PortalController {
   }
 
   /**
+   * PUT /api/portal/profile
+   * Employees update their own bank details and profile info
+   */
+  async updateProfile(req, res) {
+    try {
+      const allowed = ['bank_name', 'bank_account_number', 'bank_account_name', 'bank_branch', 'bank_swift_code'];
+      const updates = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) updates[key] = req.body[key] || null;
+      }
+      if (!Object.keys(updates).length) {
+        return res.status(400).json({ success: false, error: 'No updatable fields provided' });
+      }
+      await Employee.update(req.user.employee_id, updates);
+      const employee = await Employee.findById(req.user.employee_id);
+      res.json({ success: true, data: employee });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * POST /api/portal/change-password
    * Body: { currentPassword, newPassword }
    */

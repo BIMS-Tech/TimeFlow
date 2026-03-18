@@ -92,16 +92,42 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+async function runMigrations() {
+  const migrations = [
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time'`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local'`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(100) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL`,
+  ];
+  for (const sql of migrations) {
+    try {
+      await db.query(sql);
+    } catch (e) {
+      if (!e.message.includes('Duplicate column')) {
+        console.warn('⚠️  Migration warning:', e.message);
+      }
+    }
+  }
+  console.log('✅ Database migrations applied');
+}
+
 async function startServer() {
   try {
     // Test database connection
     console.log('🔗 Connecting to database...');
     const dbConnected = await db.testConnection();
-    
+
     if (!dbConnected) {
       console.error('❌ Failed to connect to database. Exiting...');
       process.exit(1);
     }
+
+    // Run schema migrations
+    console.log('🔄 Running migrations...');
+    await runMigrations();
 
     // Initialize cron scheduler
     console.log('⏰ Initializing scheduler...');

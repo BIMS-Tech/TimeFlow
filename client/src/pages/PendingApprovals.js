@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, Chip, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tab, Tabs, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, IconButton, Tooltip, Alert, Grid
+  IconButton, Tooltip, Alert, Grid
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SendIcon from '@mui/icons-material/Send';
 import ReplayIcon from '@mui/icons-material/Replay';
@@ -36,9 +35,7 @@ export default function PendingApprovals() {
   const [rejected, setRejected] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSummary, setSelectedSummary] = useState(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
   const [showRejectionDetail, setShowRejectionDetail] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => { fetchAll(); }, []);
@@ -74,33 +71,6 @@ export default function PendingApprovals() {
     finally { setProcessingId(null); }
   };
 
-  const handleApprove = async (id) => {
-    if (!window.confirm('Approve this timesheet and generate payslip?')) return;
-    try {
-      setProcessingId(id);
-      toast.loading('Processing approval…');
-      const res = await timesheetAPI.approveSummary(id);
-      toast.dismiss();
-      if (res.success) {
-        toast.success('Timesheet approved and payslip generated');
-        fetchAll(); setSelectedSummary(null); setShowRejectionDetail(null);
-      }
-    } catch (e) { toast.dismiss(); toast.error(e.response?.data?.error || 'Failed'); }
-    finally { setProcessingId(null); }
-  };
-
-  const handleReject = async () => {
-    if (!rejectReason.trim()) return toast.error('Please provide a rejection reason');
-    try {
-      setProcessingId(selectedSummary.id);
-      const res = await timesheetAPI.rejectSummary(selectedSummary.id, rejectReason);
-      if (res.success) {
-        toast.success('Timesheet rejected');
-        fetchAll(); setShowRejectModal(false); setSelectedSummary(null); setRejectReason('');
-      }
-    } catch { toast.error('Failed to reject timesheet'); }
-    finally { setProcessingId(null); }
-  };
 
   if (loading) {
     return (
@@ -187,8 +157,6 @@ export default function PendingApprovals() {
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
                           <Tooltip title="View Details"><IconButton size="small" onClick={() => setSelectedSummary(s)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           <Tooltip title="Resend"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#64748b15' } }}><SendIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                          <Tooltip title="Approve"><IconButton size="small" onClick={() => handleApprove(s.id)} disabled={processingId === s.id} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}><CheckCircleIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                          <Tooltip title="Reject"><IconButton size="small" onClick={() => { setSelectedSummary(s); setRejectReason(''); setShowRejectModal(true); }} disabled={processingId === s.id} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}><CancelIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -252,7 +220,6 @@ export default function PendingApprovals() {
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
                             <Tooltip title="View Details"><IconButton size="small" onClick={() => setShowRejectionDetail({ ...s, parsedFiles: files })} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                             <Tooltip title="Resubmit"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><ReplayIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                            <Tooltip title="Approve Anyway"><IconButton size="small" onClick={() => handleApprove(s.id)} disabled={processingId === s.id} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}><CheckCircleIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -266,7 +233,7 @@ export default function PendingApprovals() {
       )}
 
       {/* Pending detail dialog */}
-      <Dialog open={!!selectedSummary && !showRejectModal} onClose={() => setSelectedSummary(null)} maxWidth="sm" fullWidth
+      <Dialog open={!!selectedSummary} onClose={() => setSelectedSummary(null)} maxWidth="sm" fullWidth
         slotProps={{ paper: { sx: { borderRadius: '4px' } } }}>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Timesheet Details</DialogTitle>
         <DialogContent>
@@ -281,33 +248,6 @@ export default function PendingApprovals() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
           <Button onClick={() => setSelectedSummary(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
-          <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => setShowRejectModal(true)}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#ef4444', color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}>
-            Reject
-          </Button>
-          <Button variant="contained" startIcon={processingId === selectedSummary?.id ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <CheckCircleIcon />}
-            onClick={() => handleApprove(selectedSummary?.id)} disabled={processingId === selectedSummary?.id}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' }}>
-            Approve
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Admin reject modal */}
-      <Dialog open={showRejectModal} onClose={() => setShowRejectModal(false)} maxWidth="xs" fullWidth
-        slotProps={{ paper: { sx: { borderRadius: '4px' } } }}>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Reject Timesheet</DialogTitle>
-        <DialogContent>
-          <TextField fullWidth multiline rows={4} label="Rejection Reason *" placeholder="Provide a reason for rejection…"
-            value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-            sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowRejectModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
-          <Button variant="contained" startIcon={<CancelIcon />} onClick={handleReject}
-            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
-            Confirm Rejection
-          </Button>
         </DialogActions>
       </Dialog>
 
@@ -355,12 +295,6 @@ export default function PendingApprovals() {
             disabled={processingId === showRejectionDetail?.id}
             sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#6366f1', color: '#6366f1' }}>
             Resubmit
-          </Button>
-          <Button variant="contained" startIcon={<CheckCircleIcon />}
-            onClick={() => { handleApprove(showRejectionDetail.id); setShowRejectionDetail(null); }}
-            disabled={processingId === showRejectionDetail?.id}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' }}>
-            Approve Anyway
           </Button>
         </DialogActions>
       </Dialog>

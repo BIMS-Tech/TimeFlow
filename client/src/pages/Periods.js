@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, Chip, Grid,
@@ -11,17 +10,14 @@ import AddIcon from '@mui/icons-material/Add';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PeopleIcon from '@mui/icons-material/People';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { timesheetAPI } from '../api';
 
-const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', pending_approval: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
-const STATUS_OPTIONS = ['open', 'processing', 'pending_approval', 'approved', 'rejected', 'paid'];
+const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', approved: '#10b981', paid: '#10b981' };
+const STATUS_OPTIONS = ['open', 'processing', 'approved', 'paid'];
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
@@ -144,15 +140,6 @@ export default function Periods() {
   };
 
   // ── Other actions ────────────────────────────────────────────────────────────
-  const handleGeneratePayslip = async (summaryId) => {
-    try {
-      toast.loading('Generating payslip…');
-      const res = await timesheetAPI.generatePayslip(summaryId);
-      toast.dismiss();
-      if (res.success) { toast.success('Payslip generated'); fetchSummaries(selectedPeriod.id); }
-    } catch (e) { toast.dismiss(); toast.error(e.response?.data?.error || 'Failed'); }
-  };
-
   const handleProcess = async (periodId) => {
     try {
       toast.loading('Processing…');
@@ -266,10 +253,9 @@ export default function Periods() {
 
                 {/* Mini stats */}
                 <Grid container spacing={1.5} sx={{ p: 2 }}>
-                  <Grid item xs={3}><MiniStat icon={<PeopleIcon />} label="Employees" value={summaries.length} color="#6366f1" /></Grid>
-                  <Grid item xs={3}><MiniStat icon={<HourglassEmptyIcon />} label="Pending" value={summaries.filter(s => s.approval_status === 'pending').length} color="#f59e0b" /></Grid>
-                  <Grid item xs={3}><MiniStat icon={<CheckCircleOutlineIcon />} label="Approved" value={summaries.filter(s => s.approval_status === 'approved').length} color="#10b981" /></Grid>
-                  <Grid item xs={3}><MiniStat icon={<CancelOutlinedIcon />} label="Rejected" value={summaries.filter(s => s.approval_status === 'rejected').length} color="#ef4444" /></Grid>
+                  <Grid item xs={4}><MiniStat icon={<PeopleIcon />} label="Employees" value={summaries.length} color="#6366f1" /></Grid>
+                  <Grid item xs={4}><MiniStat icon={<AccessTimeIcon />} label="Total Hours" value={`${summaries.reduce((sum, s) => sum + (parseFloat(s.total_hours) || 0), 0)}h`} color="#f59e0b" /></Grid>
+                  <Grid item xs={4}><MiniStat icon={<ReceiptLongIcon />} label="Payslips" value={summaries.filter(s => s.approval_status === 'approved').length} color="#10b981" /></Grid>
                 </Grid>
 
                 <Divider />
@@ -279,12 +265,12 @@ export default function Periods() {
                   <Table size="small">
                     <TableHead sx={{ bgcolor: 'action.hover' }}>
                       <TableRow>
-                        {['Employee', 'Hours', 'Gross', 'Status', 'Actions'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
+                        {['Employee', 'Hours', 'Gross', 'Status'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {summaries.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 5, color: 'text.disabled', fontSize: '0.875rem' }}>
+                        <TableRow><TableCell colSpan={4} sx={{ textAlign: 'center', py: 5, color: 'text.disabled', fontSize: '0.875rem' }}>
                           No summaries yet. Process the period to generate timesheets.
                         </TableCell></TableRow>
                       ) : summaries.map(s => (
@@ -296,24 +282,6 @@ export default function Periods() {
                           <TableCell sx={TD}>{s.total_hours}h</TableCell>
                           <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                           <TableCell sx={TD}><StatusChip status={s.approval_status} /></TableCell>
-                          <TableCell sx={TD}>
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                              <Tooltip title="View Details">
-                                <IconButton size="small" component={Link} to={`/pending?id=${s.id}`}
-                                  sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}>
-                                  <VisibilityIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                              {s.approval_status === 'approved' && (
-                                <Tooltip title="Generate Payslip">
-                                  <IconButton size="small" onClick={() => handleGeneratePayslip(s.id)}
-                                    sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
-                                    <ReceiptLongIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Box>
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

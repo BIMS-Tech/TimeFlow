@@ -416,6 +416,33 @@ class TimesheetController {
   }
 
   /**
+   * Download payslip PDF file
+   * GET /api/timesheet/payslips/:id/pdf
+   */
+  async downloadPayslipPDF(req, res) {
+    const fs = require('fs');
+    const path = require('path');
+    try {
+      const payslip = await Payslip.findById(req.params.id);
+      if (!payslip || !payslip.pdf_path) {
+        return res.status(404).json({ success: false, error: 'Payslip PDF not found' });
+      }
+      const filePath = path.isAbsolute(payslip.pdf_path)
+        ? payslip.pdf_path
+        : path.join(__dirname, '../../', payslip.pdf_path);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, error: 'PDF file not found on disk' });
+      }
+      const filename = path.basename(filePath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Create a new period
    * POST /api/timesheet/periods
    */
@@ -479,6 +506,38 @@ class TimesheetController {
       if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
       await PayPeriod.delete(req.params.id);
       res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Bulk approve & generate payslips
+   * POST /api/timesheet/bulk-generate-payslips
+   */
+  async bulkGeneratePayslips(req, res) {
+    try {
+      const { periodId, employeeIds } = req.body;
+      if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
+      const result = await timesheetService.bulkApproveAndGenerate(periodId, employeeIds || null);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Generate bank transfer file for a period
+   * GET /api/payroll/bank-file?periodId=X&type=local|foreign
+   */
+  async generateBankFile(req, res) {
+    try {
+      const { periodId, type } = req.query;
+      if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
+      const result = await timesheetService.generateBankFile(parseInt(periodId), type || 'local');
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.content);
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
