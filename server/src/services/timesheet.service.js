@@ -476,13 +476,13 @@ class TimesheetService {
     // Monthly category breakdown — total hours per category
     const categoryBreakdown = await db.query(`
       SELECT
-        COALESCE(NULLIF(TRIM(project_name), ''), 'Uncategorized') AS category,
-        ROUND(SUM(hours_worked), 2)                               AS total_hours,
-        COUNT(DISTINCT employee_id)                               AS employee_count
+        COALESCE(NULLIF(TRIM(category), ''), NULLIF(TRIM(project_name), ''), 'Uncategorized') AS category,
+        ROUND(SUM(hours_worked), 2)                                                            AS total_hours,
+        COUNT(DISTINCT employee_id)                                                            AS employee_count
       FROM time_entries
       WHERE MONTH(entry_date) = MONTH(CURRENT_DATE())
         AND YEAR(entry_date)  = YEAR(CURRENT_DATE())
-      GROUP BY COALESCE(NULLIF(TRIM(project_name), ''), 'Uncategorized')
+      GROUP BY COALESCE(NULLIF(TRIM(category), ''), NULLIF(TRIM(project_name), ''), 'Uncategorized')
       ORDER BY total_hours DESC
       LIMIT 15
     `);
@@ -490,15 +490,15 @@ class TimesheetService {
     // Per-employee hours within each category (same month)
     const categoryEmployeeBreakdown = await db.query(`
       SELECT
-        COALESCE(NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
-        e.name                                                        AS employee_name,
-        e.employee_id                                                 AS emp_code,
-        ROUND(SUM(te.hours_worked), 2)                               AS hours
+        COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
+        e.name                                                                                        AS employee_name,
+        e.employee_id                                                                                 AS emp_code,
+        ROUND(SUM(te.hours_worked), 2)                                                               AS hours
       FROM time_entries te
       JOIN employees e ON te.employee_id = e.id
       WHERE MONTH(te.entry_date) = MONTH(CURRENT_DATE())
         AND YEAR(te.entry_date)  = YEAR(CURRENT_DATE())
-      GROUP BY COALESCE(NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), te.employee_id
+      GROUP BY COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), te.employee_id
       ORDER BY category, hours DESC
     `);
 
@@ -510,6 +510,57 @@ class TimesheetService {
       categoryBreakdown,
       categoryEmployeeBreakdown
     };
+  }
+
+  /**
+   * Category hours breakdown — filterable by period and/or employee.
+   * Used by both admin dashboard and employee portal.
+   */
+  async getCategoryHours(periodId = null, employeeId = null) {
+    const conditions = [];
+    const params = [];
+
+    if (periodId) {
+      const period = await PayPeriod.findById(periodId);
+      if (period) {
+        conditions.push('te.entry_date BETWEEN ? AND ?');
+        params.push(period.start_date, period.end_date);
+      }
+    }
+
+    if (employeeId) {
+      conditions.push('te.employee_id = ?');
+      params.push(parseInt(employeeId));
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const categoryBreakdown = await db.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
+        ROUND(SUM(te.hours_worked), 2)                                                               AS total_hours,
+        COUNT(DISTINCT te.employee_id)                                                               AS employee_count
+      FROM time_entries te
+      ${where}
+      GROUP BY COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized')
+      ORDER BY total_hours DESC
+      LIMIT 30
+    `, params);
+
+    const categoryEmployeeBreakdown = await db.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
+        e.name                                                                                        AS employee_name,
+        e.employee_id                                                                                 AS emp_code,
+        ROUND(SUM(te.hours_worked), 2)                                                               AS hours
+      FROM time_entries te
+      JOIN employees e ON te.employee_id = e.id
+      ${where}
+      GROUP BY COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), te.employee_id
+      ORDER BY COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), hours DESC
+    `, params);
+
+    return { categoryBreakdown, categoryEmployeeBreakdown };
   }
 
   /**

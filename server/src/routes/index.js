@@ -46,6 +46,7 @@ router.use(authMiddleware);
  * @desc Get dashboard statistics
  */
 router.get('/dashboard', timesheetController.getDashboard.bind(timesheetController));
+router.get('/dashboard/category-hours', timesheetController.getCategoryHours.bind(timesheetController));
 
 // ============================================
 // TIMESHEET ROUTES
@@ -378,5 +379,6 @@ router.post('/portal/timesheets/:id/reject', requireEmployee, upload.array('file
 router.get('/portal/payslips', requireEmployee, portalController.getMyPayslips.bind(portalController));
 router.get('/portal/payslips/:id/pdf', requireEmployee, portalController.downloadPayslipPDF.bind(portalController));
 router.post('/portal/change-password', requireEmployee, portalController.changePassword.bind(portalController));
+router.get('/portal/category-hours', requireEmployee, portalController.getCategoryHours.bind(portalController));
 
 module.exports = router;

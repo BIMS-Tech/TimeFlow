@@ -110,6 +110,8 @@ async function runMigrations() {
     `ALTER TABLE employees ADD COLUMN beneficiary_code VARCHAR(50) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN beneficiary_address TEXT DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN bank_address VARCHAR(255) DEFAULT NULL`,
+    // Wrike timelog category name stored on import
+    `ALTER TABLE time_entries ADD COLUMN category VARCHAR(255) DEFAULT NULL`,
   ];
   for (const sql of migrations) {
     try {

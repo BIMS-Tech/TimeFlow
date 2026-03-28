@@ -9,7 +9,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, IconButton, Tooltip, Alert
+  TextField, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
+  InputLabel, LinearProgress
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -137,6 +138,105 @@ function TimesheetRow({ ts, currency, onApprove, onReject }) {
   );
 }
 
+// ─── PORTAL CATEGORY HOURS PANEL ─────────────────────────────────────────────
+
+const CATEGORY_COLORS = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+
+function PortalCategoryHoursPanel({ timesheets }) {
+  const [selectedPeriodId, setSelectedPeriodId] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Build period options from the employee's own timesheets
+  const periodOptions = [];
+  const seen = new Set();
+  timesheets.forEach(ts => {
+    if (ts.period_id && !seen.has(ts.period_id)) {
+      seen.add(ts.period_id);
+      periodOptions.push({ id: ts.period_id, name: ts.period_name });
+    }
+  });
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await portalAPI.getCategoryHours(selectedPeriodId || null);
+      setData(res.data);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedPeriodId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const categories = data?.categoryBreakdown || [];
+  const maxHours = categories.length ? Math.max(...categories.map(c => parseFloat(c.total_hours))) : 0;
+
+  return (
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden', mt: 2.5 }}>
+      {/* Header */}
+      <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Hours by Category</Typography>
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel sx={{ fontSize: '0.8rem' }}>Period</InputLabel>
+          <Select
+            value={selectedPeriodId}
+            label="Period"
+            onChange={e => setSelectedPeriodId(e.target.value)}
+            sx={{ fontSize: '0.8rem' }}
+          >
+            <MenuItem value=""><em>All periods</em></MenuItem>
+            {periodOptions.map(p => (
+              <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ p: 2.5 }}>
+        {loading && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
+
+        {!loading && categories.length === 0 && (
+          <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem', textAlign: 'center', py: 3 }}>
+            No time entries found for the selected period.
+          </Typography>
+        )}
+
+        {categories.map((cat, i) => {
+          const hrs = parseFloat(cat.total_hours || 0);
+          const pct = maxHours > 0 ? (hrs / maxHours) * 100 : 0;
+          const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+          return (
+            <Box key={cat.category || i} sx={{ mb: i < categories.length - 1 ? 2 : 0 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary' }}>
+                  {cat.category || 'Uncategorized'}
+                </Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color }}>
+                  {hrs.toFixed(1)}h
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={pct}
+                sx={{
+                  height: 8,
+                  borderRadius: 1,
+                  bgcolor: 'action.hover',
+                  '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 1 },
+                }}
+              />
+            </Box>
+          );
+        })}
+      </Box>
+    </Paper>
+  );
+}
+
 // ─── SECTIONS ────────────────────────────────────────────────────────────────
 
 function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
@@ -224,6 +324,9 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
           ))}
         </Paper>
       )}
+
+      {/* Category hours breakdown */}
+      <PortalCategoryHoursPanel timesheets={timesheets} />
     </Box>
   );
 }

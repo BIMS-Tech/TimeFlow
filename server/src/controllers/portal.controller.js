@@ -218,6 +218,23 @@ class PortalController {
       res.status(500).json({ success: false, error: error.message });
     }
   }
+
+  /**
+   * GET /api/portal/category-hours?periodId=X
+   * Returns category hours for the logged-in employee only
+   */
+  async getCategoryHours(req, res) {
+    try {
+      const { periodId } = req.query;
+      const result = await timesheetService.getCategoryHours(
+        periodId ? parseInt(periodId) : null,
+        req.user.employee_id
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
 }
 
 module.exports = new PortalController();

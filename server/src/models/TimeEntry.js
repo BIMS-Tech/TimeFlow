@@ -49,6 +49,7 @@ class TimeEntry {
       task_description: data.task_description || null,
       project_name: data.project_name || null,
       wrike_task_id: data.wrike_task_id || null,
+      category: data.category || null,
       source: data.source || 'manual'
     });
     return this.findById(id);
@@ -146,7 +147,7 @@ class TimeEntry {
    */
   static async findDuplicate(employeeId, date, wrikeLogId) {
     return db.getOne(
-      `SELECT id FROM time_entries
+      `SELECT id, category FROM time_entries
        WHERE employee_id = ? AND entry_date = ? AND source = 'wrike'
          AND task_description LIKE ?`,
       [employeeId, date, `[${wrikeLogId}]%`]

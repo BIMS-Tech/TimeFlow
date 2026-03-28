@@ -58,7 +58,6 @@ class WrikeController {
       // Fetch timelogs from Wrike then filter client-side by approval status
       let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
 
-      // Debug: log unique approvalStatus values to confirm Wrike returns them
       const statusValues = [...new Set(timelogs.map(l => l.approvalStatus))];
       console.log(`[Wrike] ${timelogs.length} timelogs fetched. approvalStatus values:`, statusValues);
 
@@ -157,7 +156,10 @@ class WrikeController {
       }
 
       const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
-      const taskTitles = await wrikeService.getTaskTitles(allTaskIds);
+      const [taskTitles, categoryMap] = await Promise.all([
+        wrikeService.getTaskTitles(allTaskIds),
+        wrikeService.getTimelogCategories()
+      ]);
 
       // Group by Wrike user ID, mapping raw fields to processed shape
       const byUser = wrikeService.groupTimeLogsByUser(timelogs);
@@ -175,9 +177,18 @@ class WrikeController {
         for (const log of logs) {
           if (!log.hours || log.hours <= 0) continue;
 
+          const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
+
           // Check for duplicate (same employee, date, wrike source, same logId in description)
           const existing = await TimeEntry.findDuplicate(emp.id, log.date, log.logId);
-          if (existing) { skipped++; continue; }
+          if (existing) {
+            // Back-fill category on entries that were imported before the category column existed
+            if (categoryName && !existing.category) {
+              await TimeEntry.update(existing.id, { category: categoryName });
+            }
+            skipped++;
+            continue;
+          }
 
           const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
           await TimeEntry.create({
@@ -187,6 +198,7 @@ class WrikeController {
             task_description: description,
             project_name:     taskTitles[log.taskId] || null,
             wrike_task_id:    log.taskId || null,
+            category:         categoryName,
             source:           'wrike'
           });
           imported++;

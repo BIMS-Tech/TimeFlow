@@ -397,7 +397,25 @@ class WrikeService {
   }
 
   /**
-   * Group raw timelogs by userId → { [userId]: [{ date, hours, taskId, comment }] }
+   * Fetch all timelog categories → { [categoryId]: categoryName }
+   */
+  async getTimelogCategories() {
+    try {
+      const response = await this.client.get('/timelog_categories');
+      const map = {};
+      for (const cat of response.data.data || []) {
+        map[cat.id] = cat.name;
+      }
+      console.log('[Wrike] Timelog categories loaded:', map);
+      return map;
+    } catch (err) {
+      console.warn('[Wrike] getTimelogCategories failed:', err.response?.data || err.message);
+      return {};
+    }
+  }
+
+  /**
+   * Group raw timelogs by userId → { [userId]: [{ date, hours, taskId, comment, categoryId }] }
    */
   groupTimeLogsByUser(timelogs) {
     const grouped = {};
@@ -410,7 +428,8 @@ class WrikeService {
         taskId: log.taskId,
         comment: log.comment || '',
         logId: log.id,
-        approvalStatus: log.approvalStatus || null
+        approvalStatus: log.approvalStatus || null,
+        categoryId: log.categoryId || null
       });
     }
     return grouped;

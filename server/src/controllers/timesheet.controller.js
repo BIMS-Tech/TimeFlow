@@ -30,6 +30,23 @@ class TimesheetController {
   }
 
   /**
+   * GET /api/dashboard/category-hours?periodId=X&employeeId=Y
+   * Admin: filterable category hours for all or one employee
+   */
+  async getCategoryHours(req, res) {
+    try {
+      const { periodId, employeeId } = req.query;
+      const result = await timesheetService.getCategoryHours(
+        periodId ? parseInt(periodId) : null,
+        employeeId ? parseInt(employeeId) : null
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Process current period
    * POST /api/timesheet/process
    */

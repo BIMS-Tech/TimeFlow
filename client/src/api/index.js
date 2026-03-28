@@ -55,6 +55,12 @@ export const authAPI = {
 // ============================================
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard'),
+  getCategoryHours: (periodId, employeeId) => {
+    const p = new URLSearchParams();
+    if (periodId)   p.set('periodId',   periodId);
+    if (employeeId) p.set('employeeId', employeeId);
+    return api.get(`/dashboard/category-hours?${p}`);
+  },
 };
 
 // ============================================
@@ -153,6 +159,11 @@ export const webhooksAPI = {
 // ============================================
 export const portalAPI = {
   getMe: () => api.get('/portal/me'),
+  getCategoryHours: (periodId) => {
+    const p = new URLSearchParams();
+    if (periodId) p.set('periodId', periodId);
+    return api.get(`/portal/category-hours?${p}`);
+  },
   updateProfile: (data) => api.put('/portal/profile', data),
   getTimesheets: () => api.get('/portal/timesheets'),
   getTimesheetDetail: (id) => api.get(`/portal/timesheets/${id}`),
