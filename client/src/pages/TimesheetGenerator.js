@@ -95,6 +95,28 @@ export default function TimesheetGenerator() {
   const [submitted, setSubmitted] = useState(null);
   const [expandedDays, setExpandedDays] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState(true);
+  const [taskPanelHeight, setTaskPanelHeight] = useState(320);
+  const isDraggingTask = React.useRef(false);
+  const dragStartY = React.useRef(0);
+  const dragStartHeight = React.useRef(320);
+
+  const onTaskDragStart = (e) => {
+    isDraggingTask.current = true;
+    dragStartY.current = e.clientY;
+    dragStartHeight.current = taskPanelHeight;
+    const onMove = (mv) => {
+      if (!isDraggingTask.current) return;
+      const delta = mv.clientY - dragStartY.current;
+      setTaskPanelHeight(Math.max(120, Math.min(800, dragStartHeight.current + delta)));
+    };
+    const onUp = () => {
+      isDraggingTask.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   // Multi-employee result (summary table)
   const [bulkResults, setBulkResults] = useState(null);
@@ -485,7 +507,7 @@ export default function TimesheetGenerator() {
                     {expandedTasks ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
                   </Box>
                   <Collapse in={expandedTasks}>
-                    <TableContainer sx={{ maxHeight: 320 }}>
+                    <TableContainer sx={{ maxHeight: taskPanelHeight, overflow: 'auto', transition: 'max-height 0.1s' }}>
                       <Table size="small" stickyHeader>
                         <TableHead>
                           <TableRow>
@@ -504,6 +526,17 @@ export default function TimesheetGenerator() {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    {/* Drag handle */}
+                    <Box
+                      onMouseDown={onTaskDragStart}
+                      sx={{
+                        height: 8, cursor: 'ns-resize', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        bgcolor: 'action.hover', '&:hover': { bgcolor: '#6366f120' },
+                        borderTop: '1px solid', borderTopColor: 'divider', userSelect: 'none',
+                      }}
+                    >
+                      <Box sx={{ width: 32, height: 3, borderRadius: 2, bgcolor: 'divider' }} />
+                    </Box>
                   </Collapse>
                 </Paper>
               )}
