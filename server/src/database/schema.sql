@@ -22,11 +22,21 @@ CREATE TABLE IF NOT EXISTS employees (
     currency VARCHAR(10) DEFAULT 'USD',
     employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
     hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+    -- Name parts (used for local XCS bank file)
+    first_name VARCHAR(100) DEFAULT NULL,
+    last_name VARCHAR(100) DEFAULT NULL,
+    middle_name VARCHAR(100) DEFAULT NULL,
+    -- Bank details
     bank_name VARCHAR(100) DEFAULT NULL,
     bank_account_number VARCHAR(100) DEFAULT NULL,
     bank_account_name VARCHAR(255) DEFAULT NULL,
     bank_branch VARCHAR(100) DEFAULT NULL,
     bank_swift_code VARCHAR(50) DEFAULT NULL,
+    -- International / DFT fields
+    remittance_type VARCHAR(50) DEFAULT NULL,
+    beneficiary_code VARCHAR(50) DEFAULT NULL,
+    beneficiary_address TEXT DEFAULT NULL,
+    bank_address VARCHAR(255) DEFAULT NULL,
     wrike_user_id VARCHAR(100),
     hire_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -468,10 +478,20 @@ DELIMITER ;
 ALTER TABLE employees
   ADD COLUMN IF NOT EXISTS employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
   ADD COLUMN IF NOT EXISTS hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+  -- Name parts (XCS local bank file)
+  ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS middle_name VARCHAR(100) DEFAULT NULL,
+  -- Bank details
   ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(100) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL,
+  -- International DFT fields
+  ADD COLUMN IF NOT EXISTS remittance_type VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS beneficiary_code VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS beneficiary_address TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS bank_address VARCHAR(255) DEFAULT NULL;
 
 -- End of schema

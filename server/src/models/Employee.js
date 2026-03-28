@@ -76,11 +76,21 @@ class Employee {
       currency: data.currency || 'USD',
       employment_type: data.employment_type || 'full_time',
       hire_category: data.hire_category || 'local',
+      // Name parts (for XCS local bank file)
+      first_name: data.first_name || null,
+      last_name: data.last_name || null,
+      middle_name: data.middle_name || null,
+      // Bank details
       bank_name: data.bank_name || null,
       bank_account_number: data.bank_account_number || null,
       bank_account_name: data.bank_account_name || null,
       bank_branch: data.bank_branch || null,
       bank_swift_code: data.bank_swift_code || null,
+      // International DFT fields
+      remittance_type: data.remittance_type || null,
+      beneficiary_code: data.beneficiary_code || null,
+      beneficiary_address: data.beneficiary_address || null,
+      bank_address: data.bank_address || null,
       wrike_user_id: data.wrike_user_id || null,
       hire_date: data.hire_date || null,
       is_active: data.is_active !== undefined ? data.is_active : true

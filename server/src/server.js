@@ -94,13 +94,22 @@ const PORT = process.env.PORT || 5000;
 
 async function runMigrations() {
   const migrations = [
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time'`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local'`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255) DEFAULT NULL`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255) DEFAULT NULL`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(255) DEFAULT NULL`,
-    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time'`,
+    `ALTER TABLE employees ADD COLUMN hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local'`,
+    `ALTER TABLE employees ADD COLUMN bank_name VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN bank_account_number VARCHAR(100) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN bank_account_name VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN bank_branch VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN bank_swift_code VARCHAR(50) DEFAULT NULL`,
+    // Name parts for XCS local bank file
+    `ALTER TABLE employees ADD COLUMN first_name VARCHAR(100) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN last_name VARCHAR(100) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN middle_name VARCHAR(100) DEFAULT NULL`,
+    // International DFT bank file fields
+    `ALTER TABLE employees ADD COLUMN remittance_type VARCHAR(50) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_code VARCHAR(50) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_address TEXT DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN bank_address VARCHAR(255) DEFAULT NULL`,
   ];
   for (const sql of migrations) {
     try {

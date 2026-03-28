@@ -473,7 +473,7 @@ class TimesheetService {
     const netByCurrency  = await Payslip.getNetByCurrency(null);
     const pendingApprovals = await TimeEntriesSummary.getPendingApprovals();
 
-    // Monthly category breakdown — hours per project/task category for current month
+    // Monthly category breakdown — total hours per category
     const categoryBreakdown = await db.query(`
       SELECT
         COALESCE(NULLIF(TRIM(project_name), ''), 'Uncategorized') AS category,
@@ -487,12 +487,28 @@ class TimesheetService {
       LIMIT 15
     `);
 
+    // Per-employee hours within each category (same month)
+    const categoryEmployeeBreakdown = await db.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
+        e.name                                                        AS employee_name,
+        e.employee_id                                                 AS emp_code,
+        ROUND(SUM(te.hours_worked), 2)                               AS hours
+      FROM time_entries te
+      JOIN employees e ON te.employee_id = e.id
+      WHERE MONTH(te.entry_date) = MONTH(CURRENT_DATE())
+        AND YEAR(te.entry_date)  = YEAR(CURRENT_DATE())
+      GROUP BY COALESCE(NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), te.employee_id
+      ORDER BY category, hours DESC
+    `);
+
     return {
       currentPeriod,
       summaries: { ...summaryStats, grossByCurrency },
       payslips:  { ...payslipStats,  netByCurrency },
       pendingApprovals: pendingApprovals.length,
-      categoryBreakdown
+      categoryBreakdown,
+      categoryEmployeeBreakdown
     };
   }
 
@@ -753,49 +769,64 @@ class TimesheetService {
     }
 
     if (type === 'foreign') {
-      // SWIFT / international wire format
-      const lines = [
-        `INTERNATIONAL PAYROLL TRANSFER - ${period.period_name}`,
-        `Generated: ${new Date().toISOString().split('T')[0]}`,
-        `${'─'.repeat(80)}`,
-        'No. | Employee Name           | Bank Name           | SWIFT Code    | Account Number     | Net Amount | CCY',
-        `${'─'.repeat(80)}`
-      ];
-      rows.forEach((r, i) => {
-        const { payslip: p, emp } = r;
-        lines.push([
-          String(i + 1).padStart(3),
-          (emp.name || '').padEnd(23),
-          (emp.bank_name || '—').padEnd(20),
-          (emp.bank_swift_code || '—').padEnd(14),
-          (emp.bank_account_number || '—').padEnd(19),
-          String(Number(p.net_amount).toFixed(2)).padStart(10),
-          (emp.currency || 'USD').padEnd(4)
-        ].join(' | '));
+      // ── DFT pipe-delimited format for MBOS international transfers ──────────
+      // Field positions (1-based):
+      // 1:D  2:RemittanceType  3:Currency  4:Amount  5:SourceAccount
+      // 6:DestAccountNo  7:1(static)  8:BeneficiaryCode  9:BeneficiaryName
+      // 10-12:(empty)  13:BeneficiaryAddress  14:SWIFTCode
+      // 15:BeneficiaryBankAddress  16:(empty)  17:Purpose(DFT <date>)
+      // 18-19:(empty)  20:0(ChargeType)  21-23:(empty)
+      const transactionDate = new Date().toISOString().split('T')[0];
+      const sourceAccount = process.env.BANK_SOURCE_ACCOUNT || '';
+
+      const lines = rows.map(({ payslip: p, emp }) => {
+        const fields = [
+          'D',
+          emp.remittance_type || '',
+          emp.currency || '',
+          Number(p.net_amount).toFixed(2),
+          sourceAccount,
+          emp.bank_account_number || '',
+          '1',
+          emp.beneficiary_code || emp.employee_id || '',
+          emp.bank_account_name || emp.name || '',
+          '', '', '',                          // positions 10–12 (empty)
+          emp.beneficiary_address || '',       // 13: Beneficiary Address
+          emp.bank_swift_code || '',           // 14: SWIFT Code
+          emp.bank_address || '',              // 15: Beneficiary Bank Address
+          '',                                  // 16: empty (Swift Code removed per spec)
+          `DFT ${transactionDate}`,            // 17: Purpose
+          '', '',                              // 18–19: empty
+          '0',                                 // 20: Charge Type
+          '', '', '',                          // 21–23: empty (trailing)
+        ];
+        return fields.join('|');
       });
-      lines.push(`${'─'.repeat(80)}`);
-      const total = rows.reduce((s, r) => s + Number(r.payslip.net_amount), 0);
-      lines.push(`TOTAL: ${total.toFixed(2)}`);
-      return { content: lines.join('\n'), filename: `bank_transfer_foreign_${periodId}.txt`, contentType: 'text/plain' };
+
+      return {
+        content: lines.join('\r\n'),
+        filename: `bank_transfer_dft_${periodId}.txt`,
+        contentType: 'text/plain'
+      };
     }
 
-    // Local bank transfer CSV
-    const csvLines = [
-      'Employee Name,Account Name,Bank Name,Branch,Account Number,Net Amount,Currency'
-    ];
-    rows.forEach(({ payslip: p, emp }) => {
-      const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+    // ── XCS format for local bank transfers ───────────────────────────────────
+    // Fields: Last Name, First Name, Middle Name, Account Number
+    const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+    const csvLines = ['Last Name,First Name,Middle Name,Account Number'];
+    rows.forEach(({ emp }) => {
       csvLines.push([
-        escape(emp.name),
-        escape(emp.bank_account_name || emp.name),
-        escape(emp.bank_name),
-        escape(emp.bank_branch),
-        escape(emp.bank_account_number),
-        Number(p.net_amount).toFixed(2),
-        emp.currency || 'USD'
+        escape(emp.last_name || ''),
+        escape(emp.first_name || ''),
+        escape(emp.middle_name || ''),
+        escape(emp.bank_account_number || ''),
       ].join(','));
     });
-    return { content: csvLines.join('\n'), filename: `bank_transfer_local_${periodId}.csv`, contentType: 'text/csv' };
+    return {
+      content: csvLines.join('\r\n'),
+      filename: `bank_transfer_xcs_${periodId}.csv`,
+      contentType: 'text/csv'
+    };
   }
 
   /**

@@ -125,9 +125,18 @@ class PDFService {
         ];
         tiles.forEach(([label, value], i) => {
           const tx = MARGIN + i * (tileW + 7);
-          doc.roundedRect(tx, y, tileW, 44, 5).fill('#f1f5f9');
-          doc.fontSize(7).font('Helvetica').fillColor('#94a3b8').text(label, tx + 10, y + 8);
-          doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e').text(value, tx + 10, y + 22);
+          const isOvertimeTile = i === 2 && overtimeHours > 0;
+          doc.roundedRect(tx, y, tileW, 44, 5).fill(isOvertimeTile ? '#fef3c7' : '#f1f5f9');
+          doc.fontSize(7).font('Helvetica')
+             .fillColor(isOvertimeTile ? '#b45309' : '#94a3b8')
+             .text(label, tx + 10, y + 8);
+          doc.fontSize(13).font('Helvetica-Bold')
+             .fillColor(isOvertimeTile ? '#92400e' : '#1a1a2e')
+             .text(value, tx + 10, y + 22);
+          if (isOvertimeTile) {
+            doc.fontSize(6).font('Helvetica-Bold').fillColor('#d97706')
+               .text('EXTRA TIME', tx + tileW - 58, y + 8, { width: 50, align: 'right' });
+          }
         });
 
         y += 44 + 14;
@@ -332,15 +341,23 @@ class PDFService {
           return yPos + 18;
         };
 
-        const drawTableRow = (label, hours, rate, amount, yPos, bold = false, shade = false) => {
-          if (shade) doc.rect(MARGIN, yPos - 3, CONTENT_W, 18).fill('#f1f5f9');
-          doc.fillColor(bold ? '#1a1a2e' : '#334155')
-             .fontSize(9).font(bold ? 'Helvetica-Bold' : 'Helvetica');
+        const drawTableRow = (label, hours, rate, amount, yPos, bold = false, shade = false, overtime = false) => {
+          if (overtime) {
+            doc.rect(MARGIN, yPos - 3, CONTENT_W, 18).fill('#fef3c7');
+          } else if (shade) {
+            doc.rect(MARGIN, yPos - 3, CONTENT_W, 18).fill('#f1f5f9');
+          }
+          const textColor = overtime ? '#92400e' : (bold ? '#1a1a2e' : '#334155');
+          doc.fillColor(textColor).fontSize(9).font(bold ? 'Helvetica-Bold' : 'Helvetica');
           const C = [MARGIN + 4, MARGIN + 200, MARGIN + 320, MARGIN + 420];
           if (label)  doc.text(label,  C[0], yPos, { width: 190 });
           if (hours)  doc.text(hours,  C[1], yPos, { width: 110, align: 'right' });
           if (rate)   doc.text(rate,   C[2], yPos, { width: 95,  align: 'right' });
           if (amount) doc.text(amount, C[3], yPos, { width: 95,  align: 'right' });
+          if (overtime) {
+            doc.fontSize(6).font('Helvetica-Bold').fillColor('#d97706')
+               .text('EXTRA TIME', MARGIN + CONTENT_W - 4, yPos - 1, { width: 60, align: 'right' });
+          }
           return yPos + 20;
         };
 
@@ -359,7 +376,7 @@ class PDFService {
             `${overtimeHours.toFixed(2)} hrs`,
             money(overtimeRate),
             money(overtimePay),
-            y, false, false);
+            y, false, false, true);
         }
 
         y += 4;

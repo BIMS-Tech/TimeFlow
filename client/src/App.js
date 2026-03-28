@@ -39,7 +39,7 @@ const NAV_ITEMS = [
   { label: 'Employees',          icon: <PeopleIcon />,                  path: '/employees' },
   { label: 'Pay Periods',        icon: <CalendarMonthIcon />,           path: '/periods'   },
   { label: 'Payslips',           icon: <ReceiptLongIcon />,             path: '/payslips'  },
-  { label: 'Generate Timesheet', icon: <AddchartIcon />,                path: '/generate'  },
+  { label: 'Generate Payslips',  icon: <AddchartIcon />,                path: '/generate'  },
   { label: 'Wrike Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike'     },
 ];
 

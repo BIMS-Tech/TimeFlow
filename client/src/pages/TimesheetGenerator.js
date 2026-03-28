@@ -94,6 +94,7 @@ export default function TimesheetGenerator() {
   const [preview, setPreview] = useState(null);
   const [submitted, setSubmitted] = useState(null);
   const [expandedDays, setExpandedDays] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState(true);
 
   // Multi-employee result (summary table)
   const [bulkResults, setBulkResults] = useState(null);
@@ -478,28 +479,32 @@ export default function TimesheetGenerator() {
 
               {sortedTasks.length > 0 && (
                 <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                  <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => setExpandedTasks(v => !v)}>
                     <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Task Details ({sortedTasks.length} entries)</Typography>
+                    {expandedTasks ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
                   </Box>
-                  <TableContainer sx={{ maxHeight: 320 }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => <TableCell key={h} sx={{ ...TH, bgcolor: 'action.hover', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>)}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {sortedTasks.map((t, i) => (
-                          <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                            <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{fmtDay(t.date)}</TableCell>
-                            <TableCell sx={{ ...TD, color: '#6366f1', maxWidth: 200, fontSize: '0.8rem' }}>{t.taskTitle}</TableCell>
-                            <TableCell sx={{ ...TD, color: 'text.disabled', maxWidth: 180, fontSize: '0.8rem' }}>{t.comment || '—'}</TableCell>
-                            <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.8rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                  <Collapse in={expandedTasks}>
+                    <TableContainer sx={{ maxHeight: 320 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => <TableCell key={h} sx={{ ...TH, bgcolor: 'action.hover', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>)}
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {sortedTasks.map((t, i) => (
+                            <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                              <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{fmtDay(t.date)}</TableCell>
+                              <TableCell sx={{ ...TD, color: '#6366f1', maxWidth: 200, fontSize: '0.8rem' }}>{t.taskTitle}</TableCell>
+                              <TableCell sx={{ ...TD, color: 'text.disabled', maxWidth: 180, fontSize: '0.8rem' }}>{t.comment || '—'}</TableCell>
+                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.8rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Collapse>
                 </Paper>
               )}
 

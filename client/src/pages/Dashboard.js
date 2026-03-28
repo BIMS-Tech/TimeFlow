@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Box, Grid, Paper, Typography, Button, Chip, CircularProgress, Divider
+  Box, Grid, Paper, Typography, Button, Chip, CircularProgress, Divider,
+  Collapse, Avatar, Tooltip
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { dashboardAPI, timesheetAPI } from '../api';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { dashboardAPI } from '../api';
 
 const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
 
@@ -57,8 +60,7 @@ function InfoRow({ label, value }) {
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-
+  const [expandedCategory, setExpandedCategory] = useState(null);
   useEffect(() => { fetchDashboard(); }, []);
 
   const fetchDashboard = async () => {
@@ -73,23 +75,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleProcessPeriod = async () => {
-    try {
-      setProcessing(true);
-      toast.loading('Processing timesheets...');
-      const response = await timesheetAPI.process();
-      toast.dismiss();
-      if (response.success) {
-        toast.success(`Processed ${response.data.processed} timesheets`);
-        fetchDashboard();
-      }
-    } catch {
-      toast.error('Failed to process timesheets');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -98,8 +83,15 @@ export default function Dashboard() {
     );
   }
 
-  const { currentPeriod, summaries, payslips, categoryBreakdown } = stats || {};
+  const { currentPeriod, summaries, payslips, categoryBreakdown, categoryEmployeeBreakdown } = stats || {};
   const maxCategoryHours = categoryBreakdown?.length ? Math.max(...categoryBreakdown.map(c => c.total_hours)) : 1;
+
+  // Group employee rows by category for quick lookup
+  const empByCategory = (categoryEmployeeBreakdown || []).reduce((acc, row) => {
+    if (!acc[row.category]) acc[row.category] = [];
+    acc[row.category].push(row);
+    return acc;
+  }, {});
 
   return (
     <Box>
@@ -115,17 +107,10 @@ export default function Dashboard() {
             </Typography>
           )}
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchDashboard}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
-            Refresh
-          </Button>
-          <Button variant="contained" startIcon={processing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <PlayArrowIcon />}
-            onClick={handleProcessPeriod} disabled={processing}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', '&:hover': { background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)' } }}>
-            Process Period
-          </Button>
-        </Box>
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchDashboard}
+          sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+          Refresh
+        </Button>
       </Box>
 
       {/* Stat cards */}
@@ -217,31 +202,103 @@ export default function Dashboard() {
         </Box>
       </Paper>
 
-      {/* Monthly category breakdown */}
+      {/* Hours by Category — expandable per-employee breakdown */}
       {categoryBreakdown?.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>Hours by Category</Typography>
+        <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', mb: 2, overflow: 'hidden' }}>
+          {/* Section header */}
+          <Box sx={{ px: 2.5, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AccessTimeIcon sx={{ fontSize: 18, color: '#6366f1' }} />
+              <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>Hours by Category</Typography>
+            </Box>
             <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
               {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {categoryBreakdown.map(({ category, total_hours, employee_count }) => (
-              <Box key={category}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary' }}>{category}</Typography>
-                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>{employee_count} emp</Typography>
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1' }}>{Number(total_hours).toFixed(1)}h</Typography>
+
+          {categoryBreakdown.map(({ category, total_hours, employee_count }, idx) => {
+            const isOpen = expandedCategory === category;
+            const empRows = empByCategory[category] || [];
+            const barPct = Math.round((total_hours / maxCategoryHours) * 100);
+
+            return (
+              <Box key={category} sx={{ borderBottom: idx < categoryBreakdown.length - 1 ? '1px solid' : 'none', borderBottomColor: 'divider' }}>
+                {/* Category row — clickable */}
+                <Box
+                  onClick={() => setExpandedCategory(isOpen ? null : category)}
+                  sx={{ px: 2.5, py: 1.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
+                    bgcolor: isOpen ? 'rgba(99,102,241,0.04)' : 'transparent',
+                    '&:hover': { bgcolor: 'action.hover' }, transition: 'background 0.15s' }}
+                >
+                  {/* Bar + label */}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {category}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, ml: 2 }}>
+                        <Tooltip title={`${employee_count} employee${employee_count !== 1 ? 's' : ''}`}>
+                          <Chip label={`${employee_count} emp`} size="small"
+                            sx={{ height: 20, fontSize: '0.68rem', fontWeight: 600, bgcolor: '#6366f110', color: '#6366f1', cursor: 'pointer' }} />
+                        </Tooltip>
+                        <Typography sx={{ fontSize: '0.875rem', fontWeight: 800, color: '#6366f1', minWidth: 52, textAlign: 'right' }}>
+                          {Number(total_hours).toFixed(1)}h
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ height: 5, borderRadius: '3px', bgcolor: 'action.hover', overflow: 'hidden' }}>
+                      <Box sx={{ height: '100%', borderRadius: '3px', bgcolor: isOpen ? '#6366f1' : '#818cf8',
+                        width: `${barPct}%`, transition: 'width 0.4s ease, background 0.2s' }} />
+                    </Box>
+                  </Box>
+
+                  {/* Expand icon */}
+                  <Box sx={{ color: 'text.disabled', flexShrink: 0 }}>
+                    {isOpen ? <ExpandLessIcon sx={{ fontSize: 20 }} /> : <ExpandMoreIcon sx={{ fontSize: 20 }} />}
                   </Box>
                 </Box>
-                <Box sx={{ height: 6, borderRadius: 0, bgcolor: 'action.hover', overflow: 'hidden' }}>
-                  <Box sx={{ height: '100%', borderRadius: 0, bgcolor: '#6366f1', width: `${(total_hours / maxCategoryHours) * 100}%`, transition: 'width 0.4s ease' }} />
-                </Box>
+
+                {/* Expanded employee breakdown */}
+                <Collapse in={isOpen} unmountOnExit>
+                  <Box sx={{ px: 2.5, pb: 1.5, pt: 0.5, bgcolor: 'rgba(99,102,241,0.025)' }}>
+                    {empRows.length === 0 ? (
+                      <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', py: 1 }}>No breakdown available.</Typography>
+                    ) : (
+                      empRows.map((emp, i) => {
+                        const empBarPct = Math.round((emp.hours / total_hours) * 100);
+                        return (
+                          <Box key={emp.emp_code} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75,
+                            borderBottom: i < empRows.length - 1 ? '1px dashed' : 'none', borderBottomColor: 'divider' }}>
+                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.7rem', fontWeight: 700,
+                              bgcolor: '#6366f115', color: '#6366f1', flexShrink: 0 }}>
+                              {emp.employee_name.slice(0, 2).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
+                                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary',
+                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {emp.employee_name}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', ml: 1, flexShrink: 0 }}>
+                                  {Number(emp.hours).toFixed(1)}h
+                                  <Typography component="span" sx={{ fontSize: '0.7rem', color: 'text.disabled', fontWeight: 400, ml: 0.5 }}>
+                                    ({empBarPct}%)
+                                  </Typography>
+                                </Typography>
+                              </Box>
+                              <Box sx={{ height: 3, borderRadius: '2px', bgcolor: 'action.hover', overflow: 'hidden' }}>
+                                <Box sx={{ height: '100%', borderRadius: '2px', bgcolor: '#10b981', width: `${empBarPct}%`, transition: 'width 0.3s ease' }} />
+                              </Box>
+                            </Box>
+                          </Box>
+                        );
+                      })
+                    )}
+                  </Box>
+                </Collapse>
               </Box>
-            ))}
-          </Box>
+            );
+          })}
         </Paper>
       )}
 
