@@ -8,9 +8,12 @@ const mysql = require('mysql2/promise');
  * Database connection pool configuration
  * mysql2 v3.x handles caching_sha2_password (MySQL 8.0+) natively — no authPlugins needed
  */
+const dbHost = process.env.DB_HOST || 'localhost';
+const isSocketPath = dbHost.startsWith('/');
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 3306,
+  // Cloud SQL on Cloud Run uses a Unix socket; local dev uses TCP host+port
+  ...(isSocketPath ? { socketPath: dbHost } : { host: dbHost, port: parseInt(process.env.DB_PORT) || 3306 }),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'timesheet_db',
