@@ -17,7 +17,14 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { dashboardAPI, timesheetAPI, employeesAPI } from '../api';
 
-const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
+<Chip
+  label={status}
+  sx={{
+    backgroundColor: STATUS_COLORS[status] || '#ccc',
+    color: '#fff',
+    fontWeight: 600
+  }}
+/>
 
 function StatCard({ icon, label, value, color, gradient }) {
   return (
