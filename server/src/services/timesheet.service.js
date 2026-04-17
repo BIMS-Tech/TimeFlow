@@ -6,7 +6,6 @@ const Payslip = require('../models/Payslip');
 const wrikeService = require('./wrike.service');
 const pdfService = require('./pdf.service');
 const csvService = require('./csv.service');
-const driveService = require('./drive.service');
 const db = require('../database/connection');
 require('dotenv').config();
 
@@ -93,15 +92,10 @@ class TimesheetService {
       return { success: false, reason: 'already_approved' };
     }
 
-    // If already pending with an existing Wrike task, don't create a duplicate
-    if (summary && summary.approval_status === 'pending' && summary.wrike_task_id) {
-      console.log(`⏭️  ${employee.name} already has a pending approval task (${summary.wrike_task_id}), returning existing`);
-      return {
-        success: true,
-        summary,
-        wrikeTask: { id: summary.wrike_task_id },
-        alreadyPending: true
-      };
+    // If already pending, skip
+    if (summary && summary.approval_status === 'pending') {
+      console.log(`⏭️  ${employee.name} already has a pending timesheet, returning existing`);
+      return { success: true, summary, alreadyPending: true };
     }
 
     // Calculate hours from time entries
@@ -275,22 +269,10 @@ class TimesheetService {
     // Generate final payslip PDF
     const payslip = await this.generatePayslip(fullSummary, period);
 
-    // Update summary with payslip path immediately (so employee can download even without Drive)
+    // Update summary with payslip path
     await TimeEntriesSummary.updateFilePaths(summary.id, {
       payslip_pdf_path: payslip.pdf_path
     });
-
-    // Upload to Drive (optional — failure does NOT block approval)
-    let driveResult = null;
-    try {
-      driveResult = await this.uploadPayslipToDrive(payslip, fullSummary, period);
-      await TimeEntriesSummary.updateFilePaths(summary.id, {
-        drive_file_id: driveResult.fileId,
-        drive_file_url: driveResult.webViewLink
-      });
-    } catch (driveError) {
-      console.warn(`⚠️  Drive upload failed (approval still succeeded): ${driveError.message}`);
-    }
 
     console.log(`🎉 Approval complete for ${fullSummary.employee_name}`);
 
@@ -298,8 +280,7 @@ class TimesheetService {
       success: true,
       action: 'approved',
       summary: fullSummary,
-      payslip,
-      drive: driveResult
+      payslip
     };
   }
 
@@ -384,35 +365,7 @@ class TimesheetService {
   }
 
   /**
-   * Upload payslip to Google Drive
-   */
-  async uploadPayslipToDrive(payslip, summary, period) {
-    console.log(`☁️  Uploading payslip to Drive...`);
-
-    try {
-      const result = await driveService.uploadPayslip(
-        payslip.pdf_path,
-        summary.employee_name,
-        period.period_name
-      );
-
-      // Update payslip with drive info
-      await Payslip.updateFileInfo(payslip.id, {
-        drive_file_id: result.fileId,
-        drive_file_url: result.webViewLink
-      });
-
-      console.log(`✅ Payslip uploaded: ${result.webViewLink}`);
-
-      return result;
-    } catch (error) {
-      console.error(`❌ Failed to upload to Drive: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Resend approval request
+   * Resend approval request (re-processes a rejected/pending summary)
    */
   async resendApproval(summaryId) {
     const summary = await TimeEntriesSummary.getWithDetails(summaryId);
@@ -425,39 +378,9 @@ class TimesheetService {
       throw new Error('Can only resend for pending or rejected summaries');
     }
 
-    // Reset to pending
     await TimeEntriesSummary.resetToPending(summaryId);
-
-    // Get employee
-    const employee = await Employee.findById(summary.employee_id);
-
-    // Create new Wrike task (summary from getWithDetails already includes period dates)
-    const wrikeTask = await wrikeService.createTimesheetApprovalTask(summary, employee, {
-      start_date: summary.start_date,
-      end_date: summary.end_date
-    });
-
-    // Update with new task ID
-    await TimeEntriesSummary.setApprovalTaskId(summaryId, wrikeTask.id);
-
-    // Attach existing timesheet file (CSV)
-    if (summary.timesheet_pdf_path) {
-      try {
-        const ext = summary.timesheet_pdf_path.endsWith('.csv') ? 'csv' : 'pdf';
-        await wrikeService.attachFileToTask(
-          wrikeTask.id,
-          summary.timesheet_pdf_path,
-          `Timesheet_${summary.period_name}.${ext}`
-        );
-      } catch (error) {
-        console.warn('Could not attach timesheet file:', error.message);
-      }
-    }
-
-    return {
-      success: true,
-      wrikeTask: wrikeTask
-    };
+    const pendingSummary = await TimeEntriesSummary.findById(summaryId);
+    return await this.processApproval(pendingSummary, 'admin');
   }
 
   /**
@@ -804,79 +727,134 @@ class TimesheetService {
    * Generate bank transfer file content for a period.
    * type = 'local' (CSV) | 'foreign' (SWIFT text)
    */
-  async generateBankFile(periodId, type = 'local') {
+  async generateBankFile(periodId, type = 'local', employeeIds = null) {
     const period = await PayPeriod.findById(periodId);
     if (!period) throw new Error('Period not found');
 
     const payslips = await Payslip.findByPeriod(periodId);
-    if (!payslips.length) throw new Error('No payslips found for this period');
+    if (!payslips.length) throw new Error('No payslips found for this period. Generate payslips first.');
 
-    // Fetch employee bank details for each payslip
+    const targetCategory = type === 'foreign' ? 'foreign' : 'local';
+    const LOCAL_REQUIRED = ['first_name', 'last_name', 'bank_account_number'];
+    const FOREIGN_REQUIRED = ['first_name', 'last_name', 'bank_account_number', 'bank_name', 'bank_swift_code', 'beneficiary_address', 'country_of_destination', 'purpose_nature', 'remittance_type'];
+    const requiredFields = type === 'foreign' ? FOREIGN_REQUIRED : LOCAL_REQUIRED;
+
     const rows = [];
+    const skipped = [];
     for (const p of payslips) {
       const emp = await Employee.findById(p.employee_id);
       if (!emp) continue;
+      if (emp.hire_category !== targetCategory) continue;
+      if (employeeIds && employeeIds.length && !employeeIds.includes(emp.id)) continue;
+      const missing = requiredFields.filter(f => !emp[f]);
+      if (missing.length > 0) {
+        skipped.push({ name: emp.name, missing });
+        continue;
+      }
       rows.push({ payslip: p, emp });
     }
 
+    if (!rows.length) {
+      const skipDetail = skipped.length ? ` (${skipped.length} skipped due to incomplete profiles)` : '';
+      throw new Error(`No ${targetCategory} employees with complete profiles and payslips found for this period${skipDetail}.`);
+    }
+
     if (type === 'foreign') {
-      // ── DFT pipe-delimited format for MBOS international transfers ──────────
-      // Field positions (1-based):
-      // 1:D  2:RemittanceType  3:Currency  4:Amount  5:SourceAccount
-      // 6:DestAccountNo  7:1(static)  8:BeneficiaryCode  9:BeneficiaryName
-      // 10-12:(empty)  13:BeneficiaryAddress  14:SWIFTCode
-      // 15:BeneficiaryBankAddress  16:(empty)  17:Purpose(DFT <date>)
-      // 18-19:(empty)  20:0(ChargeType)  21-23:(empty)
+      // ── DFT pipe-delimited format ─────────────────────────────────────────
+      // D row: transaction data (one per employee)
+      // C row: tax period / payee-payor info (one per employee)
+      // W row: withholding tax data (one per employee)
       const transactionDate = new Date().toISOString().split('T')[0];
       const sourceAccount = process.env.BANK_SOURCE_ACCOUNT || '';
+      const payorName = process.env.PAYOR_NAME || '';
+      const payorTin = process.env.PAYOR_TIN || '';
+      const payorAddress = process.env.PAYOR_ADDRESS || '';
+      const payorZip = process.env.PAYOR_ZIP_CODE || '';
 
-      const lines = rows.map(({ payslip: p, emp }) => {
-        const fields = [
+      const lines = [];
+      rows.forEach(({ payslip: p, emp }) => {
+        // D row – remittance transaction
+        lines.push([
           'D',
           emp.remittance_type || '',
           emp.currency || '',
           Number(p.net_amount).toFixed(2),
           sourceAccount,
           emp.bank_account_number || '',
-          '1',
+          '0',
           emp.beneficiary_code || emp.employee_id || '',
           emp.bank_account_name || emp.name || '',
-          '', '', '',                          // positions 10–12 (empty)
-          emp.beneficiary_address || '',       // 13: Beneficiary Address
-          emp.bank_swift_code || '',           // 14: SWIFT Code
-          emp.bank_address || '',              // 15: Beneficiary Bank Address
-          '',                                  // 16: empty (Swift Code removed per spec)
-          `DFT ${transactionDate}`,            // 17: Purpose
-          '', '',                              // 18–19: empty
-          '0',                                 // 20: Charge Type
-          '', '', '',                          // 21–23: empty (trailing)
-        ];
-        return fields.join('|');
+          emp.first_name || '',
+          emp.middle_name || '',
+          emp.last_name || '',
+          emp.beneficiary_address || '',
+          emp.bank_name || '',
+          emp.bank_address || '',
+          emp.bank_swift_code || '',
+          `DFT ${transactionDate}`,
+          emp.purpose_nature || '',
+          emp.country_of_destination || '',
+          '0',
+          emp.intermediary_bank_name || '',
+          emp.intermediary_bank_address || '',
+          emp.intermediary_bank_swift || '',
+        ].join('|'));
+
+        // C row – tax period / payee-payor
+        lines.push([
+          'C',
+          period.start_date ? period.start_date.toISOString ? period.start_date.toISOString().split('T')[0] : String(period.start_date).split('T')[0] : '',
+          period.end_date ? period.end_date.toISOString ? period.end_date.toISOString().split('T')[0] : String(period.end_date).split('T')[0] : '',
+          emp.bank_account_name || emp.name || '',
+          emp.payee_tin || '',
+          emp.beneficiary_address || '',
+          emp.payee_zip_code || '',
+          emp.payee_foreign_address || '',
+          emp.payee_foreign_zip_code || '',
+          payorName,
+          payorTin,
+          payorAddress,
+          payorZip,
+        ].join('|'));
+
+        // W row – withholding tax
+        lines.push([
+          'W',
+          emp.tax_code || '',
+          '',
+          '',
+          '',
+          Number(p.gross_amount || 0).toFixed(2),
+          Number(p.tax_deductions || 0).toFixed(2),
+        ].join('|'));
       });
 
       return {
         content: lines.join('\r\n'),
         filename: `bank_transfer_dft_${periodId}.txt`,
-        contentType: 'text/plain'
+        contentType: 'text/plain',
+        skipped
       };
     }
 
     // ── XCS format for local bank transfers ───────────────────────────────────
-    // Fields: Last Name, First Name, Middle Name, Account Number
+    // Fields: Last Name, First Name, Middle Name, Account Number, Amount
     const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
-    const csvLines = ['Last Name,First Name,Middle Name,Account Number'];
-    rows.forEach(({ emp }) => {
+    const csvLines = ['Last Name,First Name,Middle Name,Account Number,Amount'];
+    rows.forEach(({ payslip: p, emp }) => {
       csvLines.push([
         escape(emp.last_name || ''),
         escape(emp.first_name || ''),
         escape(emp.middle_name || ''),
         escape(emp.bank_account_number || ''),
+        escape(Number(p.net_amount || 0).toFixed(2)),
       ].join(','));
     });
     return {
       content: csvLines.join('\r\n'),
       filename: `bank_transfer_xcs_${periodId}.csv`,
-      contentType: 'text/csv'
+      contentType: 'text/csv',
+      skipped
     };
   }
 

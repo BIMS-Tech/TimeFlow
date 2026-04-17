@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, CircularProgress, Grid, Divider, Checkbox, FormControlLabel,
-  List, ListItem, ListItemText
+  List, ListItem, ListItemText, Select, MenuItem, InputLabel, FormControl
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -15,7 +15,9 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { timesheetAPI, payslipsAPI, employeesAPI } from '../api';
+import { getMissingBankFields } from '../utils/employeeProfile';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -44,6 +46,14 @@ export default function Payslips() {
   const [selectAll, setSelectAll] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
+
+  // Bank file download dialog state
+  const [bankDlOpen, setBankDlOpen] = useState(false);
+  const [bankDlType, setBankDlType] = useState('local');
+  const [bankDlPeriodId, setBankDlPeriodId] = useState(null);
+  const [bankDlEmpIds, setBankDlEmpIds] = useState([]);
+  const [bankDlSelectAll, setBankDlSelectAll] = useState(true);
+  const [bankDlLoading, setBankDlLoading] = useState(false);
 
   useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -109,6 +119,32 @@ export default function Payslips() {
     finally { setGenerating(false); }
   };
 
+  const openBankDl = (type) => {
+    setBankDlType(type);
+    setBankDlPeriodId(selectedPeriod?.id || (periods[0]?.id ?? null));
+    setBankDlEmpIds([]);
+    setBankDlSelectAll(true);
+    setBankDlOpen(true);
+  };
+
+  const handleBankDlToggleEmp = (id) => {
+    setBankDlEmpIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBankDownload = async () => {
+    if (!bankDlPeriodId) return toast.error('Select a period');
+    setBankDlLoading(true);
+    try {
+      const empIds = bankDlSelectAll ? null : bankDlEmpIds;
+      await payslipsAPI.downloadBankFile(bankDlPeriodId, bankDlType, empIds);
+      setBankDlOpen(false);
+    } catch (e) {
+      toast.error(e.message || 'Download failed');
+    } finally {
+      setBankDlLoading(false);
+    }
+  };
+
   const filtered = payslips.filter(p =>
     p.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
     p.payslip_number?.toLowerCase().includes(search.toLowerCase())
@@ -123,24 +159,22 @@ export default function Payslips() {
             sx={{ borderRadius: '10px', textTransform: 'none', borderColor: showBulkPanel ? '#6366f1' : 'divider', color: showBulkPanel ? '#6366f1' : 'text.secondary' }}>
             Generate Payslips
           </Button>
-          {selectedPeriod && payslips.length > 0 && (
-            <>
-              <Tooltip title="Download local bank transfer file">
-                <Button variant="outlined" startIcon={<AccountBalanceIcon />}
-                  component="a" href={payslipsAPI.bankFileUrl(selectedPeriod.id, 'local')} download
-                  sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
-                  Local Bank File
-                </Button>
-              </Tooltip>
-              <Tooltip title="Download foreign/SWIFT transfer file">
-                <Button variant="outlined" startIcon={<AccountBalanceIcon />}
-                  component="a" href={payslipsAPI.bankFileUrl(selectedPeriod.id, 'foreign')} download
-                  sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-                  Foreign Bank File
-                </Button>
-              </Tooltip>
-            </>
-          )}
+          <>
+            <Tooltip title="Download local bank transfer file">
+              <Button variant="outlined" startIcon={<AccountBalanceIcon />}
+                onClick={() => openBankDl('local')}
+                sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                Local Bank File
+              </Button>
+            </Tooltip>
+            <Tooltip title="Download foreign/SWIFT transfer file">
+              <Button variant="outlined" startIcon={<AccountBalanceIcon />}
+                onClick={() => openBankDl('foreign')}
+                sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                Foreign Bank File
+              </Button>
+            </Tooltip>
+          </>
         </Box>
       </Box>
 
@@ -341,12 +375,87 @@ export default function Payslips() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setSelected(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
-          {selected?.drive_file_url && (
-            <Button variant="contained" startIcon={<OpenInNewIcon />} component="a" href={selected.drive_file_url} target="_blank" rel="noopener noreferrer"
-              sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
-              View in Drive
-            </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bank File Download Dialog */}
+      <Dialog open={bankDlOpen} onClose={() => setBankDlOpen(false)} maxWidth="sm" fullWidth
+        slotProps={{ paper: { sx: { borderRadius: '4px' } } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AccountBalanceIcon sx={{ color: bankDlType === 'foreign' ? '#6366f1' : '#10b981', fontSize: 20 }} />
+          Download {bankDlType === 'foreign' ? 'Foreign / SWIFT' : 'Local'} Bank File
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
+            <InputLabel>Period</InputLabel>
+            <Select value={bankDlPeriodId || ''} label="Period"
+              onChange={e => setBankDlPeriodId(e.target.value)}>
+              {periods.map(p => (
+                <MenuItem key={p.id} value={p.id}>{p.period_name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {(() => {
+            const incompleteCount = employees.filter(e => e.hire_category === bankDlType && getMissingBankFields(e).length > 0).length;
+            return incompleteCount > 0 ? (
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, bgcolor: '#f59e0b10', border: '1px solid #f59e0b30', borderRadius: '8px', p: 1.5, mb: 2 }}>
+                <WarningAmberIcon sx={{ fontSize: 16, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>
+                  {incompleteCount} {bankDlType} employee{incompleteCount > 1 ? 's have' : ' has'} incomplete bank profiles and will be excluded from the file. Edit their profiles to include them.
+                </Typography>
+              </Box>
+            ) : null;
+          })()}
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.secondary', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Employees</Typography>
+          <FormControlLabel
+            control={<Checkbox checked={bankDlSelectAll} onChange={e => { setBankDlSelectAll(e.target.checked); setBankDlEmpIds([]); }} size="small"
+              sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
+            label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>All Employees</Typography>}
+          />
+          {!bankDlSelectAll && (
+            <Box sx={{ maxHeight: 220, overflowY: 'auto', border: '1px solid', borderColor: 'divider', mt: 1 }}>
+              <List dense disablePadding>
+                {employees.map(emp => {
+                  const missing = getMissingBankFields(emp);
+                  const incomplete = missing.length > 0;
+                  return (
+                    <ListItem key={emp.id} disablePadding
+                      secondaryAction={
+                        <Checkbox checked={bankDlEmpIds.includes(emp.id)}
+                          onChange={() => handleBankDlToggleEmp(emp.id)} size="small"
+                          sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                      }
+                      sx={{ borderBottom: '1px solid', borderBottomColor: 'divider', opacity: incomplete ? 0.7 : 1 }}>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <span>{emp.name}</span>
+                            {incomplete && (
+                              <Tooltip title={`Incomplete profile — Missing: ${missing.join(', ')}`} arrow>
+                                <WarningAmberIcon sx={{ fontSize: 14, color: '#f59e0b', cursor: 'help' }} />
+                              </Tooltip>
+                            )}
+                          </Box>
+                        }
+                        secondary={`${emp.employee_id} · ${emp.hire_category}${incomplete ? ' · profile incomplete' : ''}`}
+                        sx={{ pl: 1.5, '& .MuiListItemText-primary': { fontSize: '0.875rem' }, '& .MuiListItemText-secondary': { fontSize: '0.72rem', color: incomplete ? '#f59e0b' : 'text.secondary' } }}
+                      />
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Box>
           )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setBankDlOpen(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
+          <Button variant="contained" startIcon={bankDlLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
+            onClick={handleBankDownload}
+            disabled={bankDlLoading || !bankDlPeriodId || (!bankDlSelectAll && bankDlEmpIds.length === 0)}
+            sx={{ borderRadius: '10px', textTransform: 'none', background: bankDlType === 'foreign' ? 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' : 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
+            {bankDlLoading ? 'Downloading…' : 'Download'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

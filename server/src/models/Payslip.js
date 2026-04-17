@@ -110,33 +110,7 @@ class Payslip {
    */
   static async updateStatus(id, status) {
     const updateData = { status };
-    
-    if (status === 'uploaded') {
-      updateData.uploaded_at = new Date();
-    } else if (status === 'sent') {
-      updateData.sent_at = new Date();
-    } else if (status === 'paid') {
-      updateData.paid_at = new Date();
-    }
-    
-    await db.update('payslips', updateData, 'id = ?', [id]);
-    return this.findById(id);
-  }
-
-  /**
-   * Update file information
-   */
-  static async updateFileInfo(id, fileInfo) {
-    const updateData = {
-      drive_file_id: fileInfo.drive_file_id,
-      drive_file_url: fileInfo.drive_file_url,
-      status: 'uploaded',
-      uploaded_at: new Date()
-    };
-    // Only update pdf_path when explicitly provided — avoids overwriting an existing path with undefined
-    if (fileInfo.pdf_path !== undefined) {
-      updateData.pdf_path = fileInfo.pdf_path;
-    }
+    if (status === 'paid') updateData.paid_at = new Date();
     await db.update('payslips', updateData, 'id = ?', [id]);
     return this.findById(id);
   }
@@ -191,8 +165,6 @@ class Payslip {
       SELECT
         COUNT(*) as total_payslips,
         SUM(CASE WHEN status = 'generated' THEN 1 ELSE 0 END) as generated_count,
-        SUM(CASE WHEN status = 'uploaded' THEN 1 ELSE 0 END) as uploaded_count,
-        SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent_count,
         SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count
       FROM payslips
     `;

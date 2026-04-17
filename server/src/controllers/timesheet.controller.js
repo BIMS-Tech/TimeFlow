@@ -549,11 +549,17 @@ class TimesheetController {
    */
   async generateBankFile(req, res) {
     try {
-      const { periodId, type } = req.query;
+      const { periodId, type, employeeIds } = req.query;
       if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
-      const result = await timesheetService.generateBankFile(parseInt(periodId), type || 'local');
+      const empIds = employeeIds ? String(employeeIds).split(',').map(Number).filter(Boolean) : null;
+      const result = await timesheetService.generateBankFile(parseInt(periodId), type || 'local', empIds);
       res.setHeader('Content-Type', result.contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      if (result.skipped?.length) {
+        res.setHeader('X-Skipped-Count', result.skipped.length);
+        res.setHeader('X-Skipped-Names', result.skipped.map(s => s.name).join(', '));
+        res.setHeader('Access-Control-Expose-Headers', 'X-Skipped-Count, X-Skipped-Names');
+      }
       res.send(result.content);
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });

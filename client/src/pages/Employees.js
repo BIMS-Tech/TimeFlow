@@ -20,6 +20,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { employeesAPI, wrikeAPI } from '../api';
+import { getMissingBankFields, isBankProfileComplete } from '../utils/employeeProfile';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
@@ -28,7 +29,16 @@ const EMPTY_FORM = {
   employee_id: '', name: '', email: '', department: '', position: '',
   hourly_rate: 500, currency: 'USD', employment_type: 'full_time', hire_category: 'local',
   wrike_user_id: '', hire_date: '',
-  bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: ''
+  // Name parts (XCS local bank file)
+  first_name: '', last_name: '', middle_name: '',
+  // Bank details
+  bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '',
+  // DFT international fields
+  remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
+  country_of_destination: '', purpose_nature: '',
+  intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
+  payee_tin: '', payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '',
+  tax_code: '',
 };
 
 export default function Employees() {
@@ -67,9 +77,20 @@ export default function Employees() {
       hire_category: emp.hire_category || 'local',
       wrike_user_id: emp.wrike_user_id || '',
       hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
+      first_name: emp.first_name || '', last_name: emp.last_name || '', middle_name: emp.middle_name || '',
       bank_name: emp.bank_name || '', bank_account_number: emp.bank_account_number || '',
       bank_account_name: emp.bank_account_name || '', bank_branch: emp.bank_branch || '',
-      bank_swift_code: emp.bank_swift_code || ''
+      bank_swift_code: emp.bank_swift_code || '',
+      remittance_type: emp.remittance_type || '', beneficiary_code: emp.beneficiary_code || '',
+      beneficiary_address: emp.beneficiary_address || '', bank_address: emp.bank_address || '',
+      country_of_destination: emp.country_of_destination || '', purpose_nature: emp.purpose_nature || '',
+      intermediary_bank_name: emp.intermediary_bank_name || '',
+      intermediary_bank_address: emp.intermediary_bank_address || '',
+      intermediary_bank_swift: emp.intermediary_bank_swift || '',
+      payee_tin: emp.payee_tin || '', payee_zip_code: emp.payee_zip_code || '',
+      payee_foreign_address: emp.payee_foreign_address || '',
+      payee_foreign_zip_code: emp.payee_foreign_zip_code || '',
+      tax_code: emp.tax_code || '',
     } : EMPTY_FORM);
     setShowModal(true);
     setShowContactPicker(false);
@@ -195,16 +216,16 @@ export default function Employees() {
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                {['Employee', 'Contact', 'Department', 'Rate', 'Wrike', 'Portal', 'Status', 'Actions'].map(h => (
+                {['Employee', 'Contact', 'Department', 'Rate', 'Bank Profile', 'Wrike', 'Portal', 'Status', 'Actions'].map(h => (
                   <TableCell key={h} sx={TH}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
               ) : filtered.map(emp => {
                 const hasPortal = !!emp.portal_user_id;
                 const portalActive = emp.id in portalOverrides ? portalOverrides[emp.id] : !!emp.portal_active;
@@ -224,6 +245,18 @@ export default function Employees() {
                     <TableCell sx={TD}>{emp.email}</TableCell>
                     <TableCell sx={TD}>{emp.department || <span style={{ color: '#94a3b8' }}>—</span>}</TableCell>
                     <TableCell sx={TD}>{emp.currency} {emp.hourly_rate}/hr</TableCell>
+                    <TableCell sx={{ ...TD, textAlign: 'center' }}>
+                      {(() => {
+                        const missing = getMissingBankFields(emp);
+                        return missing.length === 0
+                          ? <Chip label="Complete" size="small" icon={<CheckCircleIcon />}
+                              sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
+                          : <Tooltip title={`Missing: ${missing.join(', ')}`} arrow>
+                              <Chip label={`${missing.length} missing`} size="small" icon={<WarningAmberIcon />}
+                                sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#f59e0b' } }} />
+                            </Tooltip>;
+                      })()}
+                    </TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {emp.wrike_user_id
                         ? <Chip label="Linked" size="small" icon={<CheckCircleIcon />} sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
@@ -307,6 +340,14 @@ export default function Employees() {
                 </Select>
               </FormControl>
             </Grid>
+            {/* Name Parts (used for XCS local bank file) */}
+            <Grid item xs={12}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>Name (for payroll file)</Typography>
+            </Grid>
+            <Grid item xs={4}><TextField fullWidth label="Last Name" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={4}><TextField fullWidth label="First Name" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={4}><TextField fullWidth label="Middle Name" value={form.middle_name} onChange={e => setForm(f => ({ ...f, middle_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+
             {/* Bank Details */}
             <Grid item xs={12}>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>Bank Details</Typography>
@@ -318,6 +359,33 @@ export default function Employees() {
             {form.hire_category === 'foreign' && (
               <Grid item xs={12}><TextField fullWidth label="SWIFT / BIC Code" value={form.bank_swift_code} onChange={e => setForm(f => ({ ...f, bank_swift_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             )}
+
+            {/* DFT International Transfer Fields (foreign only) */}
+            {form.hire_category === 'foreign' && (<>
+              <Grid item xs={12}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>DFT Transfer Details</Typography>
+              </Grid>
+              <Grid item xs={6}><TextField fullWidth label="Remittance Type" value={form.remittance_type} onChange={e => setForm(f => ({ ...f, remittance_type: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={6}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={12}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={12}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={6}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={6}><TextField fullWidth label="Purpose / Nature of Transfer" value={form.purpose_nature} onChange={e => setForm(f => ({ ...f, purpose_nature: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={12}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.25 }}>Intermediary Bank (optional)</Typography>
+              </Grid>
+              <Grid item xs={4}><TextField fullWidth label="Intermediary Bank Name" value={form.intermediary_bank_name} onChange={e => setForm(f => ({ ...f, intermediary_bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={4}><TextField fullWidth label="Intermediary Bank Address" value={form.intermediary_bank_address} onChange={e => setForm(f => ({ ...f, intermediary_bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={4}><TextField fullWidth label="Intermediary SWIFT Code" value={form.intermediary_bank_swift} onChange={e => setForm(f => ({ ...f, intermediary_bank_swift: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={12}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.25 }}>Tax / Withholding</Typography>
+              </Grid>
+              <Grid item xs={4}><TextField fullWidth label="Payee TIN" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={4}><TextField fullWidth label="Payee Zip Code" value={form.payee_zip_code} onChange={e => setForm(f => ({ ...f, payee_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={4}><TextField fullWidth label="Tax Code" value={form.tax_code} onChange={e => setForm(f => ({ ...f, tax_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={6}><TextField fullWidth label="Payee Foreign Address" value={form.payee_foreign_address} onChange={e => setForm(f => ({ ...f, payee_foreign_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid item xs={6}><TextField fullWidth label="Payee Foreign Zip Code" value={form.payee_foreign_zip_code} onChange={e => setForm(f => ({ ...f, payee_foreign_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            </>)}
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField fullWidth label="Wrike User ID" value={form.wrike_user_id} onChange={e => setForm(f => ({ ...f, wrike_user_id: e.target.value }))} placeholder="e.g. ABCDE123" size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />

@@ -120,8 +120,26 @@ export const payslipsAPI = {
     api.post('/timesheet/bulk-generate-payslips', { periodId, employeeIds }),
   pdfUrl: (id) =>
     `${API_BASE_URL}/timesheet/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
-  bankFileUrl: (periodId, type) =>
-    `${API_BASE_URL}/payroll/bank-file?periodId=${periodId}&type=${type}&token=${localStorage.getItem('token')}`,
+  downloadBankFile: async (periodId, type, employeeIds = null) => {
+    const params = new URLSearchParams({ periodId, type });
+    if (employeeIds && employeeIds.length) params.set('employeeIds', employeeIds.join(','));
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/payroll/bank-file?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Download failed' }));
+      throw new Error(err.error || 'Download failed');
+    }
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : `bank_transfer_${type}_${periodId}.txt`;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 // ============================================

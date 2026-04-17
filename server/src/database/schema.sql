@@ -37,6 +37,17 @@ CREATE TABLE IF NOT EXISTS employees (
     beneficiary_code VARCHAR(50) DEFAULT NULL,
     beneficiary_address TEXT DEFAULT NULL,
     bank_address VARCHAR(255) DEFAULT NULL,
+    country_of_destination VARCHAR(100) DEFAULT NULL,
+    purpose_nature VARCHAR(255) DEFAULT NULL,
+    intermediary_bank_name VARCHAR(255) DEFAULT NULL,
+    intermediary_bank_address VARCHAR(255) DEFAULT NULL,
+    intermediary_bank_swift VARCHAR(50) DEFAULT NULL,
+    -- Tax / payee fields (DFT C/W rows)
+    payee_tin VARCHAR(50) DEFAULT NULL,
+    payee_zip_code VARCHAR(20) DEFAULT NULL,
+    payee_foreign_address VARCHAR(255) DEFAULT NULL,
+    payee_foreign_zip_code VARCHAR(20) DEFAULT NULL,
+    tax_code VARCHAR(50) DEFAULT NULL,
     wrike_user_id VARCHAR(100),
     hire_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -101,7 +112,6 @@ CREATE TABLE IF NOT EXISTS time_entries_summary (
     net_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
     
     -- Approval workflow fields
-    approval_task_id VARCHAR(100),
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     approved_at DATETIME NULL,
     approved_by VARCHAR(100),
@@ -111,8 +121,6 @@ CREATE TABLE IF NOT EXISTS time_entries_summary (
     -- File references
     timesheet_pdf_path VARCHAR(500),
     payslip_pdf_path VARCHAR(500),
-    drive_file_id VARCHAR(200),
-    drive_file_url VARCHAR(500),
     
     -- Metadata
     notes TEXT,
@@ -123,7 +131,6 @@ CREATE TABLE IF NOT EXISTS time_entries_summary (
     FOREIGN KEY (period_id) REFERENCES pay_periods(id) ON DELETE CASCADE,
     UNIQUE KEY unique_employee_period (employee_id, period_id),
     INDEX idx_approval_status (approval_status),
-    INDEX idx_approval_task_id (approval_task_id),
     INDEX idx_period_id (period_id)
 ) ENGINE=InnoDB;
 
@@ -165,14 +172,10 @@ CREATE TABLE IF NOT EXISTS payslips (
     
     -- File information
     pdf_path VARCHAR(500),
-    drive_file_id VARCHAR(200),
-    drive_file_url VARCHAR(500),
-    
+
     -- Status
-    status ENUM('generated', 'uploaded', 'sent', 'paid') DEFAULT 'generated',
+    status ENUM('generated', 'paid') DEFAULT 'generated',
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    uploaded_at DATETIME NULL,
-    sent_at DATETIME NULL,
     paid_at DATETIME NULL,
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -184,26 +187,6 @@ CREATE TABLE IF NOT EXISTS payslips (
     INDEX idx_payslip_number (payslip_number),
     INDEX idx_employee_period (employee_id, period_id),
     INDEX idx_status (status)
-) ENGINE=InnoDB;
-
--- ============================================
--- WRIKE WEBHOOK LOGS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS wrike_webhook_logs (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    webhook_event_id VARCHAR(100),
-    event_type VARCHAR(50),
-    task_id VARCHAR(100),
-    old_status VARCHAR(50),
-    new_status VARCHAR(50),
-    payload JSON,
-    processed BOOLEAN DEFAULT FALSE,
-    processed_at DATETIME NULL,
-    error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_webhook_event_id (webhook_event_id),
-    INDEX idx_task_id (task_id),
-    INDEX idx_processed (processed)
 ) ENGINE=InnoDB;
 
 -- ============================================
@@ -266,8 +249,7 @@ INSERT INTO system_settings (setting_key, setting_value, description) VALUES
 ('working_hours_per_day', '8', 'Standard working hours per day'),
 ('overtime_multiplier', '1.5', 'Overtime pay multiplier'),
 ('auto_generate_timesheets', 'true', 'Automatically generate timesheets on schedule'),
-('approval_reminder_days', '3', 'Days before sending approval reminder'),
-('payslip_storage', 'drive', 'Payslip storage location (local/drive)')
+('approval_reminder_days', '3', 'Days before sending approval reminder')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
 
 -- ============================================
@@ -292,11 +274,9 @@ SELECT
     tes.gross_amount,
     tes.net_amount,
     tes.approval_status,
-    tes.approval_task_id,
     tes.approved_at,
     tes.timesheet_pdf_path,
-    tes.payslip_pdf_path,
-    tes.drive_file_url
+    tes.payslip_pdf_path
 FROM time_entries_summary tes
 JOIN employees e ON tes.employee_id = e.id
 JOIN pay_periods pp ON tes.period_id = pp.id;
@@ -311,7 +291,6 @@ SELECT
     pp.end_date,
     tes.total_hours,
     tes.gross_amount,
-    tes.approval_task_id,
     DATEDIFF(NOW(), tes.created_at) AS days_pending
 FROM time_entries_summary tes
 JOIN employees e ON tes.employee_id = e.id
