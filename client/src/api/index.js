@@ -122,6 +122,7 @@ export const payslipsAPI = {
     api.post('/timesheet/generate-payslips-for-period', { periodId, employeeIds }),
   pdfUrl: (id) =>
     `${API_BASE_URL}/timesheet/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
+  downloadPDF: (id) => api.get(`/timesheet/payslips/${id}/pdf`, { responseType: 'blob' }),
   downloadBankFile: async (periodId, type, employeeIds = null) => {
     const params = new URLSearchParams({ periodId, type });
     if (employeeIds && employeeIds.length) params.set('employeeIds', employeeIds.join(','));

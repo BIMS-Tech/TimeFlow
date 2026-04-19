@@ -47,6 +47,11 @@ export default function Payslips() {
   const [generating, setGenerating] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
 
+  // PDF viewer state
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
+  const [pdfViewerName, setPdfViewerName] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   // Bank file download dialog state
   const [bankDlOpen, setBankDlOpen] = useState(false);
   const [bankDlType, setBankDlType] = useState('local');
@@ -120,6 +125,23 @@ export default function Payslips() {
       }
     } catch (e) { toast.error(e.response?.data?.error || 'Generation failed'); }
     finally { setGenerating(false); }
+  };
+
+  const handleViewPDF = async (payslip) => {
+    setPdfLoading(true);
+    try {
+      const res = await payslipsAPI.downloadPDF(payslip.id);
+      const blob = new Blob([res], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      setPdfViewerUrl(url);
+      setPdfViewerName(payslip.payslip_number || 'Payslip');
+    } catch { toast.error('Failed to load PDF'); }
+    finally { setPdfLoading(false); }
+  };
+
+  const closePdfViewer = () => {
+    if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+    setPdfViewerUrl(null);
   };
 
   const openBankDl = (type) => {
@@ -329,14 +351,12 @@ export default function Payslips() {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {p.pdf_path && (
-                              <Tooltip title="View / Download PDF">
-                                <IconButton size="small" component="a" href={payslipsAPI.pdfUrl(p.id)} target="_blank" rel="noopener noreferrer"
-                                  sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
-                                  <DownloadIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                            <Tooltip title="View PDF">
+                              <IconButton size="small" onClick={() => handleViewPDF(p)} disabled={pdfLoading}
+                                sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
+                                {pdfLoading ? <CircularProgress size={12} /> : <DownloadIcon sx={{ fontSize: 16 }} />}
+                              </IconButton>
+                            </Tooltip>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -476,6 +496,31 @@ export default function Payslips() {
             {bankDlLoading ? 'Downloading…' : 'Download'}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* PDF Viewer Dialog */}
+      <Dialog open={!!pdfViewerUrl} onClose={closePdfViewer} maxWidth="lg" fullWidth
+        slotProps={{ paper: { sx: { borderRadius: '4px', height: '90vh' } } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{pdfViewerName}</span>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<DownloadIcon />}
+              component="a" href={pdfViewerUrl} download={`${pdfViewerName}.pdf`}
+              sx={{ borderRadius: '8px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary' }}>
+              Download
+            </Button>
+            <Button size="small" onClick={closePdfViewer}
+              sx={{ borderRadius: '8px', textTransform: 'none', color: 'text.secondary' }}>
+              Close
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+          {pdfViewerUrl && (
+            <iframe src={pdfViewerUrl} title={pdfViewerName}
+              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   );

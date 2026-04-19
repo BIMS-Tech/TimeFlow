@@ -437,19 +437,34 @@ class TimesheetController {
    * GET /api/timesheet/payslips/:id/pdf
    */
   async downloadPayslipPDF(req, res) {
-    const fs = require('fs');
+    const fs   = require('fs');
     const path = require('path');
+    const pdfService = require('../services/pdf.service');
     try {
       const payslip = await Payslip.findById(req.params.id);
-      if (!payslip || !payslip.pdf_path) {
-        return res.status(404).json({ success: false, error: 'Payslip PDF not found' });
+      if (!payslip) {
+        return res.status(404).json({ success: false, error: 'Payslip not found' });
       }
-      const filePath = path.isAbsolute(payslip.pdf_path)
-        ? payslip.pdf_path
-        : path.join(__dirname, '../../', payslip.pdf_path);
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ success: false, error: 'PDF file not found on disk' });
+
+      let filePath = payslip.pdf_path
+        ? (path.isAbsolute(payslip.pdf_path) ? payslip.pdf_path : path.join(__dirname, '../../', payslip.pdf_path))
+        : null;
+
+      // Regenerate if file is missing from disk (e.g. ephemeral Cloud Run filesystem)
+      if (!filePath || !fs.existsSync(filePath)) {
+        const [summary, employee, period] = await Promise.all([
+          TimeEntriesSummary.findById(payslip.summary_id),
+          Employee.findById(payslip.employee_id),
+          PayPeriod.findById(payslip.period_id)
+        ]);
+        if (!summary || !employee || !period) {
+          return res.status(404).json({ success: false, error: 'Cannot regenerate PDF — source data missing' });
+        }
+        const result = await pdfService.generatePayslipPDF(summary, employee, period, payslip.payslip_number);
+        filePath = result.filePath;
+        await Payslip.update(payslip.id, { pdf_path: filePath });
       }
+
       const filename = path.basename(filePath);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
