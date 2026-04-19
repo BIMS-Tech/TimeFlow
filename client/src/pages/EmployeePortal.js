@@ -9,7 +9,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
-  InputLabel, LinearProgress, TextField, Dialog, DialogTitle, DialogContent, DialogActions
+  InputLabel, LinearProgress, TextField
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -39,10 +39,6 @@ const STATUS = {
   rejected: { color: '#ef4444', bg: '#ef444418', label: 'Rejected' },
 };
 
-function StatusChip({ status }) {
-  const s = STATUS[status] || STATUS.pending;
-  return <Chip label={s.label} size="small" sx={{ bgcolor: s.bg, color: s.color, fontWeight: 700, fontSize: '0.72rem', borderRadius: '4px' }} />;
-}
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.25, px: 2, bgcolor: 'action.hover' };
 const TD = { fontSize: '0.875rem', py: 1.25, px: 2 };

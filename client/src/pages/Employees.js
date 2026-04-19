@@ -20,7 +20,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { employeesAPI, wrikeAPI } from '../api';
-import { getMissingBankFields, isBankProfileComplete } from '../utils/employeeProfile';
+import { getMissingBankFields } from '../utils/employeeProfile';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
