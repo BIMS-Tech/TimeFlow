@@ -109,6 +109,16 @@ async function runMigrations() {
     `ALTER TABLE employees ADD COLUMN beneficiary_code VARCHAR(50) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN beneficiary_address TEXT DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN bank_address VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN country_of_destination VARCHAR(100) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN purpose_nature VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN intermediary_bank_name VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN intermediary_bank_address VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN intermediary_bank_swift VARCHAR(50) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN payee_tin VARCHAR(50) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN payee_zip_code VARCHAR(20) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN payee_foreign_address VARCHAR(255) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN payee_foreign_zip_code VARCHAR(20) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN tax_code VARCHAR(50) DEFAULT NULL`,
     // Wrike timelog category name stored on import
     `ALTER TABLE time_entries ADD COLUMN category VARCHAR(255) DEFAULT NULL`,
   ];
