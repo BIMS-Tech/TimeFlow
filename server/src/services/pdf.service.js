@@ -12,9 +12,14 @@ const HAS_LOGO  = fs.existsSync(LOGO_PATH);
 
 class PDFService {
   constructor() {
-    this.outputDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
+    const preferred = path.join(__dirname, '../../uploads');
+    try {
+      if (!fs.existsSync(preferred)) fs.mkdirSync(preferred, { recursive: true });
+      this.outputDir = preferred;
+    } catch {
+      // Cloud Run and similar platforms have a read-only FS except /tmp
+      this.outputDir = '/tmp/timeflow-pdfs';
+      if (!fs.existsSync(this.outputDir)) fs.mkdirSync(this.outputDir, { recursive: true });
     }
   }
 

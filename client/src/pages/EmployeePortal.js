@@ -9,7 +9,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
-  InputLabel, LinearProgress, TextField
+  InputLabel, LinearProgress, TextField, Dialog, DialogTitle, DialogContent
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -242,7 +242,25 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
 
 function PayslipsSection({ payslips, currency }) {
   const cur = currency || '';
-  const token = localStorage.getItem('token');
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
+  const [pdfViewerName, setPdfViewerName] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleViewPDF = async (p) => {
+    setPdfLoading(p.id);
+    try {
+      const res = await portalAPI.downloadPayslipPDF(p.id);
+      const blob = new Blob([res], { type: 'application/pdf' });
+      setPdfViewerUrl(URL.createObjectURL(blob));
+      setPdfViewerName(p.payslip_number || 'Payslip');
+    } catch { toast.error('Failed to load PDF'); }
+    finally { setPdfLoading(false); }
+  };
+
+  const closePdfViewer = () => {
+    if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl);
+    setPdfViewerUrl(null);
+  };
 
   if (payslips.length === 0) return (
     <Paper elevation={0} sx={{ p: 8, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
@@ -253,6 +271,7 @@ function PayslipsSection({ payslips, currency }) {
   );
 
   return (
+    <>
     <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
       <TableContainer>
         <Table size="small">
@@ -273,14 +292,12 @@ function PayslipsSection({ payslips, currency }) {
                 <TableCell sx={TD}>{cur} {parseFloat(p.gross_amount || 0).toLocaleString()}</TableCell>
                 <TableCell sx={{ ...TD, fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{cur} {parseFloat(p.net_amount || 0).toLocaleString()}</TableCell>
                 <TableCell sx={TD}>
-                  {p.pdf_path && (
-                    <Tooltip title="Download PDF">
-                      <IconButton size="small" component="a" href={`${API_BASE}/portal/payslips/${p.id}/pdf?token=${token}`} target="_blank" rel="noopener noreferrer"
-                        sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}>
-                        <DownloadIcon sx={{ fontSize: 18 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                  <Tooltip title="View PDF">
+                    <IconButton size="small" onClick={() => handleViewPDF(p)} disabled={!!pdfLoading}
+                      sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}>
+                      {pdfLoading === p.id ? <CircularProgress size={14} /> : <DownloadIcon sx={{ fontSize: 18 }} />}
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -288,6 +305,32 @@ function PayslipsSection({ payslips, currency }) {
         </Table>
       </TableContainer>
     </Paper>
+
+    {/* PDF Viewer Dialog */}
+    <Dialog open={!!pdfViewerUrl} onClose={closePdfViewer} maxWidth="lg" fullWidth
+      slotProps={{ paper: { sx: { borderRadius: '4px', height: '90vh' } } }}>
+      <DialogTitle sx={{ fontWeight: 700, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{pdfViewerName}</span>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button size="small" variant="outlined" startIcon={<DownloadIcon />}
+            component="a" href={pdfViewerUrl} download={`${pdfViewerName}.pdf`}
+            sx={{ borderRadius: '8px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary' }}>
+            Download
+          </Button>
+          <Button size="small" onClick={closePdfViewer}
+            sx={{ borderRadius: '8px', textTransform: 'none', color: 'text.secondary' }}>
+            Close
+          </Button>
+        </Box>
+      </DialogTitle>
+      <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+        {pdfViewerUrl && (
+          <iframe src={pdfViewerUrl} title={pdfViewerName}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

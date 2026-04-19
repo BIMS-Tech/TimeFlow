@@ -147,6 +147,8 @@ class PortalController {
    * Download payslip PDF (must belong to logged-in employee)
    */
   async downloadPayslipPDF(req, res) {
+    const pdfService = require('../services/pdf.service');
+    const PayPeriod  = require('../models/PayPeriod');
     try {
       const payslip = await Payslip.findById(req.params.id);
       if (!payslip) return res.status(404).json({ success: false, error: 'Payslip not found' });
@@ -154,9 +156,22 @@ class PortalController {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
 
-      const filePath = payslip.pdf_path;
+      let filePath = payslip.pdf_path
+        ? (path.isAbsolute(payslip.pdf_path) ? payslip.pdf_path : path.join(__dirname, '../../', payslip.pdf_path))
+        : null;
+
       if (!filePath || !fs.existsSync(filePath)) {
-        return res.status(404).json({ success: false, error: 'PDF not found' });
+        const [summary, employee, period] = await Promise.all([
+          TimeEntriesSummary.findById(payslip.summary_id),
+          Employee.findById(payslip.employee_id),
+          PayPeriod.findById(payslip.period_id)
+        ]);
+        if (!summary || !employee || !period) {
+          return res.status(404).json({ success: false, error: 'Cannot regenerate PDF — source data missing' });
+        }
+        const result = await pdfService.generatePayslipPDF(summary, employee, period, payslip.payslip_number);
+        filePath = result.filePath;
+        await Payslip.update(payslip.id, { pdf_path: filePath });
       }
 
       res.setHeader('Content-Type', 'application/pdf');
