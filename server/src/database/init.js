@@ -127,14 +127,14 @@ function splitBySemicolon(sql, statements) {
  */
 async function createDefaultAdmin(connection) {
   const bcrypt = require('bcryptjs');
-  const defaultPassword = bcrypt.hashSync('admin123', 10);
+  const defaultPassword = bcrypt.hashSync('dam@bims', 10);
 
   try {
     await connection.query(
       `INSERT IGNORE INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`,
-      ['admin', 'admin@timesheet.com', defaultPassword, 'admin']
+      ['dam', 'dam@bims.tech', defaultPassword, 'admin']
     );
-    console.log('👤 Default admin user ready (username: admin, password: admin123)');
+    console.log('👤 Default admin user ready (email: dam@bims.tech)');
   } catch (error) {
     console.log('ℹ️  Admin user already exists');
   }
