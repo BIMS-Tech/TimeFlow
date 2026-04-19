@@ -118,6 +118,8 @@ export const payslipsAPI = {
   getById: (id) => api.get(`/timesheet/payslips/${id}`),
   bulkGenerate: (periodId, employeeIds) =>
     api.post('/timesheet/bulk-generate-payslips', { periodId, employeeIds }),
+  generateForPeriod: (periodId, employeeIds) =>
+    api.post('/timesheet/generate-payslips-for-period', { periodId, employeeIds }),
   pdfUrl: (id) =>
     `${API_BASE_URL}/timesheet/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
   downloadBankFile: async (periodId, type, employeeIds = null) => {
@@ -159,6 +161,7 @@ export const wrikeAPI = {
   getWeeklyTimelogs: (date, approvedOnly = false) =>
     api.get(`/wrike/timelogs${date ? `?date=${date}` : '?'}${approvedOnly ? '&approvedOnly=true' : ''}`),
   importWeek: (date, approvedOnly = false) => api.post('/wrike/import', { date, approvedOnly }),
+  backfillCategories: () => api.post('/wrike/backfill-categories'),
   getContacts: () => api.get('/wrike/contacts'),
 };
 

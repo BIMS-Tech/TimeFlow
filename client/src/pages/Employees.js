@@ -295,23 +295,27 @@ export default function Employees() {
       </Paper>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showModal} onClose={closeModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '4px' } }}>
+      <Dialog open={showModal} onClose={closeModal} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '4px' } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: '1.1rem', pb: 1 }}>
           {editing ? 'Edit Employee' : 'Add Employee'}
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0 }}>
-            <Grid item xs={12}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/* Row 1: ID · Name · Email */}
+            <Grid item xs={3}>
               <TextField fullWidth label="Employee ID *" value={form.employee_id} disabled={!!editing}
                 onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
                 size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             </Grid>
-            <Grid item xs={12}><TextField fullWidth label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={12}><TextField fullWidth label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Position" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={3}>
+            <Grid item xs={4}><TextField fullWidth label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={5}><TextField fullWidth label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            {/* Row 2: Dept · Position · Hire Date */}
+            <Grid item xs={4}><TextField fullWidth label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={5}><TextField fullWidth label="Position" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={3}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            {/* Row 3: Rate · Currency · Employment Type · Hire Category */}
+            <Grid item xs={3}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid item xs={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Currency</InputLabel>
                 <Select label="Currency" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -320,8 +324,7 @@ export default function Employees() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={3}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}>
+            <Grid item xs={4}>
               <FormControl fullWidth size="small">
                 <InputLabel>Employment Type</InputLabel>
                 <Select label="Employment Type" value={form.employment_type} onChange={e => setForm(f => ({ ...f, employment_type: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -331,7 +334,7 @@ export default function Employees() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Hire Category</InputLabel>
                 <Select label="Hire Category" value={form.hire_category} onChange={e => setForm(f => ({ ...f, hire_category: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -340,52 +343,80 @@ export default function Employees() {
                 </Select>
               </FormControl>
             </Grid>
-            {/* Name Parts (used for XCS local bank file) */}
+
+            {/* Name for payroll file */}
             <Grid item xs={12}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>Name (for payroll file)</Typography>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Name (for payroll file)</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={4}><TextField fullWidth label="Last Name" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="First Name" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="Middle Name" value={form.middle_name} onChange={e => setForm(f => ({ ...f, middle_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                </Grid>
+              </Box>
             </Grid>
-            <Grid item xs={4}><TextField fullWidth label="Last Name" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={4}><TextField fullWidth label="First Name" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={4}><TextField fullWidth label="Middle Name" value={form.middle_name} onChange={e => setForm(f => ({ ...f, middle_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
 
             {/* Bank Details */}
             <Grid item xs={12}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>Bank Details</Typography>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Bank Details</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}><TextField fullWidth label="Bank Name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={6}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={form.hire_category === 'foreign' ? 6 : 6}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={form.hire_category === 'foreign' ? 3 : 6}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  {form.hire_category === 'foreign' && (
+                    <Grid item xs={3}><TextField fullWidth label="SWIFT / BIC Code" value={form.bank_swift_code} onChange={e => setForm(f => ({ ...f, bank_swift_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  )}
+                </Grid>
+              </Box>
             </Grid>
-            <Grid item xs={6}><TextField fullWidth label="Bank Name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            {form.hire_category === 'foreign' && (
-              <Grid item xs={12}><TextField fullWidth label="SWIFT / BIC Code" value={form.bank_swift_code} onChange={e => setForm(f => ({ ...f, bank_swift_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            )}
 
             {/* DFT International Transfer Fields (foreign only) */}
             {form.hire_category === 'foreign' && (<>
               <Grid item xs={12}>
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.5 }}>DFT Transfer Details</Typography>
+                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>DFT Transfer Details</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}><TextField fullWidth label="Remittance Type" value={form.remittance_type} onChange={e => setForm(f => ({ ...f, remittance_type: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={12}><TextField fullWidth label="Purpose / Nature of Transfer" value={form.purpose_nature} onChange={e => setForm(f => ({ ...f, purpose_nature: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  </Grid>
+                </Box>
               </Grid>
-              <Grid item xs={6}><TextField fullWidth label="Remittance Type" value={form.remittance_type} onChange={e => setForm(f => ({ ...f, remittance_type: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={6}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={12}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={12}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={6}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={6}><TextField fullWidth label="Purpose / Nature of Transfer" value={form.purpose_nature} onChange={e => setForm(f => ({ ...f, purpose_nature: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+
               <Grid item xs={12}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.25 }}>Intermediary Bank (optional)</Typography>
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>
+                    Intermediary Bank
+                    <Box component="span" sx={{ ml: 1, fontWeight: 400, textTransform: 'none', color: 'text.disabled' }}>(optional)</Box>
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}><TextField fullWidth label="Bank Name" value={form.intermediary_bank_name} onChange={e => setForm(f => ({ ...f, intermediary_bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Bank Address" value={form.intermediary_bank_address} onChange={e => setForm(f => ({ ...f, intermediary_bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="SWIFT Code" value={form.intermediary_bank_swift} onChange={e => setForm(f => ({ ...f, intermediary_bank_swift: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  </Grid>
+                </Box>
               </Grid>
-              <Grid item xs={4}><TextField fullWidth label="Intermediary Bank Name" value={form.intermediary_bank_name} onChange={e => setForm(f => ({ ...f, intermediary_bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={4}><TextField fullWidth label="Intermediary Bank Address" value={form.intermediary_bank_address} onChange={e => setForm(f => ({ ...f, intermediary_bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={4}><TextField fullWidth label="Intermediary SWIFT Code" value={form.intermediary_bank_swift} onChange={e => setForm(f => ({ ...f, intermediary_bank_swift: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+
               <Grid item xs={12}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.25 }}>Tax / Withholding</Typography>
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Tax / Withholding</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}><TextField fullWidth label="Payee TIN" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Payee Zip Code" value={form.payee_zip_code} onChange={e => setForm(f => ({ ...f, payee_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Tax Code" value={form.tax_code} onChange={e => setForm(f => ({ ...f, tax_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Payee Foreign Address" value={form.payee_foreign_address} onChange={e => setForm(f => ({ ...f, payee_foreign_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Payee Foreign Zip Code" value={form.payee_foreign_zip_code} onChange={e => setForm(f => ({ ...f, payee_foreign_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  </Grid>
+                </Box>
               </Grid>
-              <Grid item xs={4}><TextField fullWidth label="Payee TIN" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={4}><TextField fullWidth label="Payee Zip Code" value={form.payee_zip_code} onChange={e => setForm(f => ({ ...f, payee_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={4}><TextField fullWidth label="Tax Code" value={form.tax_code} onChange={e => setForm(f => ({ ...f, tax_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={6}><TextField fullWidth label="Payee Foreign Address" value={form.payee_foreign_address} onChange={e => setForm(f => ({ ...f, payee_foreign_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-              <Grid item xs={6}><TextField fullWidth label="Payee Foreign Zip Code" value={form.payee_foreign_zip_code} onChange={e => setForm(f => ({ ...f, payee_foreign_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             </>)}
+
+            {/* Wrike */}
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField fullWidth label="Wrike User ID" value={form.wrike_user_id} onChange={e => setForm(f => ({ ...f, wrike_user_id: e.target.value }))} placeholder="e.g. ABCDE123" size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
@@ -394,7 +425,6 @@ export default function Employees() {
                   Find in Wrike
                 </Button>
               </Box>
-              {/* Wrike contact picker */}
               {showContactPicker && filteredContacts.length > 0 && (
                 <Paper elevation={3} sx={{ mt: 1, borderRadius: 0, maxHeight: 220, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ p: 1, borderBottom: '1px solid', borderBottomColor: 'divider' }}>

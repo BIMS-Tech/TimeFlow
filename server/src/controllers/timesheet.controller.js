@@ -544,6 +544,21 @@ class TimesheetController {
   }
 
   /**
+   * POST /api/timesheet/generate-payslips-for-period
+   * Full pipeline: fetch Wrike timelogs → import → generate payslips
+   */
+  async generatePayslipsForPeriod(req, res) {
+    try {
+      const { periodId, employeeIds } = req.body;
+      if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
+      const result = await timesheetService.generatePayslipsForPeriod(periodId, employeeIds || null);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Generate bank transfer file for a period
    * GET /api/payroll/bank-file?periodId=X&type=local|foreign
    */

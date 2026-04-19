@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS time_entries (
     task_description TEXT,
     project_name VARCHAR(255),
     wrike_task_id VARCHAR(100),
+    category VARCHAR(255) DEFAULT NULL,
     source ENUM('manual', 'wrike', 'import') DEFAULT 'manual',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -7,11 +7,12 @@ require('dotenv').config();
  * PDF Generation Service
  * Generates Timesheet and Payslip PDFs
  */
+const LOGO_PATH = path.join(__dirname, '../assets/logo.png');
+const HAS_LOGO  = fs.existsSync(LOGO_PATH);
+
 class PDFService {
   constructor() {
     this.outputDir = path.join(__dirname, '../../uploads');
-    
-    // Ensure output directory exists
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
     }
@@ -251,186 +252,299 @@ class PDFService {
   }
 
   /**
-   * Generate Final Payslip PDF (After approval) — clean single-page layout
+   * Generate Final Payslip PDF — BIMS payslip design
    */
   async generatePayslipPDF(summary, employee, period, payslipNumber) {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ size: 'A4', margin: 0 });
+        // ── Numeric fields ──────────────────────────────────────────────────
+        const hourlyRate    = parseFloat(employee.hourly_rate || summary.hourly_rate) || 0;
+        const regularHours  = parseFloat(summary.regular_hours)   || 0;
+        const overtimeHours = parseFloat(summary.overtime_hours)  || 0;
+        const grossAmount   = parseFloat(summary.gross_amount)    || 0;
+        const taxDed        = parseFloat(summary.tax_deductions)  || 0;
+        const otherDed      = parseFloat(summary.other_deductions)|| 0;
+        const deductions    = parseFloat(summary.deductions)      || 0;
+        const netAmount     = parseFloat(summary.net_amount)      || grossAmount;
+        const totalDed      = taxDed + otherDed + deductions;
+        const overtimeRate  = hourlyRate * 1.5;
+        const regularPay    = regularHours  * hourlyRate;
+        const overtimePay   = overtimeHours * overtimeRate;
+        const totalHours    = regularHours + overtimeHours;
+        const fmt2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // ── Layout constants ────────────────────────────────────────────────
+        const PAGE_W    = 595.28;
+        const MARGIN    = 45;
+        const CW        = PAGE_W - MARGIN * 2;   // 505.28
+        const ROW_H     = 20;                    // standard row
+        const ROW_H2    = 30;                    // tall row (wrapping text)
+        const HDR_H     = 28;                    // header row height for earnings table
+        const FONT_SZ   = 8.5;
+        const HDR_BG    = '#bed8ea';
+        const SECTION_C = '#1a56a0';
+        const BORDER_C  = '#aaaaaa';
+        const TEXT_C    = '#1a1a1a';
+        const BOLD_BG   = '#dce8f0';
+        const DATA_FONT = 'Courier';
+        const HDR_FONT  = 'Helvetica-Bold';
+
+        const logoPath   = LOGO_PATH;
+        const hasLogo    = HAS_LOGO;
+        const hasBankName = !!(employee.bank_name);
+        const hasBankAcct = !!(employee.bank_account_number);
+        const bankRows   = (hasBankName ? 1 : 0) + (hasBankAcct ? 1 : 0);
+
+        // ── Pre-calculate total content height for dynamic page size ────────
+        const LOGO_H      = hasLogo ? 70 : 34;
+        const ADDR_H      = 14 + 14;                // address + website
+        const STRIP_H     = 24;
+        const GAP_AFTER_LOGO = 14;
+        const T1_H        = ROW_H + ROW_H2;         // header + tall data row
+        const T2_H        = ROW_H + ROW_H;
+        const T3_H        = ROW_H + ROW_H;
+        const EARN_H      = HDR_H + (9 + 1) * ROW_H;// header + 9 rows + total
+        const NETPAY_H    = ROW_H;
+        const BANK_H      = bankRows * ROW_H + (bankRows > 0 ? 10 : 0);
+        const FOOTER_H    = 26;
+        const SECTIONS_GAPS = 8 + 8 + 12 + 17 + 12 + 17 + 14; // gaps between sections
+
+        const CONTENT_H = STRIP_H + LOGO_H + ADDR_H + GAP_AFTER_LOGO +
+                          T1_H + 8 + T2_H + 8 + T3_H + SECTIONS_GAPS +
+                          EARN_H + NETPAY_H + BANK_H + FOOTER_H;
+
+        const PAGE_H    = CONTENT_H + 40;           // 20pt top pad + 20pt bottom pad
+        const TOP_PAD   = 20;
+
+        // ── Create document with fitted page height ─────────────────────────
+        const doc = new PDFDocument({ size: [PAGE_W, PAGE_H], margin: 0 });
 
         const fileName = `Payslip_${payslipNumber}_${employee.name.replace(/\s+/g, '_')}.pdf`;
         const filePath = path.join(this.outputDir, fileName);
         const writeStream = fs.createWriteStream(filePath);
         doc.pipe(writeStream);
 
-        const cur = employee.currency || process.env.CURRENCY || 'USD';
-        const companyName = process.env.COMPANY_NAME || 'Company Name';
-        const PAGE_W = 595.28;
-        const MARGIN = 40;
-        const CONTENT_W = PAGE_W - MARGIN * 2;
-
-        // ── Numeric fields ──────────────────────────────────────────────────
-        const hourlyRate     = parseFloat(summary.hourly_rate)    || 0;
-        const regularHours   = parseFloat(summary.regular_hours)  || 0;
-        const overtimeHours  = parseFloat(summary.overtime_hours) || 0;
-        const grossAmount    = parseFloat(summary.gross_amount)   || 0;
-        const taxDed         = parseFloat(summary.tax_deductions)   || 0;
-        const otherDed       = parseFloat(summary.other_deductions) || 0;
-        const netAmount      = parseFloat(summary.net_amount)     || 0;
-        const totalDed       = taxDed + otherDed;
-        const overtimeRate   = hourlyRate * 1.5;
-        const regularPay     = regularHours  * hourlyRate;
-        const overtimePay    = overtimeHours * overtimeRate;
-
-        const money = (n) => `${cur} ${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-        // ── Header band ─────────────────────────────────────────────────────
-        doc.rect(0, 0, PAGE_W, 90).fill('#1a1a2e');
-        doc.fontSize(22).font('Helvetica-Bold').fillColor('white')
-           .text(companyName, MARGIN, 22, { width: CONTENT_W * 0.6 });
-        doc.fontSize(10).font('Helvetica').fillColor('rgba(255,255,255,0.7)')
-           .text('PAY SLIP', MARGIN, 52);
-
-        // Payslip # on right side of header
-        doc.fontSize(9).font('Helvetica').fillColor('rgba(255,255,255,0.6)')
-           .text('Payslip No.', PAGE_W - MARGIN - 130, 28, { width: 130, align: 'right' });
-        doc.fontSize(11).font('Helvetica-Bold').fillColor('white')
-           .text(payslipNumber, PAGE_W - MARGIN - 130, 42, { width: 130, align: 'right' });
-
-        let y = 108;
-
-        // ── Employee & Period info cards side-by-side ───────────────────────
-        const CARD_W = CONTENT_W / 2 - 8;
-        const CARD_H = 110;
-
-        // Left card: employee
-        doc.roundedRect(MARGIN, y, CARD_W, CARD_H, 6).fill('#f8fafc');
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#94a3b8')
-           .text('EMPLOYEE DETAILS', MARGIN + 14, y + 12);
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e')
-           .text(employee.name, MARGIN + 14, y + 26);
-        doc.fontSize(9).font('Helvetica').fillColor('#475569')
-           .text(`ID: ${employee.employee_id || '—'}`, MARGIN + 14, y + 46)
-           .text(`Dept: ${employee.department || '—'}`, MARGIN + 14, y + 60)
-           .text(`Position: ${employee.position || '—'}`, MARGIN + 14, y + 74)
-           .text(`Email: ${employee.email || '—'}`, MARGIN + 14, y + 88);
-
-        // Right card: period
-        const rx = MARGIN + CARD_W + 16;
-        doc.roundedRect(rx, y, CARD_W, CARD_H, 6).fill('#f8fafc');
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#94a3b8')
-           .text('PAY PERIOD', rx + 14, y + 12);
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e')
-           .text(period.period_name, rx + 14, y + 26);
-        doc.fontSize(9).font('Helvetica').fillColor('#475569')
-           .text(`From: ${this.formatDate(period.start_date)}`, rx + 14, y + 46)
-           .text(`To:     ${this.formatDate(period.end_date)}`, rx + 14, y + 60)
-           .text(`Pay Date: ${this.formatDate(new Date())}`, rx + 14, y + 74);
-        if (summary.approved_at) {
-          doc.text(`Approved: ${this.formatDate(summary.approved_at)}`, rx + 14, y + 88);
-        }
-
-        y += CARD_H + 20;
-
-        // ── Earnings table ──────────────────────────────────────────────────
-        const drawSectionLabel = (label, yPos) => {
-          doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748b')
-             .text(label, MARGIN, yPos);
-          doc.moveTo(MARGIN, yPos + 12).lineTo(PAGE_W - MARGIN, yPos + 12)
-             .lineWidth(0.5).strokeColor('#e2e8f0').stroke();
-          return yPos + 18;
+        // ── Helper: draw a bordered cell ─────────────────────────────────────
+        const cell = (x, cy, w, h, bg, text, opts = {}) => {
+          if (bg) doc.rect(x, cy, w, h).fill(bg);
+          doc.rect(x, cy, w, h).lineWidth(0.4).strokeColor(BORDER_C).stroke();
+          if (text !== null && text !== undefined && String(text) !== '') {
+            const fz     = opts.fontSize  || FONT_SZ;
+            const font   = opts.font      || DATA_FONT;
+            const align  = opts.align     || 'left';
+            const color  = opts.color     || TEXT_C;
+            const pad    = opts.pad       !== undefined ? opts.pad : 5;
+            const wrap   = opts.wrap      || false;
+            // Vertically center single-line; top-align when wrapping
+            const ty     = wrap ? cy + 5 : cy + Math.max(2, (h - fz * 1.25) / 2);
+            doc.fontSize(fz).font(font).fillColor(color)
+               .text(String(text), x + pad, ty, { width: w - pad * 2, align, lineBreak: wrap });
+          }
         };
 
-        const drawTableRow = (label, hours, rate, amount, yPos, bold = false, shade = false, overtime = false) => {
-          if (overtime) {
-            doc.rect(MARGIN, yPos - 3, CONTENT_W, 18).fill('#fef3c7');
-          } else if (shade) {
-            doc.rect(MARGIN, yPos - 3, CONTENT_W, 18).fill('#f1f5f9');
+        // ── Helper: header row (fixed height, centered, wrap-safe) ───────────
+        const hdrRow = (x, cy, cols, h = ROW_H) => {
+          let cx = x;
+          for (const c of cols) {
+            cell(cx, cy, c.w, h, HDR_BG, c.label, {
+              font: HDR_FONT, fontSize: FONT_SZ,
+              align: c.align || 'center',
+              wrap: true,   // allow wrapping so long labels don't overflow
+              pad: 4,
+            });
+            cx += c.w;
           }
-          const textColor = overtime ? '#92400e' : (bold ? '#1a1a2e' : '#334155');
-          doc.fillColor(textColor).fontSize(9).font(bold ? 'Helvetica-Bold' : 'Helvetica');
-          const C = [MARGIN + 4, MARGIN + 200, MARGIN + 320, MARGIN + 420];
-          if (label)  doc.text(label,  C[0], yPos, { width: 190 });
-          if (hours)  doc.text(hours,  C[1], yPos, { width: 110, align: 'right' });
-          if (rate)   doc.text(rate,   C[2], yPos, { width: 95,  align: 'right' });
-          if (amount) doc.text(amount, C[3], yPos, { width: 95,  align: 'right' });
-          if (overtime) {
-            doc.fontSize(6).font('Helvetica-Bold').fillColor('#d97706')
-               .text('EXTRA TIME', MARGIN + CONTENT_W - 4, yPos - 1, { width: 60, align: 'right' });
-          }
-          return yPos + 20;
+          return cy + h;
         };
 
-        // Earnings header
-        y = drawSectionLabel('EARNINGS', y);
-        y = drawTableRow('Description', 'Hours', 'Rate / hr', 'Amount', y, true);
+        // ── Helper: data row ─────────────────────────────────────────────────
+        const dataRow = (x, cy, cols, vals, opts = {}) => {
+          const h  = opts.h    || ROW_H;
+          const bg = opts.bold ? BOLD_BG : 'white';
+          let cx = x;
+          for (let i = 0; i < cols.length; i++) {
+            cell(cx, cy, cols[i].w, h, bg, vals[i] ?? '', {
+              font:   opts.bold ? HDR_FONT : DATA_FONT,
+              fontSize: FONT_SZ,
+              align:  cols[i].dataAlign || 'left',
+              color:  TEXT_C,
+              wrap:   opts.wrap || false,
+              pad:    5,
+            });
+            cx += cols[i].w;
+          }
+          return cy + h;
+        };
 
-        y = drawTableRow('Regular Hours',
-          `${regularHours.toFixed(2)} hrs`,
-          money(hourlyRate),
-          money(regularPay),
-          y, false, true);
+        // ── Helper: section heading ──────────────────────────────────────────
+        const section = (cy, label) => {
+          doc.fontSize(12).font(HDR_FONT).fillColor(SECTION_C)
+             .text(label, MARGIN, cy);
+          return cy + 17;
+        };
 
-        if (overtimeHours > 0) {
-          y = drawTableRow('Overtime Hours',
-            `${overtimeHours.toFixed(2)} hrs`,
-            money(overtimeRate),
-            money(overtimePay),
-            y, false, false, true);
+        // ════════════════════════════════════════════════════════════════════
+        // RENDER
+        // ════════════════════════════════════════════════════════════════════
+        const now      = new Date();
+        const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const ymCode   = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const tplRef   = `${yyyymmdd} BIMS Payroll Template v${ymCode}`;
+
+        // ── Template strip ───────────────────────────────────────────────────
+        doc.fontSize(7).font('Helvetica').fillColor('#555555')
+           .text(tplRef, MARGIN, TOP_PAD, { width: CW * 0.65, lineBreak: false });
+        doc.fontSize(7).font(HDR_FONT).fillColor('#555555')
+           .text('PAYSLIP', MARGIN, TOP_PAD, { width: CW, align: 'right' });
+
+        let y = TOP_PAD + 14;
+
+        // ── Logo ─────────────────────────────────────────────────────────────
+        if (hasLogo) {
+          const logoW = 170;
+          doc.image(logoPath, (PAGE_W - logoW) / 2, y, { width: logoW });
+          y += LOGO_H;
+        } else {
+          doc.fontSize(22).font(HDR_FONT).fillColor('#1a3a6b')
+             .text('BIMS Technologies, Inc.', MARGIN, y, { width: CW, align: 'center' });
+          y += LOGO_H;
         }
 
-        y += 4;
-        doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
-        y += 8;
-        y = drawTableRow('Gross Earnings', '', '', money(grossAmount), y, true, true);
+        // ── Address & website ────────────────────────────────────────────────
+        const companyAddress = process.env.COMPANY_ADDRESS || '17F Skyrise 4B, W Geonzon St, Cebu IT Park, Lahug, Cebu City, Cebu, Philippines 6000';
+        const companyWebsite = process.env.COMPANY_WEBSITE || 'bims.tech';
 
-        y += 16;
+        doc.fontSize(8.5).font('Helvetica').fillColor(TEXT_C)
+           .text(companyAddress, MARGIN, y, { width: CW, align: 'center', lineBreak: false });
+        y += 14;
+        doc.fontSize(8.5).font('Helvetica').fillColor(SECTION_C)
+           .text(companyWebsite, MARGIN, y, { width: CW, align: 'center', lineBreak: false });
+        y += GAP_AFTER_LOGO;
 
-        // ── Deductions table ────────────────────────────────────────────────
-        y = drawSectionLabel('DEDUCTIONS', y);
-        y = drawTableRow('Description', '', '', 'Amount', y, true);
+        // ── Table 1 — Employee info ──────────────────────────────────────────
+        const empType = employee.employment_type === 'contractor' ? 'FREELANCE'
+                      : employee.employment_type === 'part_time'  ? 'PART TIME'
+                      : 'FULL TIME';
+        const payDate = summary.approved_at
+          ? this.formatDate(summary.approved_at)
+          : this.formatDate(now);
 
-        y = drawTableRow('Tax Deductions',    '', '', money(taxDed),   y, false, true);
-        y = drawTableRow('Other Deductions',  '', '', money(otherDed), y, false, false);
-
-        y += 4;
-        doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
-        y += 8;
-        y = drawTableRow('Total Deductions', '', '', money(totalDed), y, true, true);
-
-        y += 20;
-
-        // ── Net Pay band ────────────────────────────────────────────────────
-        doc.rect(MARGIN, y, CONTENT_W, 44).fill('#1a1a2e');
-        doc.fontSize(11).font('Helvetica-Bold').fillColor('white')
-           .text('NET PAY', MARGIN + 14, y + 14);
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#a5f3a0')
-           .text(money(netAmount), MARGIN, y + 12, { width: CONTENT_W - 14, align: 'right' });
-
-        y += 44 + 20;
-
-        // ── Summary row ─────────────────────────────────────────────────────
-        const statW = CONTENT_W / 3;
-        const stats = [
-          ['Total Hours',   `${(regularHours + overtimeHours).toFixed(2)} hrs`],
-          ['Hourly Rate',   money(hourlyRate)],
-          ['Deductions',    money(totalDed)],
+        // Col widths must sum to CW (505)
+        const t1 = [
+          { label: 'Name',       w: 150, dataAlign: 'center' },
+          { label: 'ID No.',     w: 55,  dataAlign: 'center' },
+          { label: 'Pay Period', w: 90,  dataAlign: 'center' },
+          { label: 'Pay Date',   w: 135, dataAlign: 'center' },
+          { label: 'Payment',    w: 75,  dataAlign: 'center' },
         ];
-        stats.forEach(([label, value], i) => {
-          const sx = MARGIN + i * statW;
-          doc.rect(sx, y, statW - 8, 44).fill('#f8fafc');
-          doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text(label, sx + 10, y + 8);
-          doc.fontSize(11).font('Helvetica-Bold').fillColor('#1a1a2e').text(value, sx + 10, y + 22);
-        });
+        y = hdrRow(MARGIN, y, t1, ROW_H);
+        // Use tall row + wrap so long period names (e.g. "March Full Month") don't clip
+        y = dataRow(MARGIN, y, t1, [
+          employee.name,
+          employee.employee_id || '',
+          period.period_name,
+          payDate,
+          'Bank Transfer',
+        ], { h: ROW_H2, wrap: true });
+        y += 8;
 
-        y += 44 + 20;
+        // ── Table 2 — Position ───────────────────────────────────────────────
+        const t2 = [
+          { label: 'Position',      w: 200, dataAlign: 'center' },
+          { label: 'Department',    w: 165, dataAlign: 'center' },
+          { label: 'Employee Type', w: 140, dataAlign: 'center' },
+        ];
+        y = hdrRow(MARGIN, y, t2, ROW_H);
+        y = dataRow(MARGIN, y, t2, [
+          employee.position   || '',
+          employee.department || '',
+          empType,
+        ]);
+        y += 8;
 
-        // ── Footer ──────────────────────────────────────────────────────────
-        doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.5).strokeColor('#e2e8f0').stroke();
-        y += 10;
-        doc.fontSize(8).font('Helvetica').fillColor('#94a3b8')
-           .text('This is a computer-generated payslip and does not require a signature.', MARGIN, y, { width: CONTENT_W, align: 'center' })
-           .text(`Generated on ${this.formatDate(new Date())}`, MARGIN, y + 12, { width: CONTENT_W, align: 'center' });
+        // ── Table 3 — Pay summary ────────────────────────────────────────────
+        const t3 = [
+          { label: 'Gross Pay',     w: 130, dataAlign: 'right' },
+          { label: 'Deductions',    w: 115, dataAlign: 'right' },
+          { label: 'Taxes',         w: 115, dataAlign: 'right' },
+          { label: 'Take-Home Pay', w: 145, dataAlign: 'right' },
+        ];
+        y = hdrRow(MARGIN, y, t3, ROW_H);
+        y = dataRow(MARGIN, y, t3, [
+          fmt2(grossAmount),
+          fmt2(totalDed),
+          fmt2(taxDed),
+          fmt2(netAmount),
+        ]);
+        y += 12;
+
+        // ── Earnings section ─────────────────────────────────────────────────
+        y = section(y, 'Earnings');
+
+        // Widths sum to 505: 200+85+80+75+65
+        const tE = [
+          { label: 'Pay Description', w: 200, dataAlign: 'left'  },
+          { label: '',                w: 85,  dataAlign: 'left'  },
+          { label: 'Pay Rate',        w: 80,  dataAlign: 'right' },
+          { label: 'Hours',           w: 75,  dataAlign: 'right' },
+          { label: 'Paycheck\nTotal', w: 65,  dataAlign: 'right' },
+        ];
+        // Use taller header so "Paycheck Total" has room without overlapping
+        y = hdrRow(MARGIN, y, tE, HDR_H);
+
+        const earningsRows = [
+          ['Regular',           '', fmt2(hourlyRate),  fmt2(regularHours),  fmt2(regularPay)  ],
+          ['Overtime',          '', fmt2(overtimeRate), fmt2(overtimeHours), fmt2(overtimePay) ],
+          ['Communication',     '', '', '', ''],
+          ['Medical Allowance', '', '', '', ''],
+          ['Bonus/Non-Taxable', '', '', '', ''],
+          ['Allowance',         '', '', '', ''],
+          ['Incentives',        '', '', '', ''],
+          ['Adjustment',        '', '', '', ''],
+          ['Tax Refund',        '', '', '', ''],
+        ];
+        for (const row of earningsRows) {
+          y = dataRow(MARGIN, y, tE, row);
+        }
+        y = dataRow(MARGIN, y, tE, [
+          'Total Earnings', '',
+          fmt2(grossAmount),
+          fmt2(totalHours),
+          fmt2(grossAmount),
+        ], { bold: true });
+        y += 12;
+
+        // ── Net Pay section ──────────────────────────────────────────────────
+        y = section(y, 'Net Pay');
+
+        cell(MARGIN,            y, CW - 65, ROW_H, HDR_BG, 'Total Net Pay',
+          { font: HDR_FONT, fontSize: FONT_SZ, align: 'left' });
+        cell(MARGIN + CW - 65,  y, 65,      ROW_H, HDR_BG, fmt2(netAmount),
+          { font: HDR_FONT, fontSize: FONT_SZ, align: 'right' });
+        y += ROW_H + 14;
+
+        // ── Bank details ─────────────────────────────────────────────────────
+        if (hasBankName || hasBankAcct) {
+          const bL = 260, bR = CW - bL;
+          if (hasBankName) {
+            cell(MARGIN,       y, bL, ROW_H, 'white', 'Bank Name',        { font: DATA_FONT, fontSize: FONT_SZ });
+            cell(MARGIN + bL,  y, bR, ROW_H, 'white', employee.bank_name, { font: DATA_FONT, fontSize: FONT_SZ, align: 'right' });
+            y += ROW_H;
+          }
+          if (hasBankAcct) {
+            cell(MARGIN,       y, bL, ROW_H, 'white', 'Account Number/Swift Account',  { font: DATA_FONT, fontSize: FONT_SZ });
+            cell(MARGIN + bL,  y, bR, ROW_H, 'white', employee.bank_account_number,    { font: DATA_FONT, fontSize: FONT_SZ, align: 'right' });
+            y += ROW_H;
+          }
+          y += 10;
+        }
+
+        // ── Footer ───────────────────────────────────────────────────────────
+        doc.moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).lineWidth(0.4).strokeColor('#cccccc').stroke();
+        y += 8;
+        doc.fontSize(7).font('Helvetica').fillColor('#888888')
+           .text('This is a computer-generated payslip and does not require a signature.',
+                 MARGIN, y, { width: CW, align: 'center' });
 
         doc.end();
 

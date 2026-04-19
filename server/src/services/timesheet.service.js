@@ -9,6 +9,9 @@ const csvService = require('./csv.service');
 const db = require('../database/connection');
 require('dotenv').config();
 
+const ERR_ALREADY_APPROVED = 'already_approved';
+const ERR_ALREADY_GENERATED = 'A payslip has already been generated for this employee and period.';
+
 /**
  * Timesheet Service
  * Core business logic for timesheet processing
@@ -88,14 +91,30 @@ class TimesheetService {
     let summary = await TimeEntriesSummary.findByEmployeeAndPeriod(employee.id, period.id);
 
     if (summary && summary.approval_status === 'approved') {
-      console.log(`⏭️  ${employee.name} already approved, skipping`);
-      return { success: false, reason: 'already_approved' };
+      // Approved — check if payslip actually exists; if not, generate it
+      const existingPayslip = await Payslip.findBySummaryId(summary.id);
+      if (existingPayslip) {
+        console.log(`⏭️  ${employee.name} already has a payslip for this period, skipping`);
+        return { success: false, reason: ERR_ALREADY_APPROVED };
+      }
+      // Payslip missing — generate it now
+      console.log(`🔁  ${employee.name} payslip missing — generating now`);
+      const fullSummary = await TimeEntriesSummary.getWithDetails(summary.id);
+      const payslip = await this.generatePayslip(fullSummary, period);
+      await TimeEntriesSummary.updateFilePaths(summary.id, { payslip_pdf_path: payslip.pdf_path });
+      return { success: true, summary: fullSummary, payslip };
     }
 
-    // If already pending, skip
+    // If pending but no payslip yet, complete the approval
     if (summary && summary.approval_status === 'pending') {
-      console.log(`⏭️  ${employee.name} already has a pending timesheet, returning existing`);
-      return { success: true, summary, alreadyPending: true };
+      const existingPayslip = await Payslip.findBySummaryId(summary.id);
+      if (existingPayslip) {
+        console.log(`⏭️  ${employee.name} already has a pending timesheet with payslip`);
+        return { success: true, summary, alreadyPending: true };
+      }
+      console.log(`🔁  ${employee.name} has pending summary without payslip — completing now`);
+      const approvalResult = await this.processApproval(summary, 'auto');
+      return { success: true, summary: approvalResult.summary, payslip: approvalResult.payslip };
     }
 
     // Calculate hours from time entries
@@ -141,12 +160,12 @@ class TimesheetService {
       timesheet_pdf_path: csvResult.filePath
     });
 
-    // Mark pending first (required state for processApproval), then auto-approve
+    // Mark pending first (required state for processApproval), then generate payslip
     await TimeEntriesSummary.markPendingApproval(summary.id);
     const pendingSummary = await TimeEntriesSummary.findById(summary.id);
     const approvalResult = await this.processApproval(pendingSummary, 'auto');
 
-    console.log(`✅ Timesheet auto-approved and payslip generated for ${employee.name}`);
+    console.log(`✅ Payslip generated for ${employee.name}`);
 
     return {
       success: true,
@@ -223,40 +242,12 @@ class TimesheetService {
     }));
   }
 
-  /**
-   * Handle approval from Wrike webhook
-   */
-  async handleApproval(wrikeTaskId, newStatus) {
-    console.log(`📨 Processing webhook for task: ${wrikeTaskId}, status: ${newStatus}`);
-
-    // Find summary by Wrike task ID
-    const summary = await TimeEntriesSummary.findByWrikeTaskId(wrikeTaskId);
-
-    if (!summary) {
-      console.warn(`⚠️  No summary found for task: ${wrikeTaskId}`);
-      return { success: false, reason: 'summary_not_found' };
-    }
-
-    // Safety check - don't process if already processed
-    if (summary.approval_status !== 'pending') {
-      console.log(`⏭️  Summary already ${summary.approval_status}`);
-      return { success: false, reason: 'already_processed' };
-    }
-
-    if (newStatus === 'Approved' || newStatus === 'Completed') {
-      return await this.processApproval(summary);
-    } else if (newStatus === 'Rejected' || newStatus === 'Cancelled') {
-      return await this.processRejection(summary);
-    }
-
-    return { success: false, reason: 'unknown_status' };
-  }
 
   /**
    * Process approval
    */
   async processApproval(summary, approvedBy = 'employee') {
-    console.log(`✅ Processing approval for summary: ${summary.id}`);
+    console.log(`✅ Generating payslip for summary: ${summary.id}`);
 
     // Get full details
     const fullSummary = await TimeEntriesSummary.getWithDetails(summary.id);
@@ -326,10 +317,8 @@ class TimesheetService {
     // Generate payslip number
     const payslipNumber = await Payslip.generatePayslipNumber();
 
-    // Build employee object from the joined summary fields
-    // Note: summary.employee_id = integer FK (employees.id)
-    //       summary.emp_code    = string code like "EMP001"
-    const employee = {
+    // Fetch full employee record so the PDF has all fields (bank details, hourly_rate, etc.)
+    const employee = await Employee.findById(summary.employee_id) || {
       name: summary.employee_name,
       employee_id: summary.emp_code,
       department: summary.department,
@@ -525,9 +514,14 @@ class TimesheetService {
     let totalHours = 0;
     let wrikeError = null;
 
+    let noApprovedHours = false;
     try {
       let timelogs = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
-      timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+      const approvedLogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+      if (timelogs.length > 0 && approvedLogs.length === 0) {
+        noApprovedHours = true;
+      }
+      timelogs = approvedLogs;
       const byUser    = wrikeService.groupTimeLogsByUser(timelogs);
       const userLogs  = byUser[employee.wrike_user_id] || [];
       const taskTitles = await wrikeService.getTaskTitles(userLogs.map(l => l.taskId).filter(Boolean));
@@ -596,6 +590,7 @@ class TimesheetService {
       endDate,
       source,          // 'wrike' | 'db'
       wrikeError,      // null if Wrike succeeded
+      noApprovedHours, // true when Wrike has timelogs but none are approved
       dailyHours:    dailyMap,
       taskDetails,
       totalHours:    +totalHours.toFixed(2),
@@ -607,7 +602,7 @@ class TimesheetService {
   }
 
   /**
-   * Submit timesheet for approval — imports timelogs, generates PDF, routes to employee portal.
+   * Process timesheet for an employee and period — imports approved Wrike timelogs and generates payslip.
    */
   async submitTimesheet(employeeId, startDate, endDate, periodName = null) {
     const employee = await Employee.findById(employeeId);
@@ -628,7 +623,13 @@ class TimesheetService {
 
     // Fetch and import only APPROVED Wrike timelogs for this employee + range
     let timelogs = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
+    const allTimelogs = timelogs;
     timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+    if (allTimelogs.length > 0 && timelogs.length === 0) {
+      throw new Error(
+        `No Wrike-approved hours found for this period. ${allTimelogs.length} timelog(s) exist but none are approved in Wrike yet. Please approve them in Wrike before generating payslips.`
+      );
+    }
     const byUser    = wrikeService.groupTimeLogsByUser(timelogs);
     const userLogs  = byUser[employee.wrike_user_id] || [];
     const taskTitles = await wrikeService.getTaskTitles(userLogs.map(l => l.taskId).filter(Boolean));
@@ -657,11 +658,11 @@ class TimesheetService {
     if (!result.success) {
       if (result.reason === 'no_hours') {
         throw new Error(
-          'No hours found for this period. Import Wrike timelogs first via the "Wrike Timesheets" page.'
+          'No hours found for this period. Make sure timelogs are approved in Wrike and imported via the "Wrike Timesheets" page.'
         );
       }
-      if (result.reason === 'already_approved') {
-        throw new Error('This timesheet has already been approved and a payslip was generated.');
+      if (result.reason === ERR_ALREADY_APPROVED) {
+        throw new Error(ERR_ALREADY_GENERATED);
       }
       throw new Error(`Timesheet processing failed: ${result.reason}`);
     }
@@ -685,6 +686,43 @@ class TimesheetService {
    * Bulk approve & generate payslips for a period.
    * employeeIds = array of employee DB ids, or null/empty = all employees.
    */
+  /**
+   * Full-pipeline payslip generation for all (or selected) employees in a period.
+   * Fetches Wrike-approved timelogs, imports, and generates payslips.
+   * Called from the Payslips page "Generate Payslips" button.
+   */
+  async generatePayslipsForPeriod(periodId, employeeIds = null) {
+    const period = await PayPeriod.findById(periodId);
+    if (!period) throw new Error('Period not found');
+
+    const allEmployees = await Employee.findAll(true);
+    const targets = employeeIds && employeeIds.length
+      ? allEmployees.filter(e => employeeIds.includes(e.id))
+      : allEmployees;
+
+    const results = { generated: 0, skipped: 0, errors: [] };
+
+    for (const emp of targets) {
+      if (!emp.wrike_user_id) {
+        results.skipped++;
+        continue;
+      }
+      try {
+        await this.submitTimesheet(emp.id, period.start_date, period.end_date, period.period_name);
+        results.generated++;
+      } catch (err) {
+        const msg = err.message || '';
+        if (msg.includes(ERR_ALREADY_GENERATED) || msg.includes(ERR_ALREADY_APPROVED)) {
+          results.skipped++;
+        } else {
+          results.errors.push({ employeeName: emp.name, error: msg });
+        }
+      }
+    }
+
+    return { period: period.period_name, ...results };
+  }
+
   async bulkApproveAndGenerate(periodId, employeeIds = null) {
     const period = await PayPeriod.findById(periodId);
     if (!period) throw new Error('Period not found');

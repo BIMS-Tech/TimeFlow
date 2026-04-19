@@ -213,6 +213,7 @@ router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF
  * @desc Bulk approve & generate payslips for a period (all or selected employees)
  */
 router.post('/timesheet/bulk-generate-payslips', timesheetController.bulkGeneratePayslips.bind(timesheetController));
+router.post('/timesheet/generate-payslips-for-period', timesheetController.generatePayslipsForPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/payroll/bank-file
@@ -330,6 +331,7 @@ router.get('/wrike/contacts', wrikeController.getContacts.bind(wrikeController))
  * @desc List all Wrike folders (to find the correct WRIKE_FOLDER_ID)
  */
 router.get('/wrike/folders', wrikeController.getFolders.bind(wrikeController));
+router.post('/wrike/backfill-categories', wrikeController.backfillCategories.bind(wrikeController));
 
 // ============================================
 // WEBHOOK ROUTES

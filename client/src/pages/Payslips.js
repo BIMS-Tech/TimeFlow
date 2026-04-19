@@ -109,19 +109,22 @@ export default function Payslips() {
     setBulkResult(null);
     try {
       const empIds = selectAll ? null : selectedEmployeeIds;
-      const res = await payslipsAPI.bulkGenerate(selectedPeriod.id, empIds);
+      const res = await payslipsAPI.generateForPeriod(selectedPeriod.id, empIds);
       if (res.success) {
         setBulkResult(res.data);
-        toast.success(`Generated ${res.data.generated} payslip(s)`);
+        const { generated, skipped, errors } = res.data;
+        if (generated > 0) toast.success(`Generated ${generated} payslip(s)`);
+        else if (skipped > 0) toast(`${skipped} already generated — nothing new to create`, { icon: 'ℹ️' });
+        else if (errors?.length) toast.error(`${errors.length} error(s) — check results`);
         fetchPayslips(selectedPeriod.id);
       }
-    } catch (e) { toast.error(e.response?.data?.error || 'Bulk generation failed'); }
+    } catch (e) { toast.error(e.response?.data?.error || 'Generation failed'); }
     finally { setGenerating(false); }
   };
 
   const openBankDl = (type) => {
     setBankDlType(type);
-    setBankDlPeriodId(selectedPeriod?.id || (periods[0]?.id ?? null));
+    setBankDlPeriodId(selectedPeriod?.id ?? periods[0]?.id ?? null);
     setBankDlEmpIds([]);
     setBankDlSelectAll(true);
     setBankDlOpen(true);
@@ -188,7 +191,7 @@ export default function Payslips() {
           </Box>
           <Box sx={{ p: 2.5 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2 }}>
-              Auto-approves pending timesheets and generates payslips. Select employees or generate for all at once.
+              Generates payslips from Wrike-approved timelogs. Select employees or generate for all at once.
             </Typography>
             <FormControlLabel
               control={<Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
@@ -386,15 +389,29 @@ export default function Payslips() {
           Download {bankDlType === 'foreign' ? 'Foreign / SWIFT' : 'Local'} Bank File
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
-          <FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
-            <InputLabel>Period</InputLabel>
-            <Select value={bankDlPeriodId || ''} label="Period"
-              onChange={e => setBankDlPeriodId(e.target.value)}>
-              {periods.map(p => (
-                <MenuItem key={p.id} value={p.id}>{p.period_name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {(() => {
+            const fmt = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            return (
+              <FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
+                <InputLabel shrink>Period</InputLabel>
+                <Select value={bankDlPeriodId ?? ''} label="Period" notched displayEmpty
+                  onChange={e => setBankDlPeriodId(Number(e.target.value))}
+                  renderValue={selected => {
+                    const p = periods.find(x => x.id === selected);
+                    return p ? p.period_name + (p.start_date ? `  ·  ${fmt(p.start_date)} – ${fmt(p.end_date)}` : '') : <em style={{ color: '#94a3b8' }}>Select a period</em>;
+                  }}>
+                  {periods.map(p => (
+                    <MenuItem key={p.id} value={p.id}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>{p.period_name}</span>
+                        {p.start_date && <Typography component="span" sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{fmt(p.start_date)} – {fmt(p.end_date)}</Typography>}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            );
+          })()}
 
           {(() => {
             const incompleteCount = employees.filter(e => e.hire_category === bankDlType && getMissingBankFields(e).length > 0).length;
@@ -411,12 +428,14 @@ export default function Payslips() {
           <FormControlLabel
             control={<Checkbox checked={bankDlSelectAll} onChange={e => { setBankDlSelectAll(e.target.checked); setBankDlEmpIds([]); }} size="small"
               sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
-            label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>All Employees</Typography>}
+            label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>
+              All {bankDlType === 'foreign' ? 'Foreign' : 'Local'} Employees ({employees.filter(e => e.hire_category === bankDlType).length})
+            </Typography>}
           />
           {!bankDlSelectAll && (
             <Box sx={{ maxHeight: 220, overflowY: 'auto', border: '1px solid', borderColor: 'divider', mt: 1 }}>
               <List dense disablePadding>
-                {employees.map(emp => {
+                {employees.filter(emp => emp.hire_category === bankDlType).map(emp => {
                   const missing = getMissingBankFields(emp);
                   const incomplete = missing.length > 0;
                   return (

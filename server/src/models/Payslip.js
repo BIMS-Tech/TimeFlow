@@ -55,7 +55,7 @@ class Payslip {
    */
   static async findByPeriod(periodId) {
     const sql = `
-      SELECT p.*, e.name as employee_name, e.employee_id, e.email, e.currency
+      SELECT p.*, e.name as employee_name, e.employee_id as emp_code, e.email, e.currency
       FROM payslips p
       JOIN employees e ON p.employee_id = e.id
       WHERE p.period_id = ?
@@ -122,7 +122,7 @@ class Payslip {
     const sql = `
       SELECT 
         p.*,
-        e.employee_id,
+        e.employee_id as emp_code,
         e.name as employee_name,
         e.email,
         e.department,

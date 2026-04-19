@@ -95,19 +95,21 @@ export default function TimesheetGenerator() {
   const [submitted, setSubmitted] = useState(null);
   const [expandedDays, setExpandedDays] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState(true);
-  const [taskPanelHeight, setTaskPanelHeight] = useState(320);
+  const [taskPanelWidth, setTaskPanelWidth] = useState(360);
   const isDraggingTask = React.useRef(false);
-  const dragStartY = React.useRef(0);
-  const dragStartHeight = React.useRef(320);
+  const dragStartX = React.useRef(0);
+  const dragStartWidth = React.useRef(360);
 
   const onTaskDragStart = (e) => {
+    e.preventDefault();
     isDraggingTask.current = true;
-    dragStartY.current = e.clientY;
-    dragStartHeight.current = taskPanelHeight;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = taskPanelWidth;
     const onMove = (mv) => {
       if (!isDraggingTask.current) return;
-      const delta = mv.clientY - dragStartY.current;
-      setTaskPanelHeight(Math.max(120, Math.min(800, dragStartHeight.current + delta)));
+      // divider drag: moving left widens the right panel
+      const delta = dragStartX.current - mv.clientX;
+      setTaskPanelWidth(Math.max(200, Math.min(640, dragStartWidth.current + delta)));
     };
     const onUp = () => {
       isDraggingTask.current = false;
@@ -175,7 +177,11 @@ export default function TimesheetGenerator() {
         setPreview(previewRes.data);
         if (previewRes.data.wrikeError) toast(`Wrike fetch failed: ${previewRes.data.wrikeError}`, { icon: '⚠️', duration: 6000 });
         if (previewRes.data.totalHours === 0) {
-          toast('No hours found for this period.', { icon: '⚠️' });
+          if (previewRes.data.noApprovedHours) {
+            toast('No Wrike-approved hours found for this period. Approve the timelogs in Wrike first.', { icon: '⚠️', duration: 8000 });
+          } else {
+            toast('No hours found for this period.', { icon: '⚠️' });
+          }
           return;
         }
         if (previewRes.data.source === 'db') toast('Using imported hours from database.', { icon: 'ℹ️', duration: 5000 });
@@ -198,7 +204,7 @@ export default function TimesheetGenerator() {
         try {
           const previewRes = await timesheetGeneratorAPI.preview(emp.id, startDate, endDate);
           if (previewRes.data.totalHours === 0) {
-            results.push({ emp, status: 'no_hours' });
+            results.push({ emp, status: 'no_hours', noApprovedHours: previewRes.data.noApprovedHours });
           } else {
             const res = await timesheetGeneratorAPI.submit(emp.id, startDate, endDate, selectedPeriod.period_name);
             results.push({ emp, status: res.data?.alreadyPending ? 'exists' : 'generated', hours: previewRes.data.totalHours, gross: previewRes.data.grossAmount });
@@ -404,152 +410,164 @@ export default function TimesheetGenerator() {
         {/* Right panel — single employee detailed results */}
         {isSingle && preview && (
           <Grid item xs={12} md={8}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {submitted && (
-                <Alert severity={submitted.alreadyPending ? 'info' : 'success'} sx={{ borderRadius: 0 }}>
-                  <strong>{submitted.alreadyPending ? 'Already Processed' : 'Payslip Generated'}</strong><br />
-                  {submitted.alreadyPending
-                    ? 'This timesheet has already been processed — no duplicate created.'
-                    : `The payslip for ${singleEmp?.name} has been generated successfully.`}
-                </Alert>
-              )}
-
-              {(preview.source === 'db' || preview.wrikeError) && (
-                <Alert severity={preview.wrikeError ? 'error' : 'warning'} sx={{ borderRadius: 0 }}>
-                  {preview.wrikeError && <><strong>Wrike API error:</strong> {preview.wrikeError}<br /></>}
-                  {preview.source === 'db' && 'Showing hours from imported database records — Wrike returned 0 for this period.'}
-                </Alert>
-              )}
-
-              <Grid container spacing={1.5}>
-                {[
-                  { icon: <AccessTimeIcon />, label: 'Total Hours', value: `${preview.totalHours}h`, color: '#6366f1' },
-                  { icon: <TrendingUpIcon />, label: 'Regular / OT', value: `${preview.regularHours}h / ${preview.overtimeHours}h`, color: '#f59e0b' },
-                  { icon: <ReceiptLongIcon />, label: 'Gross Pay', value: fmt(preview.grossAmount, currency), color: '#10b981' },
-                ].map(c => (
-                  <Grid item xs={4} key={c.label}>
-                    <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: c.color }}>
-                        {React.cloneElement(c.icon, { sx: { fontSize: 18 } })}
-                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.label}</Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: 'text.primary' }}>{c.value}</Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-
-              <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={4}>
-                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Period</Typography>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmtDate(startDate)} – {fmtDate(endDate)}</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Hourly Rate</Typography>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Regular Pay</Typography>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
-                  </Grid>
-                </Grid>
-                {preview.overtimeHours > 0 && (
-                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 2, fontSize: '0.875rem' }}>
-                    <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Rate </Typography><strong>{fmt(preview.hourlyRate * 1.5, currency)}/hr</strong></Box>
-                    <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Pay </Typography><strong>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</strong></Box>
-                  </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
+              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {submitted && (
+                  <Alert severity={submitted.alreadyPending ? 'info' : 'success'} sx={{ borderRadius: 0 }}>
+                    <strong>{submitted.alreadyPending ? 'Already Processed' : 'Payslip Generated'}</strong><br />
+                    {submitted.alreadyPending
+                      ? 'This timesheet has already been processed — no duplicate created.'
+                      : `The payslip for ${singleEmp?.name} has been generated successfully.`}
+                  </Alert>
                 )}
-              </Paper>
 
-              {dailyEntries.length > 0 && (
-                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
-                    onClick={() => setExpandedDays(v => !v)}>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Daily Breakdown ({dailyEntries.length} days)</Typography>
-                    {expandedDays ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
-                  </Box>
-                  <Collapse in={expandedDays}>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead sx={{ bgcolor: 'action.hover' }}>
-                          <TableRow>
-                            <TableCell sx={TH}>Date</TableCell>
-                            <TableCell sx={{ ...TH, textAlign: 'right' }}>Hours</TableCell>
-                            <TableCell sx={{ ...TH, textAlign: 'right' }}>Pay</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {dailyEntries.map(([date, hours]) => (
-                            <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                              <TableCell sx={TD}>{fmtDay(date)}</TableCell>
-                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{hours.toFixed(2)}h</TableCell>
-                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow sx={{ bgcolor: 'action.hover' }}>
-                            <TableCell sx={{ ...TD, fontWeight: 700 }}>Total</TableCell>
-                            <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700 }}>{preview.totalHours}h</TableCell>
-                            <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Collapse>
+                {(preview.source === 'db' || preview.wrikeError) && (
+                  <Alert severity={preview.wrikeError ? 'error' : 'warning'} sx={{ borderRadius: 0 }}>
+                    {preview.wrikeError && <><strong>Wrike API error:</strong> {preview.wrikeError}<br /></>}
+                    {preview.source === 'db' && 'Showing hours from imported database records — Wrike returned 0 for this period.'}
+                  </Alert>
+                )}
+
+                <Grid container spacing={1.5}>
+                  {[
+                    { icon: <AccessTimeIcon />, label: 'Total Hours', value: `${preview.totalHours}h`, color: '#6366f1' },
+                    { icon: <TrendingUpIcon />, label: 'Regular / OT', value: `${preview.regularHours}h / ${preview.overtimeHours}h`, color: '#f59e0b' },
+                    { icon: <ReceiptLongIcon />, label: 'Gross Pay', value: fmt(preview.grossAmount, currency), color: '#10b981' },
+                  ].map(c => (
+                    <Grid item xs={4} key={c.label}>
+                      <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: c.color }}>
+                          {React.cloneElement(c.icon, { sx: { fontSize: 18 } })}
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.label}</Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: 'text.primary' }}>{c.value}</Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                      <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Period</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmtDate(startDate)} – {fmtDate(endDate)}</Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Hourly Rate</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mb: 0.25 }}>Regular Pay</Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
+                    </Grid>
+                  </Grid>
+                  {preview.overtimeHours > 0 && (
+                    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 2, fontSize: '0.875rem' }}>
+                      <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Rate </Typography><strong>{fmt(preview.hourlyRate * 1.5, currency)}/hr</strong></Box>
+                      <Box><Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>OT Pay </Typography><strong>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</strong></Box>
+                    </Box>
+                  )}
                 </Paper>
-              )}
+
+                {dailyEntries.length > 0 && (
+                  <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+                    <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => setExpandedDays(v => !v)}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Daily Breakdown ({dailyEntries.length} days)</Typography>
+                      {expandedDays ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
+                    </Box>
+                    <Collapse in={expandedDays}>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead sx={{ bgcolor: 'action.hover' }}>
+                            <TableRow>
+                              <TableCell sx={TH}>Date</TableCell>
+                              <TableCell sx={{ ...TH, textAlign: 'right' }}>Hours</TableCell>
+                              <TableCell sx={{ ...TH, textAlign: 'right' }}>Pay</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {dailyEntries.map(([date, hours]) => (
+                              <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                                <TableCell sx={TD}>{fmtDay(date)}</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{hours.toFixed(2)}h</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow sx={{ bgcolor: 'action.hover' }}>
+                              <TableCell sx={{ ...TD, fontWeight: 700 }}>Total</TableCell>
+                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700 }}>{preview.totalHours}h</TableCell>
+                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Collapse>
+                  </Paper>
+                )}
+
+                {preview.totalHours === 0 && (
+                  <Paper elevation={0} sx={{ p: 5, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
+                    <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
+                    <Typography sx={{ fontWeight: 600, mb: 0.5, color: 'text.secondary' }}>
+                      {preview.noApprovedHours ? 'No Wrike-Approved Hours' : 'No Hours Found'}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.875rem' }}>
+                      {preview.noApprovedHours
+                        ? <>Timelogs exist in Wrike for <strong>{preview.employee?.name}</strong> but none are approved yet. Approve them in Wrike before generating payslips.</>
+                        : <>No time was logged for <strong>{preview.employee?.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.</>
+                      }
+                    </Typography>
+                  </Paper>
+                )}
+              </Box>
 
               {sortedTasks.length > 0 && (
-                <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
-                    onClick={() => setExpandedTasks(v => !v)}>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Task Details ({sortedTasks.length} entries)</Typography>
-                    {expandedTasks ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
+                <Box sx={{ display: 'flex', flexShrink: 0, width: taskPanelWidth, alignSelf: 'stretch' }}>
+                  <Box
+                    onMouseDown={onTaskDragStart}
+                    sx={{
+                      width: 8, flexShrink: 0, cursor: 'ew-resize', userSelect: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      bgcolor: 'action.hover', borderLeft: '1px solid', borderRight: '1px solid', borderColor: 'divider',
+                      '&:hover': { bgcolor: '#6366f120' },
+                    }}
+                  >
+                    <Box sx={{ width: 2, height: 28, borderRadius: 4, bgcolor: 'text.disabled', opacity: 0.35 }} />
                   </Box>
-                  <Collapse in={expandedTasks}>
-                    <TableContainer sx={{ maxHeight: taskPanelHeight, overflow: 'auto', transition: 'max-height 0.1s' }}>
-                      <Table size="small" stickyHeader>
-                        <TableHead>
-                          <TableRow>
-                            {['Date', 'Task', 'Comment', 'Hours'].map((h, i) => <TableCell key={h} sx={{ ...TH, bgcolor: 'action.hover', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>)}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {sortedTasks.map((t, i) => (
-                            <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                              <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{fmtDay(t.date)}</TableCell>
-                              <TableCell sx={{ ...TD, color: '#6366f1', maxWidth: 200, fontSize: '0.8rem' }}>{t.taskTitle}</TableCell>
-                              <TableCell sx={{ ...TD, color: 'text.disabled', maxWidth: 180, fontSize: '0.8rem' }}>{t.comment || '—'}</TableCell>
-                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.8rem' }}>{t.hours.toFixed(2)}h</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    {/* Drag handle */}
-                    <Box
-                      onMouseDown={onTaskDragStart}
-                      sx={{
-                        height: 8, cursor: 'ns-resize', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        bgcolor: 'action.hover', '&:hover': { bgcolor: '#6366f120' },
-                        borderTop: '1px solid', borderTopColor: 'divider', userSelect: 'none',
-                      }}
-                    >
-                      <Box sx={{ width: 32, height: 3, borderRadius: 2, bgcolor: 'divider' }} />
+                  <Paper elevation={0} sx={{ flex: 1, borderRadius: 0, border: '1px solid', borderColor: 'divider', borderLeft: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none', borderBottom: '1px solid', borderBottomColor: 'divider' }}
+                      onClick={() => setExpandedTasks(v => !v)}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Task Details ({sortedTasks.length})</Typography>
+                      {expandedTasks ? <ExpandLessIcon sx={{ fontSize: 18, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 18, color: 'text.disabled' }} />}
                     </Box>
-                  </Collapse>
-                </Paper>
+                    <Collapse in={expandedTasks}>
+                      <TableContainer sx={{ maxHeight: '70vh', overflow: 'auto' }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              {['Date', 'Task', 'Comment', 'Hrs'].map((h, i) => (
+                                <TableCell key={h} sx={{ ...TH, bgcolor: 'action.hover', textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>
+                              ))}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {sortedTasks.map((t, i) => (
+                              <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                                <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
+                                <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.taskTitle}</TableCell>
+                                <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.comment || '—'}</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Collapse>
+                  </Paper>
+                </Box>
               )}
 
-              {preview.totalHours === 0 && (
-                <Paper elevation={0} sx={{ p: 5, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
-                  <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
-                  <Typography sx={{ fontWeight: 600, mb: 0.5, color: 'text.secondary' }}>No hours found</Typography>
-                  <Typography sx={{ fontSize: '0.875rem' }}>
-                    No time was logged for <strong>{preview.employee?.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.
-                  </Typography>
-                </Paper>
-              )}
             </Box>
           </Grid>
         )}
@@ -584,7 +602,7 @@ export default function TimesheetGenerator() {
                       const statusMap = {
                         generated: { label: 'Generated', color: '#10b981', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
                         exists: { label: 'Already Exists', color: '#6366f1', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
-                        no_hours: { label: 'No Hours', color: '#f59e0b', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
+                        no_hours: { label: r.noApprovedHours ? 'Not Approved in Wrike' : 'No Hours', color: '#f59e0b', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
                         error: { label: 'Error', color: '#ef4444', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
                       };
                       const s = statusMap[r.status];

@@ -56,6 +56,7 @@ export default function WrikeTimesheets() {
   const [selectedEmpId, setSelectedEmpId] = useState('');
   const [employees, setEmployees] = useState([]);
   const [approvedOnly, setApprovedOnly] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   useEffect(() => {
     employeesAPI.getAll(false).then(res => setEmployees(res.data || [])).catch(() => {});
@@ -89,6 +90,20 @@ export default function WrikeTimesheets() {
       toast.error(err.response?.data?.error || 'Import failed');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const res = await wrikeAPI.backfillCategories();
+      const { updated, total } = res.data;
+      if (updated > 0) toast.success(`Fixed categories for ${updated} of ${total} entries`);
+      else toast.success(`No uncategorized entries found (all ${total} already have categories)`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Backfill failed');
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -134,6 +149,13 @@ export default function WrikeTimesheets() {
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
             {importing ? 'Importing…' : `Import${approvedOnly ? ' (Approved)' : ''} to DB`}
           </Button>
+          <Tooltip title="Re-fetch categories from Wrike and fix all uncategorized entries">
+            <Button variant="outlined" onClick={handleBackfill} disabled={backfilling}
+              startIcon={backfilling ? <CircularProgress size={14} /> : null}
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#f59e0b', color: '#f59e0b', '&:hover': { borderColor: '#d97706', bgcolor: '#fef3c720' } }}>
+              {backfilling ? 'Fixing…' : 'Fix Categories'}
+            </Button>
+          </Tooltip>
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
               sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>

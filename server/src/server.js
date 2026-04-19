@@ -8,7 +8,6 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 // Import routes and services
 const routes = require('./routes');
 const db = require('./database/connection');
-const scheduler = require('./cron/scheduler');
 
 // Create Express app
 const app = express();
@@ -140,11 +139,6 @@ async function startServer() {
     console.log('🔄 Running migrations...');
     await runMigrations();
 
-    // Initialize cron scheduler
-    console.log('⏰ Initializing scheduler...');
-    scheduler.init();
-    scheduler.start();
-
     // Start HTTP server
     app.listen(PORT, () => {
       console.log('\n========================================');
@@ -166,13 +160,11 @@ async function startServer() {
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('\n🛑 SIGTERM received. Shutting down gracefully...');
-  scheduler.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('\n🛑 SIGINT received. Shutting down gracefully...');
-  scheduler.stop();
   process.exit(0);
 });
 

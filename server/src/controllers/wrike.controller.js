@@ -1,6 +1,7 @@
 const wrikeService = require('../services/wrike.service');
 const Employee = require('../models/Employee');
 const TimeEntry = require('../models/TimeEntry');
+const db = require('../database/connection');
 
 /**
  * Returns Monday of the week containing `date`
@@ -234,10 +235,82 @@ class WrikeController {
   async getFolders(req, res) {
     try {
       const folders = await wrikeService.getFolders();
-      // Return id, title, and childIds for easy browsing
       const simplified = folders.map(f => ({ id: f.id, title: f.title, childIds: f.childIds }));
       res.json({ success: true, currentFolderId: process.env.WRIKE_FOLDER_ID || null, data: simplified });
     } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * POST /api/wrike/backfill-categories
+   * Fetches all Wrike timelogs for the date range of uncategorized entries
+   * and patches category on any time_entries that have a matching logId.
+   */
+  async backfillCategories(req, res) {
+    try {
+      const categoryMap = await wrikeService.getTimelogCategories();
+      console.log('[Backfill] Category map:', categoryMap);
+
+      if (!Object.keys(categoryMap).length) {
+        return res.status(502).json({
+          success: false,
+          error: 'Wrike returned no timelog categories. Check WRIKE_API_KEY permissions or whether timelog categories are enabled on your Wrike plan.'
+        });
+      }
+
+      const [range] = await db.query(
+        `SELECT MIN(entry_date) as minDate, MAX(entry_date) as maxDate
+         FROM time_entries WHERE source = 'wrike' AND category IS NULL`
+      );
+      if (!range || !range.minDate) {
+        return res.json({ success: true, message: 'No uncategorized Wrike entries found.', updated: 0 });
+      }
+
+      const start = String(range.minDate).substring(0, 10);
+      const end   = String(range.maxDate).substring(0, 10);
+      console.log(`[Backfill] Fetching Wrike timelogs ${start} → ${end}`);
+
+      const timelogs = await wrikeService.getTimeLogs(start, end, []);
+      console.log(`[Backfill] Fetched ${timelogs.length} timelogs from Wrike`);
+
+      const logCategoryMap = {};
+      for (const log of timelogs) {
+        if (log.id && log.categoryId && categoryMap[log.categoryId]) {
+          logCategoryMap[log.id] = categoryMap[log.categoryId];
+        }
+      }
+      console.log(`[Backfill] ${Object.keys(logCategoryMap).length} timelogs have a category`);
+
+      const uncategorized = await db.query(
+        `SELECT id, task_description FROM time_entries WHERE source = 'wrike' AND category IS NULL`
+      );
+
+      // Build per-category batches so we can do one UPDATE per distinct category name
+      const batches = {};
+      for (const entry of uncategorized) {
+        const match = (entry.task_description || '').match(/^\[([^\]]+)\]/);
+        if (!match) continue;
+        const categoryName = logCategoryMap[match[1]];
+        if (categoryName) {
+          if (!batches[categoryName]) batches[categoryName] = [];
+          batches[categoryName].push(entry.id);
+        }
+      }
+
+      let updated = 0;
+      for (const [categoryName, ids] of Object.entries(batches)) {
+        await db.query(
+          `UPDATE time_entries SET category = ? WHERE id IN (${ids.map(() => '?').join(',')})`,
+          [categoryName, ...ids]
+        );
+        updated += ids.length;
+      }
+
+      console.log(`[Backfill] Done — updated ${updated} of ${uncategorized.length} entries`);
+      res.json({ success: true, updated, total: uncategorized.length, categoryMap });
+    } catch (error) {
+      console.error('[Backfill] Failed:', error.message);
       res.status(500).json({ success: false, error: error.message });
     }
   }

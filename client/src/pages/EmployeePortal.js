@@ -8,31 +8,25 @@ import {
   Box, Typography, Button, Chip, CircularProgress, Grid, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Avatar, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
-  InputLabel, LinearProgress
+  Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
+  InputLabel, LinearProgress, TextField, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import DescriptionIcon from '@mui/icons-material/Description';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import KeyIcon from '@mui/icons-material/Key';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import DownloadIcon from '@mui/icons-material/Download';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { getMissingBankFields } from '../utils/employeeProfile';
 
 const DRAWER_W = 240;
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -55,88 +49,12 @@ const TD = { fontSize: '0.875rem', py: 1.25, px: 2 };
 
 // ─── NAV ITEMS ────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { key: 'dashboard',  label: 'Dashboard',      icon: <DashboardIcon /> },
-  { key: 'timesheets', label: 'My Timesheets',   icon: <DescriptionIcon /> },
-  { key: 'payslips',   label: 'My Payslips',     icon: <ReceiptLongIcon /> },
-  { key: 'profile',    label: 'My Profile',      icon: <AccountCircleIcon /> },
-  { key: 'settings',   label: 'Change Password', icon: <KeyIcon /> },
+  { key: 'dashboard', label: 'Dashboard',      icon: <DashboardIcon /> },
+  { key: 'payslips',  label: 'My Payslips',    icon: <ReceiptLongIcon /> },
+  { key: 'profile',   label: 'My Profile',     icon: <AccountCircleIcon /> },
+  { key: 'settings',  label: 'Change Password', icon: <KeyIcon /> },
 ];
 
-// ─── TIMESHEET ROW (expandable) ───────────────────────────────────────────────
-function TimesheetRow({ ts, currency, onApprove, onReject }) {
-  const [expanded, setExpanded] = useState(false);
-  const [acting, setActing] = useState(false);
-  const cur = currency || '';
-  const token = localStorage.getItem('token');
-
-  return (
-    <>
-      <TableRow sx={{ cursor: 'pointer', bgcolor: expanded ? 'action.hover' : 'background.paper' }} onClick={() => setExpanded(v => !v)}>
-        <TableCell sx={TD}><StatusChip status={ts.approval_status} /></TableCell>
-        <TableCell sx={{ ...TD, fontWeight: 600 }}>{ts.period_name}</TableCell>
-        <TableCell sx={TD}>{fmt(ts.start_date)} – {fmt(ts.end_date)}</TableCell>
-        <TableCell sx={{ ...TD, fontWeight: 600 }}>{parseFloat(ts.total_hours || 0).toFixed(1)}h</TableCell>
-        <TableCell sx={{ ...TD, fontWeight: 700, color: 'text.primary' }}>{cur} {parseFloat(ts.gross_amount || 0).toLocaleString()}</TableCell>
-        <TableCell sx={TD}>
-          <IconButton size="small" sx={{ color: 'text.disabled' }}>{expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}</IconButton>
-        </TableCell>
-      </TableRow>
-      {expanded && (
-        <TableRow>
-          <TableCell colSpan={6} sx={{ p: 0, bgcolor: 'action.hover', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
-            <Box sx={{ p: 2.5 }}>
-              {/* Detail tiles */}
-              <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                {[
-                  ['Regular Hours', `${parseFloat(ts.regular_hours || 0).toFixed(1)}h`],
-                  ['Overtime Hours', `${parseFloat(ts.overtime_hours || 0).toFixed(1)}h`],
-                  ['Hourly Rate', `${cur} ${parseFloat(ts.hourly_rate || 0).toFixed(2)}`],
-                  ['Gross Amount', `${cur} ${parseFloat(ts.gross_amount || 0).toLocaleString()}`],
-                  ['Status', ts.approval_status],
-                  ts.approved_at ? ['Approved On', fmt(ts.approved_at)] : ['Submitted', fmt(ts.created_at)],
-                ].map(([label, val]) => (
-                  <Grid item xs={6} sm={4} md={2} key={label}>
-                    <Box sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', p: 1.25 }}>
-                      <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled', mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'capitalize' }}>{val}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-
-              {ts.rejection_reason && (
-                <Alert severity="error" sx={{ mb: 2, borderRadius: '4px' }}><strong>Rejection Reason:</strong> {ts.rejection_reason}</Alert>
-              )}
-
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Button size="small" variant="outlined" startIcon={<DownloadIcon />}
-                  component="a" href={`${API_BASE}/portal/timesheets/${ts.id}/csv?token=${token}`} rel="noopener noreferrer"
-                  sx={{ borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-                  Download CSV
-                </Button>
-                {ts.approval_status === 'pending' && (
-                  <>
-                    <Button size="small" variant="contained" startIcon={acting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <CheckCircleIcon />}
-                      onClick={async (e) => { e.stopPropagation(); setActing(true); try { await onApprove(ts); } finally { setActing(false); } }}
-                      disabled={acting}
-                      sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>
-                      Approve
-                    </Button>
-                    <Button size="small" variant="outlined" startIcon={<CancelIcon />}
-                      onClick={(e) => { e.stopPropagation(); onReject(ts); }}
-                      sx={{ borderColor: '#ef4444', color: '#ef4444', '&:hover': { bgcolor: '#ef444408' } }}>
-                      Reject
-                    </Button>
-                  </>
-                )}
-              </Box>
-            </Box>
-          </TableCell>
-        </TableRow>
-      )}
-    </>
-  );
-}
 
 // ─── PORTAL CATEGORY HOURS PANEL ─────────────────────────────────────────────
 
@@ -241,10 +159,9 @@ function PortalCategoryHoursPanel({ timesheets }) {
 
 function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
   const cur = employee?.currency || '';
-  const pending  = timesheets.filter(t => t.approval_status === 'pending');
-  const approved = timesheets.filter(t => t.approval_status === 'approved');
-  const totalEarned = approved.reduce((s, t) => s + parseFloat(t.gross_amount || 0), 0);
-  const totalHours  = approved.reduce((s, t) => s + parseFloat(t.total_hours || 0), 0);
+  const totalEarned = payslips.reduce((s, p) => s + parseFloat(p.net_amount || 0), 0);
+  const totalHours  = payslips.reduce((s, p) => s + parseFloat(p.total_hours || 0), 0);
+  const missingFields = employee ? getMissingBankFields(employee) : [];
 
   return (
     <Box>
@@ -264,13 +181,30 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
         </Paper>
       )}
 
+      {/* Incomplete profile warning */}
+      {missingFields.length > 0 && (
+        <Paper elevation={0} sx={{ mb: 2, border: '1px solid #fbbf24', bgcolor: '#fffbeb', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, borderRadius: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <WarningAmberIcon sx={{ color: '#f59e0b', fontSize: 20, mt: 0.1, flexShrink: 0 }} />
+            <Box>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Your bank profile is incomplete</Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: '#b45309' }}>Missing: {missingFields.join(', ')}</Typography>
+            </Box>
+          </Box>
+          <Button size="small" variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('profile')}
+            sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, boxShadow: 'none', flexShrink: 0 }}>
+            Complete Profile
+          </Button>
+        </Paper>
+      )}
+
       {/* Stats */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         {[
-          { label: 'Pending Review', value: pending.length, sub: 'timesheets', color: '#f59e0b', border: '#f59e0b' },
-          { label: 'Total Approved', value: approved.length, sub: 'timesheets', color: '#10b981', border: '#10b981' },
-          { label: 'Total Earned', value: `${cur} ${totalEarned.toLocaleString()}`, sub: 'gross (approved)', color: '#6366f1', border: '#6366f1' },
-          { label: 'Total Hours', value: `${totalHours.toFixed(1)}h`, sub: 'approved periods', color: '#0ea5e9', border: '#0ea5e9' },
+          { label: 'Total Payslips', value: payslips.length, sub: 'generated', color: '#10b981', border: '#10b981' },
+          { label: 'Total Earned', value: `${cur} ${totalEarned.toLocaleString()}`, sub: 'net pay', color: '#6366f1', border: '#6366f1' },
+          { label: 'Total Hours', value: `${totalHours.toFixed(1)}h`, sub: 'all periods', color: '#0ea5e9', border: '#0ea5e9' },
+          { label: 'Latest Payslip', value: payslips[0] ? `${cur} ${parseFloat(payslips[0].net_amount || 0).toLocaleString()}` : '—', sub: payslips[0]?.period_name || 'no payslips yet', color: '#f59e0b', border: '#f59e0b' },
         ].map(({ label, value, sub, color, border }) => (
           <Grid item xs={6} sm={3} key={label}>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderTop: `3px solid ${border}`, p: 2, borderRadius: 0 }}>
@@ -281,23 +215,6 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
           </Grid>
         ))}
       </Grid>
-
-      {/* Pending action alert */}
-      {pending.length > 0 && (
-        <Paper elevation={0} sx={{ mb: 2, border: '1px solid #fbbf24', bgcolor: '#fffbeb', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <HourglassEmptyIcon sx={{ color: '#f59e0b', fontSize: 20 }} />
-            <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>{pending.length} timesheet{pending.length > 1 ? 's' : ''} awaiting your review</Typography>
-              <Typography sx={{ fontSize: '0.75rem', color: '#b45309' }}>Please review and approve or reject</Typography>
-            </Box>
-          </Box>
-          <Button size="small" variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('timesheets')}
-            sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, boxShadow: 'none' }}>
-            Review Now
-          </Button>
-        </Paper>
-      )}
 
       {/* Recent payslips */}
       {payslips.length > 0 && (
@@ -331,52 +248,6 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
   );
 }
 
-function TimesheetsSection({ timesheets, currency, onApprove, onReject }) {
-  const pending  = timesheets.filter(t => t.approval_status === 'pending');
-  const approved = timesheets.filter(t => t.approval_status === 'approved');
-  const rejected = timesheets.filter(t => t.approval_status === 'rejected');
-
-  if (timesheets.length === 0) return (
-    <Paper elevation={0} sx={{ p: 8, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
-      <DescriptionIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
-      <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>No Timesheets Yet</Typography>
-      <Typography sx={{ fontSize: '0.875rem' }}>Your manager will send timesheets for your review.</Typography>
-    </Paper>
-  );
-
-  const groups = [
-    { label: 'Pending Your Review', color: '#f59e0b', items: pending },
-    { label: 'Approved', color: '#10b981', items: approved },
-    { label: 'Rejected', color: '#ef4444', items: rejected },
-  ].filter(g => g.items.length > 0);
-
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {groups.map(({ label, color, items }) => (
-        <Box key={label}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Box sx={{ width: 3, height: 16, bgcolor: color, borderRadius: 0 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color }}>{label} ({items.length})</Typography>
-          </Box>
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    {['Status', 'Period', 'Dates', 'Hours', 'Gross', ''].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {items.map(ts => <TimesheetRow key={ts.id} ts={ts} currency={currency} onApprove={onApprove} onReject={onReject} />)}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Box>
-      ))}
-    </Box>
-  );
-}
 
 function PayslipsSection({ payslips, currency }) {
   const cur = currency || '';
@@ -386,7 +257,7 @@ function PayslipsSection({ payslips, currency }) {
     <Paper elevation={0} sx={{ p: 8, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled', borderRadius: 0 }}>
       <ReceiptLongIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1.5 }} />
       <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>No Payslips Yet</Typography>
-      <Typography sx={{ fontSize: '0.875rem' }}>Payslips are generated after your timesheet is approved.</Typography>
+      <Typography sx={{ fontSize: '0.875rem' }}>Payslips will appear here once generated by your administrator.</Typography>
     </Paper>
   );
 
@@ -432,41 +303,76 @@ function PayslipsSection({ payslips, currency }) {
 const EMP_TYPE_LABELS = { full_time: 'Full-Time', part_time: 'Part-Time', contractor: 'Contractor' };
 const HIRE_CAT_LABELS = { local: 'Local', foreign: 'Foreign' };
 
+const F = ({ label, field, form, setForm, xs = 12, sm = 6, type = 'text', multiline = false }) => (
+  <Grid item xs={xs} sm={sm}>
+    <TextField fullWidth label={label} size="small" type={type} multiline={multiline} rows={multiline ? 2 : 1}
+      value={form[field] || ''}
+      onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+  </Grid>
+);
+
 function ProfileSection({ employee, onUpdated }) {
-  const [bank, setBank] = useState({
-    bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: ''
-  });
+  const isForeign = employee?.hire_category === 'foreign';
+  const emptyForm = {
+    first_name: '', last_name: '', middle_name: '',
+    bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '',
+    remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
+    country_of_destination: '', purpose_nature: '',
+    intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
+    payee_tin: '', payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '', tax_code: '',
+  };
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (employee) {
-      setBank({
-        bank_name: employee.bank_name || '',
-        bank_account_number: employee.bank_account_number || '',
-        bank_account_name: employee.bank_account_name || '',
-        bank_branch: employee.bank_branch || '',
-        bank_swift_code: employee.bank_swift_code || '',
-      });
+      setForm(Object.fromEntries(Object.keys(emptyForm).map(k => [k, employee[k] || ''])));
     }
-  }, [employee]);
+  }, [employee]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const missingFields = employee ? getMissingBankFields(employee) : [];
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await portalAPI.updateProfile(bank);
+      const res = await portalAPI.updateProfile(form);
       if (res.success) { toast.success('Profile updated'); onUpdated(res.data); }
     } catch (err) { toast.error(err.response?.data?.error || 'Failed to update profile'); }
     finally { setSaving(false); }
   };
 
+  const SectionHeader = ({ icon, title, sub }) => (
+    <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      {icon}
+      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
+      {sub && <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 0.5 }}>— {sub}</Typography>}
+    </Box>
+  );
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 600 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 680 }}>
+
+      {/* Completeness banner */}
+      {missingFields.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, bgcolor: '#f59e0b10', border: '1px solid #f59e0b40', borderRadius: '8px', p: 1.75 }}>
+          <WarningAmberIcon sx={{ fontSize: 18, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
+          <Box>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Profile incomplete</Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>Missing required fields: {missingFields.join(', ')}</Typography>
+          </Box>
+        </Box>
+      )}
+      {missingFields.length === 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#10b98110', border: '1px solid #10b98140', borderRadius: '8px', p: 1.75 }}>
+          <CheckCircleIcon sx={{ fontSize: 18, color: '#10b981' }} />
+          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#065f46' }}>Bank profile is complete</Typography>
+        </Box>
+      )}
+
       {/* Employment Info (read-only) */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />
-          <Typography sx={{ fontWeight: 700 }}>Employment Details</Typography>
-        </Box>
+        <SectionHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Employment Details" />
         <Box sx={{ p: 2.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           {[
             ['Employee ID', employee?.employee_id],
@@ -486,49 +392,67 @@ function ProfileSection({ employee, onUpdated }) {
         </Box>
       </Paper>
 
-      {/* Bank Details (editable) */}
+      {/* Name Details */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />
-          <Typography sx={{ fontWeight: 700 }}>Bank Details</Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 0.5 }}>— used for payroll transfers</Typography>
-        </Box>
-        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <SectionHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Name Details" sub="used in bank transfer files" />
+        <Box sx={{ p: 2.5 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Bank Name" size="small" value={bank.bank_name}
-                onChange={e => setBank(b => ({ ...b, bank_name: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Account Name" size="small" value={bank.bank_account_name}
-                onChange={e => setBank(b => ({ ...b, bank_account_name: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Account Number" size="small" value={bank.bank_account_number}
-                onChange={e => setBank(b => ({ ...b, bank_account_number: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Branch" size="small" value={bank.bank_branch}
-                onChange={e => setBank(b => ({ ...b, bank_branch: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-            </Grid>
-            {employee?.hire_category === 'foreign' && (
-              <Grid item xs={12}>
-                <TextField fullWidth label="SWIFT / BIC Code" size="small" value={bank.bank_swift_code}
-                  onChange={e => setBank(b => ({ ...b, bank_swift_code: e.target.value }))}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-              </Grid>
-            )}
+            <F label="First Name *" field="first_name" form={form} setForm={setForm} />
+            <F label="Last Name *" field="last_name" form={form} setForm={setForm} />
+            <F label="Middle Name" field="middle_name" form={form} setForm={setForm} />
           </Grid>
-          <Button variant="contained" onClick={handleSave} disabled={saving}
-            sx={{ alignSelf: 'flex-start', borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)', px: 3 }}>
-            {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Bank Details'}
-          </Button>
         </Box>
       </Paper>
+
+      {/* Bank Details */}
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Bank Details" sub="used for payroll transfers" />
+        <Box sx={{ p: 2.5 }}>
+          <Grid container spacing={2}>
+            <F label="Bank Name *" field="bank_name" form={form} setForm={setForm} />
+            <F label="Account Name" field="bank_account_name" form={form} setForm={setForm} />
+            <F label="Account Number *" field="bank_account_number" form={form} setForm={setForm} />
+            <F label="Branch" field="bank_branch" form={form} setForm={setForm} />
+            {isForeign && <F label="SWIFT / BIC Code *" field="bank_swift_code" form={form} setForm={setForm} />}
+            {isForeign && <F label="Bank Address" field="bank_address" form={form} setForm={setForm} />}
+          </Grid>
+        </Box>
+      </Paper>
+
+      {/* DFT / International Fields (foreign only) */}
+      {isForeign && (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+          <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="International Transfer Details" sub="DFT fields for foreign remittance" />
+          <Box sx={{ p: 2.5 }}>
+            <Grid container spacing={2}>
+              <F label="Remittance Type *" field="remittance_type" form={form} setForm={setForm} />
+              <F label="Beneficiary Code" field="beneficiary_code" form={form} setForm={setForm} />
+              <F label="Beneficiary Address *" field="beneficiary_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
+              <F label="Country of Destination *" field="country_of_destination" form={form} setForm={setForm} />
+              <F label="Purpose / Nature *" field="purpose_nature" form={form} setForm={setForm} />
+              <F label="Payee TIN" field="payee_tin" form={form} setForm={setForm} />
+              <F label="Payee ZIP Code" field="payee_zip_code" form={form} setForm={setForm} />
+              <F label="Payee Foreign Address" field="payee_foreign_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
+              <F label="Payee Foreign ZIP" field="payee_foreign_zip_code" form={form} setForm={setForm} />
+              <F label="Tax Code" field="tax_code" form={form} setForm={setForm} />
+            </Grid>
+
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', mt: 2.5, mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Intermediary Bank (if applicable)
+            </Typography>
+            <Grid container spacing={2}>
+              <F label="Intermediary Bank Name" field="intermediary_bank_name" form={form} setForm={setForm} />
+              <F label="Intermediary SWIFT" field="intermediary_bank_swift" form={form} setForm={setForm} />
+              <F label="Intermediary Bank Address" field="intermediary_bank_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
+            </Grid>
+          </Box>
+        </Paper>
+      )}
+
+      <Button variant="contained" onClick={handleSave} disabled={saving}
+        sx={{ alignSelf: 'flex-start', borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)', px: 3 }}>
+        {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Profile'}
+      </Button>
     </Box>
   );
 }
@@ -589,57 +513,6 @@ function SettingsSection({ user }) {
   );
 }
 
-// ─── REJECT DIALOG ────────────────────────────────────────────────────────────
-function RejectDialog({ timesheet, onClose, onConfirm }) {
-  const [reason, setReason] = useState('');
-  const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!reason.trim()) return toast.error('Please provide a reason');
-    setLoading(true);
-    try { await onConfirm(reason, files); onClose(); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <Dialog open={!!timesheet} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Reject Timesheet</DialogTitle>
-      <DialogContent>
-        <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 2 }}>
-          Period: <strong>{timesheet?.period_name}</strong>
-        </Typography>
-        <TextField fullWidth multiline rows={4} label="Reason *" placeholder="Describe the issue or discrepancy…"
-          value={reason} onChange={e => setReason(e.target.value)} sx={{ mb: 2 }} />
-        <Box>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 1 }}>Supporting files (optional)</Typography>
-          <Box component="label" sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, border: '1px dashed #cbd5e1', cursor: 'pointer', color: 'text.secondary', fontSize: '0.875rem', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-            <UploadFileIcon sx={{ fontSize: 18 }} /> Attach files
-            <input type="file" multiple hidden onChange={e => setFiles(Array.from(e.target.files))} />
-          </Box>
-          {files.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              {files.map((f, i) => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.5 }}>
-                  <AttachFileIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                  <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{f.name}</Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button onClick={onClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
-        <Button variant="contained" startIcon={loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <CancelIcon />}
-          onClick={handleSubmit} disabled={loading}
-          sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
-          Submit Rejection
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 // ─── MAIN PORTAL ─────────────────────────────────────────────────────────────
 export default function EmployeePortal() {
@@ -651,7 +524,6 @@ export default function EmployeePortal() {
   const [timesheets, setTimesheets] = useState([]);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [rejectTarget, setRejectTarget] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -666,25 +538,8 @@ export default function EmployeePortal() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleApprove = async (ts) => {
-    try {
-      await portalAPI.approve(ts.id);
-      toast.success('Timesheet approved!');
-      load();
-    } catch (err) { toast.error(err.response?.data?.error || 'Approval failed'); }
-  };
-
-  const handleRejectConfirm = async (reason, files) => {
-    try {
-      await portalAPI.reject(rejectTarget.id, reason, files);
-      toast.success('Rejection submitted.');
-      load();
-    } catch (err) { toast.error(err.response?.data?.error || 'Rejection failed'); }
-  };
-
   const handleLogout = () => { logout(); toast.success('Logged out'); navigate('/login'); };
 
-  const pendingCount = timesheets.filter(t => t.approval_status === 'pending').length;
   const sectionTitle = NAV_ITEMS.find(n => n.key === section)?.label || '';
 
   const initials = employee?.name?.slice(0, 2).toUpperCase() || user?.username?.slice(0, 2).toUpperCase() || 'ME';
@@ -738,9 +593,6 @@ export default function EmployeePortal() {
                       {icon}
                     </ListItemIcon>
                     <ListItemText primary={label} sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem', fontWeight: active ? 700 : 500 } }} />
-                    {key === 'timesheets' && pendingCount > 0 && (
-                      <Chip label={pendingCount} size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#f59e0b', color: 'white', '& .MuiChip-label': { px: 0.75 } }} />
-                    )}
                   </ListItemButton>
                 </ListItem>
               );
@@ -792,17 +644,15 @@ export default function EmployeePortal() {
             </Box>
           ) : (
             <>
-              {section === 'dashboard'  && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
-              {section === 'timesheets' && <TimesheetsSection timesheets={timesheets} currency={employee?.currency} onApprove={handleApprove} onReject={setRejectTarget} />}
-              {section === 'payslips'   && <PayslipsSection payslips={payslips} currency={employee?.currency} />}
-              {section === 'profile'    && <ProfileSection employee={employee} onUpdated={setEmployee} />}
-              {section === 'settings'   && <SettingsSection user={user} />}
+              {section === 'dashboard' && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
+              {section === 'payslips'  && <PayslipsSection payslips={payslips} currency={employee?.currency} />}
+              {section === 'profile'   && <ProfileSection employee={employee} onUpdated={setEmployee} />}
+              {section === 'settings'  && <SettingsSection user={user} />}
             </>
           )}
         </Box>
       </Box>
 
-      <RejectDialog timesheet={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={handleRejectConfirm} />
     </Box>
   );
 }

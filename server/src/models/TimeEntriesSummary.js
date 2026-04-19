@@ -18,13 +18,6 @@ class TimeEntriesSummary {
   /**
    * Find summary by Wrike task ID
    */
-  static async findByWrikeTaskId(taskId) {
-    return db.getOne(
-      'SELECT * FROM time_entries_summary WHERE approval_task_id = ?',
-      [taskId]
-    );
-  }
-
   /**
    * Find by employee and period
    */
@@ -40,7 +33,7 @@ class TimeEntriesSummary {
    */
   static async findByPeriod(periodId) {
     const sql = `
-      SELECT tes.*, e.name as employee_name, e.email, e.employee_id, e.department, e.currency
+      SELECT tes.*, e.name as employee_name, e.email, e.employee_id as emp_code, e.department, e.currency
       FROM time_entries_summary tes
       JOIN employees e ON tes.employee_id = e.id
       WHERE tes.period_id = ?
@@ -134,7 +127,6 @@ class TimeEntriesSummary {
   static async markPendingApproval(id) {
     await db.update('time_entries_summary', {
       approval_status: 'pending',
-      approval_task_id: null,
       updated_at: new Date()
     }, 'id = ?', [id]);
     return this.findById(id);
@@ -152,14 +144,6 @@ class TimeEntriesSummary {
       ORDER BY tes.created_at DESC
     `;
     return db.query(sql, [employeeId]);
-  }
-
-  static async setApprovalTaskId(id, taskId) {
-    await db.update('time_entries_summary', {
-      approval_task_id: taskId,
-      approval_status: 'pending'
-    }, 'id = ?', [id]);
-    return this.findById(id);
   }
 
   /**
@@ -193,7 +177,6 @@ class TimeEntriesSummary {
   static async resetToPending(id) {
     await db.update('time_entries_summary', {
       approval_status: 'pending',
-      approval_task_id: null,
       rejection_reason: null,
       updated_at: new Date()
     }, 'id = ?', [id]);

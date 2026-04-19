@@ -18,6 +18,11 @@ import { timesheetAPI } from '../api';
 
 const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', approved: '#10b981', paid: '#10b981' };
 const STATUS_OPTIONS = ['open', 'processing', 'approved', 'paid'];
+const PAYSLIP_CHIP = {
+  approved: { label: 'Generated', color: '#10b981', bg: '#10b98118' },
+  pending:  { label: 'Not Generated', color: '#f59e0b', bg: '#f59e0b18' },
+  rejected: { label: 'Failed', color: '#ef4444', bg: '#ef444418' },
+};
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
@@ -265,7 +270,7 @@ export default function Periods() {
                   <Table size="small">
                     <TableHead sx={{ bgcolor: 'action.hover' }}>
                       <TableRow>
-                        {['Employee', 'Hours', 'Gross', 'Status'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
+                        {['Employee', 'Hours', 'Gross', 'Payslip'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -281,7 +286,10 @@ export default function Periods() {
                           </TableCell>
                           <TableCell sx={TD}>{s.total_hours}h</TableCell>
                           <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
-                          <TableCell sx={TD}><StatusChip status={s.approval_status} /></TableCell>
+                          <TableCell sx={TD}>{(() => {
+                            const c = PAYSLIP_CHIP[s.approval_status] || PAYSLIP_CHIP.pending;
+                            return <Chip label={c.label} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 600, fontSize: '0.72rem' }} />;
+                          })()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
