@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Box, Typography, Button, Chip, CircularProgress, Grid, Paper,
+  Box, Typography, Button, CircularProgress, Grid, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
@@ -33,11 +33,6 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const STATUS = {
-  pending:  { color: '#f59e0b', bg: '#f59e0b18', label: 'Pending' },
-  approved: { color: '#10b981', bg: '#10b98118', label: 'Approved' },
-  rejected: { color: '#ef4444', bg: '#ef444418', label: 'Rejected' },
-};
 
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.25, px: 2, bgcolor: 'action.hover' };
