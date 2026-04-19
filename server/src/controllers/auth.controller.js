@@ -10,7 +10,7 @@ class AuthController {
         return res.status(400).json({ success: false, error: 'Username and password are required' });
       }
 
-      const user = await User.findByUsername(username);
+      const user = await User.findByUsername(username) || await User.findByEmail(username);
       if (!user) {
         return res.status(401).json({ success: false, error: 'Invalid credentials' });
       }

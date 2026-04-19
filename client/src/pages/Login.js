@@ -191,10 +191,6 @@ export default function Login() {
           {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Sign In'}
         </Button>
 
-        {/* Hint */}
-        <Typography sx={{ mt: 3, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>
-          Default: <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>admin / admin123</span>
-        </Typography>
       </Box>
     </Box>
   );
