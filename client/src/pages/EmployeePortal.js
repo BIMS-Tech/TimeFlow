@@ -29,7 +29,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { getMissingBankFields } from '../utils/employeeProfile';
 
 const DRAWER_W = 240;
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
