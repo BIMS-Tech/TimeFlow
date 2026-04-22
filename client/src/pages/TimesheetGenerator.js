@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, CircularProgress, Grid,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  FormControl, InputLabel, Select, MenuItem, Alert, Collapse, Chip,
+  Alert, Collapse, Chip,
   Checkbox, Divider, LinearProgress
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
@@ -128,6 +128,15 @@ export default function TimesheetGenerator() {
   const isSingle = selectedIds.size === 1;
   const isDone = isSingle ? !!submitted : !!bulkResults;
   const step = isDone ? 2 : (hasSelection && selectedPeriod) ? 1 : 0;
+
+  // Derive the required period type from selected employees
+  const selectedEmps = employees.filter(e => selectedIds.has(e.id));
+  const hasLocal   = selectedEmps.some(e => !e.hire_category || e.hire_category === 'local');
+  const hasForeign = selectedEmps.some(e => e.hire_category === 'foreign');
+  const requiredPeriodType = hasLocal && hasForeign ? 'all' : hasForeign ? 'foreign' : 'local';
+  const filteredPeriods = hasSelection
+    ? (requiredPeriodType === 'all' ? periods : periods.filter(p => requiredPeriodType === 'foreign' ? p.period_type === 'foreign' : (!p.period_type || p.period_type === 'local')))
+    : periods;
 
   const startDate = selectedPeriod?.start_date ? String(selectedPeriod.start_date).substring(0, 10) : '';
   const endDate = selectedPeriod?.end_date ? String(selectedPeriod.end_date).substring(0, 10) : '';
@@ -327,62 +336,80 @@ export default function TimesheetGenerator() {
             </Paper>
 
             {/* Period select */}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
+              <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <CalendarMonthIcon sx={{ fontSize: 14, color: '#6366f1' }} />
                   </Box>
                   <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Select Pay Period</Typography>
+                  {hasSelection && requiredPeriodType !== 'all' && (
+                    <Chip
+                      label={requiredPeriodType === 'foreign' ? 'International only' : 'Local only'}
+                      size="small"
+                      sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700,
+                        bgcolor: requiredPeriodType === 'foreign' ? '#0ea5e918' : '#6366f118',
+                        color: requiredPeriodType === 'foreign' ? '#0ea5e9' : '#6366f1' }}
+                    />
+                  )}
                 </Box>
                 <Button size="small" component={Link} to="/periods" startIcon={<AddIcon />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#6366f1', p: 0.5 }}>
-                  New Period
+                  sx={{ textTransform: 'none', fontSize: '0.72rem', color: '#6366f1', p: 0.5, flexShrink: 0 }}>
+                  New
                 </Button>
               </Box>
 
-              {periodsLoading ? <CircularProgress size={20} sx={{ color: '#6366f1' }} /> : periods.length === 0 ? (
-                <Box sx={{ py: 2, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '0.875rem', color: 'text.disabled', mb: 1 }}>No pay periods created yet.</Typography>
+              {periodsLoading ? (
+                <Box sx={{ p: 2 }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
+              ) : filteredPeriods.length === 0 ? (
+                <Box sx={{ py: 3, textAlign: 'center', px: 2 }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mb: 1 }}>
+                    {hasSelection && requiredPeriodType !== 'all'
+                      ? `No ${requiredPeriodType === 'foreign' ? 'international' : 'local'} pay periods found.`
+                      : 'No pay periods created yet.'}
+                  </Typography>
                   <Button variant="outlined" size="small" component={Link} to="/periods" startIcon={<AddIcon />}
-                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1' }}>
+                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
                     Create a Period
                   </Button>
                 </Box>
               ) : (
-                <FormControl fullWidth size="small">
-                  <InputLabel>Choose a pay period</InputLabel>
-                  <Select label="Choose a pay period" value={selectedPeriod?.id || ''}
-                    onChange={e => { const p = periods.find(p => p.id === parseInt(e.target.value)); setSelectedPeriod(p || null); setPreview(null); setSubmitted(null); setBulkResults(null); }}
-                    sx={{ borderRadius: '10px' }}>
-                    <MenuItem value="">— Choose a period —</MenuItem>
-                    {periods.map(p => (
-                      <MenuItem key={p.id} value={p.id}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>{p.period_name}</Typography>
-                          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+                <Box sx={{ maxHeight: 220, overflowY: 'auto' }}>
+                  {filteredPeriods.map((p, idx) => {
+                    const isSelected = selectedPeriod?.id === p.id;
+                    const typeColor  = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
+                    return (
+                      <Box key={p.id}
+                        onClick={() => { setSelectedPeriod(p); setPreview(null); setSubmitted(null); setBulkResults(null); }}
+                        sx={{ px: 2, py: 1.25, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          bgcolor: isSelected ? `${typeColor}08` : 'transparent',
+                          borderBottom: idx < filteredPeriods.length - 1 ? '1px solid' : 'none',
+                          borderBottomColor: 'divider',
+                          borderLeft: isSelected ? `3px solid ${typeColor}` : '3px solid transparent',
+                          transition: 'all 0.15s',
+                          '&:hover': { bgcolor: isSelected ? `${typeColor}10` : 'action.hover' } }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.8rem',
+                            color: isSelected ? typeColor : 'text.primary',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.period_name}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', mt: 0.15 }}>
                             {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}
                           </Typography>
                         </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-
-              {selectedPeriod && (
-                <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#6366f108', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{selectedPeriod.period_name}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25 }}>
-                      {fmtDate(startDate)} – {fmtDate(endDate)}
-                    </Typography>
-                  </Box>
-                  <Chip
-                    label={selectedPeriod.status.replace('_', ' ')}
-                    size="small"
-                    sx={{ bgcolor: `${STATUS_COLORS[selectedPeriod.status] || '#6366f1'}18`, color: STATUS_COLORS[selectedPeriod.status] || '#6366f1', fontWeight: 600, fontSize: '0.65rem', textTransform: 'capitalize' }}
-                  />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 1 }}>
+                          <Chip label={p.period_type === 'foreign' ? 'Intl' : 'Local'} size="small"
+                            sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700,
+                              bgcolor: `${typeColor}18`, color: typeColor }} />
+                          <Chip label={p.status} size="small"
+                            sx={{ height: 16, fontSize: '0.6rem', fontWeight: 600, textTransform: 'capitalize',
+                              bgcolor: `${STATUS_COLORS[p.status] || '#6366f1'}18`,
+                              color: STATUS_COLORS[p.status] || '#6366f1' }} />
+                        </Box>
+                      </Box>
+                    );
+                  })}
                 </Box>
               )}
             </Paper>

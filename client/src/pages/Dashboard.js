@@ -305,7 +305,13 @@ export default function Dashboard() {
           <StatCard icon={<HourglassEmptyIcon />} label="Total Hours" value={`${Number(summaries?.total_hours || 0).toFixed(1)}h`} color="#f59e0b" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<CheckCircleOutlineIcon />} label="Payslips Generated" value={payslips?.total_payslips || 0} color="#10b981" gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)" />
+          <StatCard
+            icon={<CheckCircleOutlineIcon />}
+            label={`Payslips · ${payslips?.local_count || 0} Local / ${payslips?.foreign_count || 0} Intl`}
+            value={payslips?.total_payslips || 0}
+            color="#10b981"
+            gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)"
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard

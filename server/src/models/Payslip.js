@@ -176,6 +176,19 @@ class Payslip {
   }
 
   /**
+   * Get payslip counts split by period_type (local vs foreign)
+   */
+  static async getTypeStats() {
+    return db.getOne(`
+      SELECT
+        SUM(CASE WHEN pp.period_type = 'foreign' THEN 1 ELSE 0 END) AS foreign_count,
+        SUM(CASE WHEN pp.period_type = 'local' OR pp.period_type IS NULL THEN 1 ELSE 0 END) AS local_count
+      FROM payslips p
+      LEFT JOIN pay_periods pp ON p.period_id = pp.id
+    `);
+  }
+
+  /**
    * Get net amounts grouped by currency
    */
   static async getNetByCurrency(periodId = null) {

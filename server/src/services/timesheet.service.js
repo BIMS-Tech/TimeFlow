@@ -381,8 +381,11 @@ class TimesheetService {
     // All stats are global (all periods) so the 4 cards are always consistent
     const summaryStats   = await TimeEntriesSummary.getStatistics(null);
     const grossByCurrency = await TimeEntriesSummary.getGrossByCurrency(null);
-    const payslipStats   = await Payslip.getStatistics(null);
-    const netByCurrency  = await Payslip.getNetByCurrency(null);
+    const [payslipStats, netByCurrency, payslipTypeStats] = await Promise.all([
+      Payslip.getStatistics(null),
+      Payslip.getNetByCurrency(null),
+      Payslip.getTypeStats(),
+    ]);
     const pendingApprovals = await TimeEntriesSummary.getPendingApprovals();
 
     // Monthly category breakdown — total hours per category
@@ -417,7 +420,7 @@ class TimesheetService {
     return {
       currentPeriod,
       summaries: { ...summaryStats, grossByCurrency },
-      payslips:  { ...payslipStats,  netByCurrency },
+      payslips:  { ...payslipStats, netByCurrency, local_count: payslipTypeStats?.local_count || 0, foreign_count: payslipTypeStats?.foreign_count || 0 },
       pendingApprovals: pendingApprovals.length,
       categoryBreakdown,
       categoryEmployeeBreakdown
