@@ -414,12 +414,19 @@ export default function TimesheetGenerator() {
               )}
             </Paper>
 
+            {/* Mixed-type warning */}
+            {hasLocal && hasForeign && (
+              <Alert severity="warning" icon={<ErrorOutlineIcon fontSize="small" />} sx={{ borderRadius: 0, fontSize: '0.8rem' }}>
+                <strong>Mixed employee types selected.</strong> Local and international employees must be generated separately — they use different pay periods. Deselect one group to continue.
+              </Alert>
+            )}
+
             {/* Generate button + progress */}
             {!isDone && (
               <Box>
                 <Button variant="contained" fullWidth
                   startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
-                  onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating}
+                  onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign)}
                   sx={{ py: 1.5, borderRadius: '4px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>
                   {generating
                     ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)

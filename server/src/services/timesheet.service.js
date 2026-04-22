@@ -17,6 +17,25 @@ const ERR_ALREADY_GENERATED = 'A payslip has already been generated for this emp
  * Core business logic for timesheet processing
  */
 class TimesheetService {
+  constructor() {
+    this._settingsCache = null;
+  }
+
+  /** Load system settings once and cache for the lifetime of the process */
+  async getSettings() {
+    if (this._settingsCache) return this._settingsCache;
+    const rows = await db.query(
+      "SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('working_hours_per_day','overtime_multiplier')"
+    );
+    const map = {};
+    for (const r of rows) map[r.setting_key] = r.setting_value;
+    this._settingsCache = {
+      workingHoursPerDay: parseInt(map['working_hours_per_day'] || 8),
+      overtimeMultiplier: parseFloat(map['overtime_multiplier'] || 1.5),
+    };
+    return this._settingsCache;
+  }
+
   /**
    * Process timesheets for a period
    * Main entry point for cron job
@@ -179,37 +198,13 @@ class TimesheetService {
    * Calculate hours breakdown (regular vs overtime)
    */
   async calculateHoursBreakdown(employeeId, period, totalHours, hourlyRate) {
-    // Get working hours per day setting
-    const settings = await db.getOne(
-      "SELECT setting_value FROM system_settings WHERE setting_key = 'working_hours_per_day'"
-    );
-    const workingHoursPerDay = parseInt(settings?.setting_value || 8);
-
-    // Calculate number of working days in period (Mon–Fri only)
-    const startDate = new Date(period.start_date);
-    const endDate = new Date(period.end_date);
-    const workingDays = this.countWorkingDays(startDate, endDate);
-
-    // Regular hours = working hours per day * working days
+    const { workingHoursPerDay, overtimeMultiplier } = await this.getSettings();
+    const workingDays = this.countWorkingDays(new Date(period.start_date), new Date(period.end_date));
     const maxRegularHours = workingHoursPerDay * workingDays;
-    const regularHours = Math.min(totalHours, maxRegularHours);
+    const regularHours  = Math.min(totalHours, maxRegularHours);
     const overtimeHours = Math.max(0, totalHours - maxRegularHours);
-
-    // Get overtime multiplier
-    const overtimeSetting = await db.getOne(
-      "SELECT setting_value FROM system_settings WHERE setting_key = 'overtime_multiplier'"
-    );
-    const overtimeMultiplier = parseFloat(overtimeSetting?.setting_value || 1.5);
-
-    // Calculate gross amount
-    const grossAmount = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * overtimeMultiplier);
-
-    return {
-      totalHours,
-      regularHours,
-      overtimeHours,
-      grossAmount
-    };
+    const grossAmount   = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * overtimeMultiplier);
+    return { totalHours, regularHours, overtimeHours, grossAmount };
   }
 
   /**
@@ -376,54 +371,42 @@ class TimesheetService {
    * Get dashboard statistics
    */
   async getDashboardStats() {
-    const currentPeriod = await PayPeriod.getCurrentPeriod();
-
-    // All stats are global (all periods) so the 4 cards are always consistent
-    const summaryStats   = await TimeEntriesSummary.getStatistics(null);
-    const grossByCurrency = await TimeEntriesSummary.getGrossByCurrency(null);
-    const [payslipStats, netByCurrency, payslipTypeStats] = await Promise.all([
+    const [
+      currentLocalPeriod,
+      currentForeignPeriod,
+      summaryStats,
+      grossByCurrency,
+      payslipStats,
+      netByCurrency,
+      payslipTypeStats,
+      pendingApprovals,
+      employeeCount,
+      periodTypeCounts,
+    ] = await Promise.all([
+      PayPeriod.getCurrentPeriodByType('local'),
+      PayPeriod.getCurrentPeriodByType('foreign'),
+      TimeEntriesSummary.getStatistics(null),
+      TimeEntriesSummary.getGrossByCurrency(null),
       Payslip.getStatistics(null),
       Payslip.getNetByCurrency(null),
       Payslip.getTypeStats(),
+      TimeEntriesSummary.getPendingApprovals(),
+      db.getOne('SELECT COUNT(*) AS count FROM employees WHERE is_active = 1'),
+      db.getOne(`SELECT
+        SUM(CASE WHEN period_type = 'foreign' THEN 1 ELSE 0 END) AS foreign_count,
+        SUM(CASE WHEN period_type = 'local' OR period_type IS NULL THEN 1 ELSE 0 END) AS local_count,
+        COUNT(*) AS total
+        FROM pay_periods`),
     ]);
-    const pendingApprovals = await TimeEntriesSummary.getPendingApprovals();
-
-    // Monthly category breakdown — total hours per category
-    const categoryBreakdown = await db.query(`
-      SELECT
-        COALESCE(NULLIF(TRIM(category), ''), NULLIF(TRIM(project_name), ''), 'Uncategorized') AS category,
-        ROUND(SUM(hours_worked), 2)                                                            AS total_hours,
-        COUNT(DISTINCT employee_id)                                                            AS employee_count
-      FROM time_entries
-      WHERE MONTH(entry_date) = MONTH(CURRENT_DATE())
-        AND YEAR(entry_date)  = YEAR(CURRENT_DATE())
-      GROUP BY COALESCE(NULLIF(TRIM(category), ''), NULLIF(TRIM(project_name), ''), 'Uncategorized')
-      ORDER BY total_hours DESC
-      LIMIT 15
-    `);
-
-    // Per-employee hours within each category (same month)
-    const categoryEmployeeBreakdown = await db.query(`
-      SELECT
-        COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized') AS category,
-        e.name                                                                                        AS employee_name,
-        e.employee_id                                                                                 AS emp_code,
-        ROUND(SUM(te.hours_worked), 2)                                                               AS hours
-      FROM time_entries te
-      JOIN employees e ON te.employee_id = e.id
-      WHERE MONTH(te.entry_date) = MONTH(CURRENT_DATE())
-        AND YEAR(te.entry_date)  = YEAR(CURRENT_DATE())
-      GROUP BY COALESCE(NULLIF(TRIM(te.category), ''), NULLIF(TRIM(te.project_name), ''), 'Uncategorized'), te.employee_id
-      ORDER BY category, hours DESC
-    `);
 
     return {
-      currentPeriod,
+      currentLocalPeriod,
+      currentForeignPeriod,
       summaries: { ...summaryStats, grossByCurrency },
       payslips:  { ...payslipStats, netByCurrency, local_count: payslipTypeStats?.local_count || 0, foreign_count: payslipTypeStats?.foreign_count || 0 },
       pendingApprovals: pendingApprovals.length,
-      categoryBreakdown,
-      categoryEmployeeBreakdown
+      employeeCount: employeeCount?.count || 0,
+      periodCounts: { total: periodTypeCounts?.total || 0, local: periodTypeCounts?.local_count || 0, foreign: periodTypeCounts?.foreign_count || 0 },
     };
   }
 
@@ -633,26 +616,11 @@ class TimesheetService {
         `No Wrike-approved hours found for this period. ${allTimelogs.length} timelog(s) exist but none are approved in Wrike yet. Please approve them in Wrike before generating payslips.`
       );
     }
-    const byUser    = wrikeService.groupTimeLogsByUser(timelogs);
-    const userLogs  = byUser[employee.wrike_user_id] || [];
+    const byUser   = wrikeService.groupTimeLogsByUser(timelogs);
+    const userLogs = byUser[employee.wrike_user_id] || [];
     const taskTitles = await wrikeService.getTaskTitles(userLogs.map(l => l.taskId).filter(Boolean));
 
-    // Import into time_entries (skip duplicates)
-    for (const log of userLogs) {
-      if (!log.hours || log.hours <= 0) continue;
-      const existing = await TimeEntry.findDuplicate(employee.id, log.date, log.logId);
-      if (existing) continue;
-      const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
-      await TimeEntry.create({
-        employee_id:      employee.id,
-        entry_date:       log.date,
-        hours_worked:     log.hours,
-        task_description: description,
-        project_name:     taskTitles[log.taskId] || null,
-        wrike_task_id:    log.taskId || null,
-        source:           'wrike'
-      });
-    }
+    await this._importLogs(employee.id, startDate, endDate, userLogs, taskTitles);
 
     // Now run standard timesheet processing for this employee + period
     const result = await this.processEmployeeTimesheet(employee, period);
@@ -674,6 +642,36 @@ class TimesheetService {
   }
 
   /**
+   * Import Wrike timelogs for one employee into time_entries.
+   * Uses a single pre-load query to check for duplicates instead of N per-entry queries.
+   */
+  async _importLogs(employeeId, startDate, endDate, userLogs, taskTitles) {
+    if (!userLogs.length) return;
+    // Load all existing wrike entries for this employee/range in one query
+    const existing = await db.query(
+      `SELECT task_description FROM time_entries
+       WHERE employee_id = ? AND entry_date BETWEEN ? AND ? AND source = 'wrike'`,
+      [employeeId, startDate, endDate]
+    );
+    const existingLogIds = new Set(
+      existing.map(e => { const m = e.task_description?.match(/^\[([^\]]+)\]/); return m?.[1]; }).filter(Boolean)
+    );
+    for (const log of userLogs) {
+      if (!log.hours || log.hours <= 0) continue;
+      if (existingLogIds.has(String(log.logId))) continue;
+      await TimeEntry.create({
+        employee_id:      employeeId,
+        entry_date:       log.date,
+        hours_worked:     log.hours,
+        task_description: `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim(),
+        project_name:     taskTitles[log.taskId] || null,
+        wrike_task_id:    log.taskId || null,
+        source:           'wrike'
+      });
+    }
+  }
+
+  /**
    * Approve a timesheet summary by ID (called from employee portal)
    */
   async approveSummary(summaryId, approvedBy = 'employee') {
@@ -691,34 +689,75 @@ class TimesheetService {
    */
   /**
    * Full-pipeline payslip generation for all (or selected) employees in a period.
-   * Fetches Wrike-approved timelogs, imports, and generates payslips.
-   * Called from the Payslips page "Generate Payslips" button.
+   * Batch-fetches all Wrike timelogs in parallel (one set of concurrent calls) instead
+   * of one Wrike call per employee, then imports and generates payslips sequentially.
+   * Returns per-employee details so the frontend can show a result table.
    */
   async generatePayslipsForPeriod(periodId, employeeIds = null) {
     const period = await PayPeriod.findById(periodId);
     if (!period) throw new Error('Period not found');
 
     const allEmployees = await Employee.findAll(true);
-    const targets = employeeIds && employeeIds.length
+    const targets = (employeeIds?.length
       ? allEmployees.filter(e => employeeIds.includes(e.id))
-      : allEmployees;
+      : allEmployees
+    );
 
-    const results = { generated: 0, skipped: 0, errors: [] };
+    // ── Batch-fetch Wrike timelogs for all employees in parallel ──────────────
+    const wrikeEmployees = targets.filter(e => e.wrike_user_id);
+    const wrikeUserIds   = [...new Set(wrikeEmployees.map(e => e.wrike_user_id))];
+    let timelogsByUser = {};
+    let taskTitles     = {};
+    if (wrikeUserIds.length) {
+      try {
+        const allLogs = await wrikeService.getTimeLogs(period.start_date, period.end_date, wrikeUserIds);
+        const approved = allLogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+        timelogsByUser = wrikeService.groupTimeLogsByUser(approved);
+        const taskIds  = [...new Set(approved.map(l => l.taskId).filter(Boolean))];
+        if (taskIds.length) taskTitles = await wrikeService.getTaskTitles(taskIds);
+      } catch (err) {
+        console.warn('⚠️  Batch Wrike fetch failed:', err.message);
+      }
+    }
+
+    const results = { generated: 0, skipped: 0, errors: [], details: [] };
 
     for (const emp of targets) {
       if (!emp.wrike_user_id) {
         results.skipped++;
+        results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'skipped', error: 'No Wrike ID' });
+        continue;
+      }
+      const userLogs = timelogsByUser[emp.wrike_user_id] || [];
+      if (!userLogs.length) {
+        results.skipped++;
+        results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'no_hours' });
         continue;
       }
       try {
-        await this.submitTimesheet(emp.id, period.start_date, period.end_date, period.period_name);
-        results.generated++;
+        // Import logs using the batched helper, then run standard processing
+        await this._importLogs(emp.id, period.start_date, period.end_date, userLogs, taskTitles);
+        const result = await this.processEmployeeTimesheet(emp, period);
+        if (!result.success) {
+          results.skipped++;
+          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: result.reason === ERR_ALREADY_APPROVED ? 'exists' : 'skipped' });
+        } else {
+          results.generated++;
+          results.details.push({
+            emp:    { name: emp.name, employee_id: emp.employee_id },
+            status: result.alreadyPending ? 'exists' : 'generated',
+            hours:  result.summary?.total_hours,
+            gross:  result.payslip?.gross_amount,
+          });
+        }
       } catch (err) {
         const msg = err.message || '';
         if (msg.includes(ERR_ALREADY_GENERATED) || msg.includes(ERR_ALREADY_APPROVED)) {
           results.skipped++;
+          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'exists' });
         } else {
           results.errors.push({ employeeName: emp.name, error: msg });
+          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'error', error: msg });
         }
       }
     }

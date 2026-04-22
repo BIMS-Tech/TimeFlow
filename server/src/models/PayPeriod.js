@@ -25,16 +25,22 @@ class PayPeriod {
   }
 
   /**
-   * Get current period
+   * Get current period (any type)
    */
   static async getCurrentPeriod() {
-    const sql = `
-      SELECT * FROM pay_periods 
-      WHERE CURDATE() BETWEEN start_date AND end_date 
-      ORDER BY start_date DESC 
-      LIMIT 1
-    `;
-    return db.getOne(sql);
+    return db.getOne(
+      'SELECT * FROM pay_periods WHERE CURDATE() BETWEEN start_date AND end_date ORDER BY start_date DESC LIMIT 1'
+    );
+  }
+
+  /**
+   * Get current period filtered by type ('local' | 'foreign')
+   */
+  static async getCurrentPeriodByType(type) {
+    return db.getOne(
+      'SELECT * FROM pay_periods WHERE CURDATE() BETWEEN start_date AND end_date AND period_type = ? ORDER BY start_date DESC LIMIT 1',
+      [type]
+    );
   }
 
   /**
