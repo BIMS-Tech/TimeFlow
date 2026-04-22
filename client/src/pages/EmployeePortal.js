@@ -184,7 +184,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
           </Box>
           <Button size="small" variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('profile')}
             sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, boxShadow: 'none', flexShrink: 0 }}>
-            Complete Profile
+            View Profile
           </Button>
         </Paper>
       )}
@@ -346,6 +346,15 @@ const F = ({ label, field, form, setForm, xs = 12, sm = 6, type = 'text', multil
   </Grid>
 );
 
+const R = ({ label, value, xs = 12, sm = 6 }) => (
+  <Grid item xs={xs} sm={sm}>
+    <Box>
+      <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{label}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: value ? 'text.primary' : 'text.disabled' }}>{value || '—'}</Typography>
+    </Box>
+  </Grid>
+);
+
 function ProfileSection({ employee, onUpdated }) {
   const isForeign = employee?.hire_category === 'foreign';
   const emptyForm = {
@@ -392,8 +401,8 @@ function ProfileSection({ employee, onUpdated }) {
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, bgcolor: '#f59e0b10', border: '1px solid #f59e0b40', borderRadius: '8px', p: 1.75 }}>
           <WarningAmberIcon sx={{ fontSize: 18, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Profile incomplete</Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>Missing required fields: {missingFields.join(', ')}</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Banking profile incomplete</Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>Missing: {missingFields.join(', ')} — contact your administrator to update.</Typography>
           </Box>
         </Box>
       )}
@@ -438,46 +447,50 @@ function ProfileSection({ employee, onUpdated }) {
         </Box>
       </Paper>
 
-      {/* Bank Details */}
+      {/* Bank Details — read-only */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-        <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Bank Details" sub="used for payroll transfers" />
+        <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Bank Details" sub="managed by admin" />
+        <Box sx={{ px: 2.5, py: 1.5, bgcolor: '#f8fafc', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+            Banking information is managed by your administrator. Contact admin if any details need to be updated.
+          </Typography>
+        </Box>
         <Box sx={{ p: 2.5 }}>
           <Grid container spacing={2}>
-            <F label="Bank Name *" field="bank_name" form={form} setForm={setForm} />
-            <F label="Account Name" field="bank_account_name" form={form} setForm={setForm} />
-            <F label="Account Number *" field="bank_account_number" form={form} setForm={setForm} />
-            <F label="Branch" field="bank_branch" form={form} setForm={setForm} />
-            {isForeign && <F label="SWIFT / BIC Code *" field="bank_swift_code" form={form} setForm={setForm} />}
-            {isForeign && <F label="Bank Address" field="bank_address" form={form} setForm={setForm} />}
+            <R label="Bank Name" value={form.bank_name} />
+            <R label="Account Name" value={form.bank_account_name} />
+            <R label="Account Number" value={form.bank_account_number} />
+            <R label="Branch" value={form.bank_branch} />
+            {isForeign && <R label="SWIFT / BIC Code" value={form.bank_swift_code} />}
+            {isForeign && <R label="Bank Address" value={form.bank_address} />}
           </Grid>
         </Box>
       </Paper>
 
-      {/* DFT / International Fields (foreign only) */}
+      {/* DFT / International Fields (foreign only) — read-only */}
       {isForeign && (
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-          <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="International Transfer Details" sub="DFT fields for foreign remittance" />
+          <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="International Transfer Details" sub="managed by admin" />
           <Box sx={{ p: 2.5 }}>
             <Grid container spacing={2}>
-              <F label="Remittance Type *" field="remittance_type" form={form} setForm={setForm} />
-              <F label="Beneficiary Code" field="beneficiary_code" form={form} setForm={setForm} />
-              <F label="Beneficiary Address *" field="beneficiary_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
-              <F label="Country of Destination *" field="country_of_destination" form={form} setForm={setForm} />
-              <F label="Purpose / Nature *" field="purpose_nature" form={form} setForm={setForm} />
-              <F label="Payee TIN" field="payee_tin" form={form} setForm={setForm} />
-              <F label="Payee ZIP Code" field="payee_zip_code" form={form} setForm={setForm} />
-              <F label="Payee Foreign Address" field="payee_foreign_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
-              <F label="Payee Foreign ZIP" field="payee_foreign_zip_code" form={form} setForm={setForm} />
-              <F label="Tax Code" field="tax_code" form={form} setForm={setForm} />
+              <R label="Remittance Type" value={form.remittance_type} />
+              <R label="Beneficiary Code" value={form.beneficiary_code} />
+              <R label="Beneficiary Address" value={form.beneficiary_address} xs={12} sm={12} />
+              <R label="Country of Destination" value={form.country_of_destination} />
+              <R label="Purpose / Nature" value={form.purpose_nature} />
+              <R label="Payee TIN" value={form.payee_tin} />
+              <R label="Payee ZIP Code" value={form.payee_zip_code} />
+              <R label="Payee Foreign Address" value={form.payee_foreign_address} xs={12} sm={12} />
+              <R label="Payee Foreign ZIP" value={form.payee_foreign_zip_code} />
+              <R label="Tax Code" value={form.tax_code} />
             </Grid>
-
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', mt: 2.5, mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Intermediary Bank (if applicable)
+              Intermediary Bank
             </Typography>
             <Grid container spacing={2}>
-              <F label="Intermediary Bank Name" field="intermediary_bank_name" form={form} setForm={setForm} />
-              <F label="Intermediary SWIFT" field="intermediary_bank_swift" form={form} setForm={setForm} />
-              <F label="Intermediary Bank Address" field="intermediary_bank_address" form={form} setForm={setForm} xs={12} sm={12} multiline />
+              <R label="Intermediary Bank Name" value={form.intermediary_bank_name} />
+              <R label="Intermediary SWIFT" value={form.intermediary_bank_swift} />
+              <R label="Intermediary Bank Address" value={form.intermediary_bank_address} xs={12} sm={12} />
             </Grid>
           </Box>
         </Paper>

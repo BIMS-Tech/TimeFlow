@@ -184,21 +184,11 @@ class PortalController {
 
   /**
    * PUT /api/portal/profile
-   * Employees update their own bank details and profile info
+   * Employees can only update their name parts — banking fields are admin-only.
    */
   async updateProfile(req, res) {
     try {
-      const allowed = [
-        // Name parts (XCS local bank file)
-        'first_name', 'last_name', 'middle_name',
-        // Bank details
-        'bank_name', 'bank_account_number', 'bank_account_name', 'bank_branch', 'bank_swift_code',
-        // DFT international fields
-        'remittance_type', 'beneficiary_code', 'beneficiary_address', 'bank_address',
-        'country_of_destination', 'purpose_nature',
-        'intermediary_bank_name', 'intermediary_bank_address', 'intermediary_bank_swift',
-        'payee_tin', 'payee_zip_code', 'payee_foreign_address', 'payee_foreign_zip_code', 'tax_code',
-      ];
+      const allowed = ['first_name', 'last_name', 'middle_name'];
       const updates = {};
       for (const key of allowed) {
         if (req.body[key] !== undefined) updates[key] = req.body[key] || null;
