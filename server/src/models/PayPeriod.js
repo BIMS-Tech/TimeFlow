@@ -15,15 +15,13 @@ class PayPeriod {
   }
 
   /**
-   * Get all periods
+   * Get all periods, optionally filtered by type ('local' | 'foreign')
    */
-  static async findAll(limit = 20, offset = 0) {
-    const sql = `
-      SELECT * FROM pay_periods 
-      ORDER BY start_date DESC 
-      LIMIT ? OFFSET ?
-    `;
-    return db.query(sql, [limit, offset]);
+  static async findAll(limit = 20, offset = 0, type = null) {
+    const where = type ? 'WHERE period_type = ?' : '';
+    const params = type ? [type, limit, offset] : [limit, offset];
+    const sql = `SELECT * FROM pay_periods ${where} ORDER BY start_date DESC LIMIT ? OFFSET ?`;
+    return db.query(sql, params);
   }
 
   /**
@@ -67,7 +65,8 @@ class PayPeriod {
       period_name: data.period_name,
       start_date: start,
       end_date: end,
-      status: data.status || 'open'
+      status: data.status || 'open',
+      period_type: data.period_type || 'local'
     });
     return this.findById(id);
   }
@@ -127,7 +126,8 @@ class PayPeriod {
       period_name: `Period ${month}/1-${month}/15/${year}`,
       start_date: firstHalfStart.toISOString().split('T')[0],
       end_date: firstHalfEnd.toISOString().split('T')[0],
-      status: 'open'
+      status: 'open',
+      period_type: 'local'
     });
     periods.push(firstHalf);
 
@@ -136,7 +136,8 @@ class PayPeriod {
       period_name: `Period ${month}/16-${month}/${secondHalfEnd.getDate()}/${year}`,
       start_date: secondHalfStart.toISOString().split('T')[0],
       end_date: secondHalfEnd.toISOString().split('T')[0],
-      status: 'open'
+      status: 'open',
+      period_type: 'local'
     });
     periods.push(secondHalf);
 
@@ -152,6 +153,7 @@ class PayPeriod {
     if (data.start_date !== undefined) fields.start_date = String(data.start_date).substring(0, 10);
     if (data.end_date !== undefined) fields.end_date = String(data.end_date).substring(0, 10);
     if (data.status !== undefined) fields.status = data.status;
+    if (data.period_type !== undefined) fields.period_type = data.period_type;
     await db.update('pay_periods', fields, 'id = ?', [id]);
     return this.findById(id);
   }
@@ -161,6 +163,22 @@ class PayPeriod {
    */
   static async delete(id) {
     await db.remove('pay_periods', 'id = ?', [id]);
+  }
+
+  /**
+   * Create a full-month foreign (international) pay period
+   */
+  static async createForeignMonthlyPeriod(year, month) {
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const start = new Date(year, month - 1, 1);
+    const end   = new Date(year, month, 0);
+    return this.create({
+      period_name: `${MONTHS[month - 1]} ${year} (International)`,
+      start_date:  start.toISOString().split('T')[0],
+      end_date:    end.toISOString().split('T')[0],
+      status:      'open',
+      period_type: 'foreign'
+    });
   }
 
   /**

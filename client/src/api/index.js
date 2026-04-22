@@ -92,12 +92,17 @@ export const timesheetAPI = {
   getPending: () => api.get('/timesheet/pending'),
   getRejected: () => api.get('/timesheet/rejected'),
   getCounts: () => api.get('/timesheet/counts'),
-  getPeriods: (limit, offset) => api.get(`/timesheet/periods?limit=${limit || 20}&offset=${offset || 0}`),
+  getPeriods: (limit, offset, type) => {
+    const p = new URLSearchParams({ limit: limit || 20, offset: offset || 0 });
+    if (type) p.set('type', type);
+    return api.get(`/timesheet/periods?${p}`);
+  },
   getPeriod: (id) => api.get(`/timesheet/periods/${id}`),
   createPeriod: (data) => api.post('/timesheet/periods', data),
   updatePeriod: (id, data) => api.put(`/timesheet/periods/${id}`, data),
   deletePeriod: (id) => api.delete(`/timesheet/periods/${id}`),
   createMonthlyPeriods: (year, month) => api.post('/timesheet/periods/monthly', { year, month }),
+  createForeignMonthlyPeriod: (year, month) => api.post('/timesheet/periods/foreign-monthly', { year, month }),
   getPeriodSummaries: (id) => api.get(`/timesheet/periods/${id}/summaries`),
   getPeriodPayslips: (id) => api.get(`/timesheet/periods/${id}/payslips`),
   getSummary: (id) => api.get(`/timesheet/summaries/${id}`),

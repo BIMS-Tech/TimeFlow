@@ -14,12 +14,19 @@ class PDFService {
   constructor() {
     // K_SERVICE is set by Cloud Run; those containers have a read-only FS except /tmp
     const serverless = !!(process.env.K_SERVICE || process.env.FUNCTION_NAME);
-    this.outputDir = serverless
-      ? '/tmp/timeflow-pdfs'
-      : path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
+    const candidates = serverless
+      ? ['/tmp/timeflow-pdfs']
+      : [path.join(__dirname, '../../uploads'), '/tmp/timeflow-pdfs'];
+    this.outputDir = null;
+    for (const dir of candidates) {
+      try {
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.accessSync(dir, fs.constants.W_OK);
+        this.outputDir = dir;
+        break;
+      } catch { /* try next */ }
     }
+    if (!this.outputDir) throw new Error('No writable directory found for PDF output');
     console.log(`[PDF] outputDir: ${this.outputDir}`);
   }
 

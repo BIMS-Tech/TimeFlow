@@ -92,10 +92,11 @@ class TimesheetController {
    */
   async getPeriods(req, res) {
     try {
-      const { limit, offset } = req.query;
+      const { limit, offset, type } = req.query;
       const periods = await PayPeriod.findAll(
         parseInt(limit) || 20,
-        parseInt(offset) || 0
+        parseInt(offset) || 0,
+        type || null
       );
       res.json({
         success: true,
@@ -519,10 +520,25 @@ class TimesheetController {
    */
   async updatePeriod(req, res) {
     try {
-      const { period_name, start_date, end_date, status } = req.body;
-      const period = await PayPeriod.update(req.params.id, { period_name, start_date, end_date, status });
+      const { period_name, start_date, end_date, status, period_type } = req.body;
+      const period = await PayPeriod.update(req.params.id, { period_name, start_date, end_date, status, period_type });
       if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
       res.json({ success: true, data: period });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Create a full-month foreign (international) pay period
+   * POST /api/timesheet/periods/foreign-monthly
+   */
+  async createForeignMonthlyPeriod(req, res) {
+    try {
+      const { year, month } = req.body;
+      if (!year || !month) return res.status(400).json({ success: false, error: 'year and month are required' });
+      const period = await PayPeriod.createForeignMonthlyPeriod(parseInt(year), parseInt(month));
+      res.status(201).json({ success: true, data: period });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }

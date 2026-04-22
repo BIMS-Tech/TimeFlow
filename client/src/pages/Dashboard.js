@@ -308,7 +308,12 @@ export default function Dashboard() {
           <StatCard icon={<CheckCircleOutlineIcon />} label="Payslips Generated" value={payslips?.total_payslips || 0} color="#10b981" gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<ReceiptLongIcon />} label="Pay Periods" value={periods.length || 0} color="#6366f1" />
+          <StatCard
+            icon={<ReceiptLongIcon />}
+            label={`Pay Periods · ${periods.filter(p => !p.period_type || p.period_type === 'local').length} Local / ${periods.filter(p => p.period_type === 'foreign').length} Intl`}
+            value={periods.length || 0}
+            color="#6366f1"
+          />
         </Grid>
       </Grid>
 

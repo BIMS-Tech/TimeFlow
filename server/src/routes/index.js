@@ -115,6 +115,7 @@ router.post('/timesheet/periods', timesheetController.createPeriod.bind(timeshee
  * @desc Create periods for a month
  */
 router.post('/timesheet/periods/monthly', timesheetController.createMonthlyPeriods.bind(timesheetController));
+router.post('/timesheet/periods/foreign-monthly', timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id

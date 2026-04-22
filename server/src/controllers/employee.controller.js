@@ -84,17 +84,7 @@ class EmployeeController {
         });
       }
 
-      const employee = await Employee.create({
-        employee_id,
-        name,
-        email,
-        department,
-        position,
-        hourly_rate,
-        currency,
-        wrike_user_id,
-        hire_date
-      });
+      const employee = await Employee.create(req.body);
 
       // Auto-create portal login for this employee
       let portalAccount = null;

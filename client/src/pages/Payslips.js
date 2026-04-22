@@ -33,6 +33,7 @@ function InfoRow({ label, value }) {
 
 export default function Payslips() {
   const [periods, setPeriods] = useState([]);
+  const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -263,23 +264,40 @@ export default function Payslips() {
         {/* Periods sidebar */}
         <Grid item xs={12} md={3}>
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>Periods</Typography>
+            <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary', mb: 1 }}>Periods</Typography>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {[{ label: 'All', value: 'all' }, { label: 'Local', value: 'local' }, { label: 'Intl', value: 'foreign' }].map(opt => (
+                  <Chip key={opt.value} label={opt.label} size="small" onClick={() => setPeriodTypeFilter(opt.value)}
+                    sx={{ fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', height: 20,
+                      bgcolor: periodTypeFilter === opt.value ? '#6366f1' : 'action.hover',
+                      color: periodTypeFilter === opt.value ? 'white' : 'text.secondary',
+                      '&:hover': { bgcolor: periodTypeFilter === opt.value ? '#6366f1' : 'action.selected' } }} />
+                ))}
+              </Box>
             </Box>
             <Box sx={{ maxHeight: 480, overflowY: 'auto' }}>
               {loading ? (
                 <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#6366f1' }} /></Box>
               ) : periods.length === 0 ? (
                 <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled', fontSize: '0.875rem' }}>No periods</Box>
-              ) : periods.map(p => (
+              ) : periods
+                  .filter(p => periodTypeFilter === 'all' || (periodTypeFilter === 'local' ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign'))
+                  .map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
                   sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer',
                     bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.06)' : 'transparent',
                     '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : 'action.hover' } }}>
-                  <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.875rem', color: selectedPeriod?.id === p.id ? '#6366f1' : 'text.primary' }}>
-                    {p.period_name}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', mt: 0.25, textTransform: 'capitalize' }}>{p.status}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
+                    <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.8rem', color: selectedPeriod?.id === p.id ? '#6366f1' : 'text.primary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 0.5 }}>
+                      {p.period_name}
+                    </Typography>
+                    <Chip label={p.period_type === 'foreign' ? 'Intl' : 'Local'} size="small"
+                      sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
+                        bgcolor: p.period_type === 'foreign' ? '#0ea5e918' : '#6366f118',
+                        color: p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1' }} />
+                  </Box>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'capitalize' }}>{p.status}</Typography>
                 </Box>
               ))}
             </Box>

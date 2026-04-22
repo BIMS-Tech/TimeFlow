@@ -121,6 +121,8 @@ async function runMigrations() {
     `ALTER TABLE employees ADD COLUMN tax_code VARCHAR(50) DEFAULT NULL`,
     // Wrike timelog category name stored on import
     `ALTER TABLE time_entries ADD COLUMN category VARCHAR(255) DEFAULT NULL`,
+    // Period type: local (15-day) vs foreign (monthly)
+    `ALTER TABLE pay_periods ADD COLUMN period_type ENUM('local','foreign') NOT NULL DEFAULT 'local'`,
     // Seed admin user (INSERT IGNORE skips silently if email already exists)
     `INSERT IGNORE INTO users (username, email, password_hash, role, is_active) VALUES ('dam', 'dam@bims.tech', '$2a$10$o/Mq7JOam81/UrSQn6T91ei1RrYVgAqn4HVboXCkzlJ1GBaue5.UG', 'admin', 1)`,
   ];
