@@ -204,6 +204,19 @@ class Payslip {
   }
 
   /**
+   * Update arbitrary fields on a payslip
+   */
+  static async update(id, data) {
+    const allowed = ['pdf_path', 'status', 'paid_at', 'total_hours', 'hourly_rate', 'gross_amount', 'tax_deductions', 'other_deductions', 'net_amount'];
+    const fields = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) fields[key] = data[key];
+    }
+    if (Object.keys(fields).length) await db.update('payslips', fields, 'id = ?', [id]);
+    return this.findById(id);
+  }
+
+  /**
    * Delete payslip
    */
   static async delete(id) {
