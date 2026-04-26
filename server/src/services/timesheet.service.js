@@ -7,7 +7,23 @@ const wrikeService = require('./wrike.service');
 const pdfService = require('./pdf.service');
 const csvService = require('./csv.service');
 const db = require('../database/connection');
+const cache = require('./cache.service');
+const { TTL } = require('./cache.service');
 require('dotenv').config();
+
+// Simple concurrency limiter — max N PDF jobs running simultaneously
+function createLimiter(concurrency) {
+  let active = 0;
+  const queue = [];
+  const next = () => {
+    if (active >= concurrency || queue.length === 0) return;
+    active++;
+    const { fn, resolve, reject } = queue.shift();
+    fn().then(resolve, reject).finally(() => { active--; next(); });
+  };
+  return (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); });
+}
+const pdfLimiter = createLimiter(3); // max 3 PDFs generated at the same time
 
 const ERR_ALREADY_APPROVED = 'already_approved';
 const ERR_ALREADY_GENERATED = 'A payslip has already been generated for this employee and period.';
@@ -322,12 +338,9 @@ class TimesheetService {
       currency: summary.currency
     };
 
-    // Generate PDF
-    const pdfResult = await pdfService.generatePayslipPDF(
-      summary,
-      employee,
-      period,
-      payslipNumber
+    // Generate PDF — rate-limited to max 3 concurrent generations
+    const pdfResult = await pdfLimiter(() =>
+      pdfService.generatePayslipPDF(summary, employee, period, payslipNumber)
     );
 
     // Create payslip record — pass the same number used in the PDF
@@ -344,6 +357,9 @@ class TimesheetService {
     });
 
     console.log(`✅ Payslip generated: ${payslipNumber}`);
+
+    // Bust dashboard cache so the next poll reflects the new payslip
+    cache.del('db:dashboard').catch(() => {});
 
     return payslip;
   }
@@ -371,6 +387,10 @@ class TimesheetService {
    * Get dashboard statistics
    */
   async getDashboardStats() {
+    const CACHE_KEY = 'db:dashboard';
+    const cached = await cache.get(CACHE_KEY);
+    if (cached) return cached;
+
     const [
       currentLocalPeriod,
       currentForeignPeriod,
@@ -399,7 +419,7 @@ class TimesheetService {
         FROM pay_periods`),
     ]);
 
-    return {
+    const result = {
       currentLocalPeriod,
       currentForeignPeriod,
       summaries: { ...summaryStats, grossByCurrency },
@@ -408,6 +428,8 @@ class TimesheetService {
       employeeCount: employeeCount?.count || 0,
       periodCounts: { total: periodTypeCounts?.total || 0, local: periodTypeCounts?.local_count || 0, foreign: periodTypeCounts?.foreign_count || 0 },
     };
+    await cache.set(CACHE_KEY, result, TTL.DASHBOARD);
+    return result;
   }
 
   /**
@@ -722,20 +744,20 @@ class TimesheetService {
 
     const results = { generated: 0, skipped: 0, errors: [], details: [] };
 
-    for (const emp of targets) {
+    // Process all employees in parallel — PDF concurrency is capped by pdfLimiter inside generatePayslip
+    await Promise.allSettled(targets.map(async (emp) => {
       if (!emp.wrike_user_id) {
         results.skipped++;
         results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'skipped', error: 'No Wrike ID' });
-        continue;
+        return;
       }
       const userLogs = timelogsByUser[emp.wrike_user_id] || [];
       if (!userLogs.length) {
         results.skipped++;
         results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'no_hours' });
-        continue;
+        return;
       }
       try {
-        // Import logs using the batched helper, then run standard processing
         await this._importLogs(emp.id, period.start_date, period.end_date, userLogs, taskTitles);
         const result = await this.processEmployeeTimesheet(emp, period);
         if (!result.success) {
@@ -760,7 +782,7 @@ class TimesheetService {
           results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'error', error: msg });
         }
       }
-    }
+    }));
 
     return { period: period.period_name, ...results };
   }
@@ -776,14 +798,13 @@ class TimesheetService {
 
     const results = { generated: 0, skipped: 0, errors: [] };
 
-    for (const s of targets) {
+    // Process all summaries in parallel — PDF concurrency is capped by pdfLimiter inside generatePayslip
+    await Promise.allSettled(targets.map(async (s) => {
       try {
-        // Auto-approve if still pending
         if (s.approval_status === 'pending') {
           await this.processApproval(s, 'admin:bulk');
           results.generated++;
         } else if (s.approval_status === 'approved') {
-          // Already approved — ensure payslip exists
           const existing = await Payslip.findBySummaryId(s.id);
           if (!existing) {
             const fullSummary = await TimeEntriesSummary.getWithDetails(s.id);
@@ -798,7 +819,7 @@ class TimesheetService {
       } catch (err) {
         results.errors.push({ summaryId: s.id, employeeName: s.employee_name || s.employee_id, error: err.message });
       }
-    }
+    }));
 
     return { period: period.period_name, ...results };
   }

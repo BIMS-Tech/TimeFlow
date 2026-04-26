@@ -1,5 +1,11 @@
 const Employee = require('../models/Employee');
 const User = require('../models/User');
+const cache = require('../services/cache.service');
+
+const invalidateEmployeeCache = () => {
+  cache.invalidatePattern('db:employees:*').catch(() => {});
+  cache.del('db:dashboard').catch(() => {});
+};
 
 /**
  * Employee Controller
@@ -108,6 +114,7 @@ class EmployeeController {
         console.warn('⚠️  Could not create portal account for employee:', userErr.message);
       }
 
+      invalidateEmployeeCache();
       res.status(201).json({
         success: true,
         data: employee,
@@ -140,6 +147,7 @@ class EmployeeController {
       }
 
       const updated = await Employee.update(req.params.id, req.body);
+      invalidateEmployeeCache();
       res.json({
         success: true,
         data: updated
@@ -167,6 +175,7 @@ class EmployeeController {
       }
 
       await Employee.delete(req.params.id);
+      invalidateEmployeeCache();
       res.json({
         success: true,
         message: 'Employee deleted successfully'

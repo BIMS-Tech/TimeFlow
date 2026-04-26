@@ -5,6 +5,10 @@ const TimeEntry = require('../models/TimeEntry');
 const TimeEntriesSummary = require('../models/TimeEntriesSummary');
 const Payslip = require('../models/Payslip');
 
+// In-flight PDF regeneration lock: payslipId → Promise
+// Prevents two simultaneous requests from both regenerating the same missing PDF
+const pdfRegenLocks = new Map();
+
 /**
  * Timesheet Controller
  * Handles timesheet-related API endpoints
@@ -453,17 +457,31 @@ class TimesheetController {
 
       // Regenerate if file is missing from disk (e.g. ephemeral Cloud Run filesystem)
       if (!filePath || !fs.existsSync(filePath)) {
-        const [summary, employee, period] = await Promise.all([
-          TimeEntriesSummary.findById(payslip.summary_id),
-          Employee.findById(payslip.employee_id),
-          PayPeriod.findById(payslip.period_id)
-        ]);
-        if (!summary || !employee || !period) {
-          return res.status(404).json({ success: false, error: 'Cannot regenerate PDF — source data missing' });
+        // Dedup: if another request is already regenerating this payslip, wait for it
+        if (pdfRegenLocks.has(payslip.id)) {
+          filePath = await pdfRegenLocks.get(payslip.id);
+        } else {
+          const regenPromise = (async () => {
+            const [summary, employee, period] = await Promise.all([
+              TimeEntriesSummary.findById(payslip.summary_id),
+              Employee.findById(payslip.employee_id),
+              PayPeriod.findById(payslip.period_id)
+            ]);
+            if (!summary || !employee || !period) {
+              throw new Error('Cannot regenerate PDF — source data missing');
+            }
+            const result = await pdfService.generatePayslipPDF(summary, employee, period, payslip.payslip_number);
+            await Payslip.update(payslip.id, { pdf_path: result.filePath });
+            return result.filePath;
+          })();
+
+          pdfRegenLocks.set(payslip.id, regenPromise);
+          try {
+            filePath = await regenPromise;
+          } finally {
+            pdfRegenLocks.delete(payslip.id);
+          }
         }
-        const result = await pdfService.generatePayslipPDF(summary, employee, period, payslip.payslip_number);
-        filePath = result.filePath;
-        await Payslip.update(payslip.id, { pdf_path: filePath });
       }
 
       const filename = path.basename(filePath);

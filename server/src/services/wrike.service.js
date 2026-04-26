@@ -1,5 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
+const cache = require('./cache.service');
+const { TTL } = require('./cache.service');
 
 /**
  * Wrike API Service
@@ -34,8 +36,11 @@ class WrikeService {
     // Wrike API IDs contain letters (e.g. IEAAAAABBBBBB); legacy IDs are purely numeric
     if (/^\d+$/.test(raw)) {
       try {
-        const response = await this.client.get('/folders');
-        const folders = response.data.data || [];
+        const cached = await cache.get('wrike:folders');
+        const folders = cached || (await this.client.get('/folders').then(r => {
+          cache.set('wrike:folders', r.data.data || [], TTL.WRIKE_FOLDERS).catch(() => {});
+          return r.data.data || [];
+        }));
         const match = folders.find(f => String(f.legacyId) === raw || String(f.id) === raw);
         if (!match) {
           const list = folders.map(f => `"${f.title}" (id=${f.id}, legacyId=${f.legacyId})`).join(', ');
@@ -354,11 +359,20 @@ class WrikeService {
       fields: '["approvalStatus","billingType"]'
     };
 
+    const cacheKey = `wrike:timelogs:${start}:${end}:${[...contactIds].sort().join(',') || 'all'}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      console.log(`[Cache] HIT wrike:timelogs ${start}→${end}`);
+      return cached;
+    }
+
     try {
       if (!contactIds.length) {
         // No filter — fetch all timelogs for the account
         const response = await this.client.get('/timelogs', { params });
-        return response.data.data || [];
+        const data = response.data.data || [];
+        await cache.set(cacheKey, data, TTL.WRIKE_TIMELOGS);
+        return data;
       }
 
       // Fetch per-contact and merge results (Wrike requires separate calls per user)
@@ -390,6 +404,11 @@ class WrikeService {
         throw e;
       }
 
+      // Only cache when all contacts succeeded (partial results should not be cached)
+      if (errors.length === 0) {
+        await cache.set(cacheKey, allLogs, TTL.WRIKE_TIMELOGS);
+      }
+
       return allLogs;
     } catch (error) {
       throw this.handleError(error);
@@ -400,6 +419,9 @@ class WrikeService {
    * Fetch all timelog categories → { [categoryId]: categoryName }
    */
   async getTimelogCategories() {
+    const CACHE_KEY = 'wrike:categories';
+    const cached = await cache.get(CACHE_KEY);
+    if (cached) return cached;
     try {
       const response = await this.client.get('/timelog_categories');
       const map = {};
@@ -407,6 +429,7 @@ class WrikeService {
         map[cat.id] = cat.name;
       }
       console.log('[Wrike] Timelog categories loaded:', map);
+      await cache.set(CACHE_KEY, map, TTL.WRIKE_CATEGORIES);
       return map;
     } catch (err) {
       console.warn('[Wrike] getTimelogCategories failed:', err.response?.data || err.message);
@@ -440,15 +463,19 @@ class WrikeService {
    */
   async getTaskTitles(taskIds) {
     if (!taskIds.length) return {};
+    const unique = [...new Set(taskIds)].slice(0, 100);
+    const CACHE_KEY = `wrike:tasks:${unique.slice().sort().join(',')}`;
+    const cached = await cache.get(CACHE_KEY);
+    if (cached) return cached;
     try {
-      const ids = [...new Set(taskIds)].slice(0, 100).join(',');
-      const response = await this.client.get(`/tasks/${ids}`, {
+      const response = await this.client.get(`/tasks/${unique.join(',')}`, {
         params: { fields: '["title"]' }
       });
       const map = {};
       for (const t of response.data.data || []) {
         map[t.id] = t.title;
       }
+      await cache.set(CACHE_KEY, map, TTL.WRIKE_TASKS);
       return map;
     } catch {
       return {};
