@@ -83,7 +83,7 @@ export default function PendingApprovals() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Approvals</Typography>
           <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.25 }}>
@@ -121,8 +121,8 @@ export default function PendingApprovals() {
             <Typography sx={{ fontSize: '0.875rem' }}>No pending approvals at the moment</Typography>
           </Paper>
         ) : (
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <TableContainer>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>

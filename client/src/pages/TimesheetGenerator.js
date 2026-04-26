@@ -248,7 +248,7 @@ export default function TimesheetGenerator() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Generate Payslip</Typography>
         {hasSelection && (
           <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={handleReset}
@@ -266,7 +266,7 @@ export default function TimesheetGenerator() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
             {/* Employee multi-select */}
-            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <Box sx={{ p: 2, pb: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -336,7 +336,7 @@ export default function TimesheetGenerator() {
             </Paper>
 
             {/* Period select */}
-            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
               <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -504,14 +504,14 @@ export default function TimesheetGenerator() {
                 </Paper>
 
                 {dailyEntries.length > 0 && (
-                  <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+                  <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                     <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
                       onClick={() => setExpandedDays(v => !v)}>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>Daily Breakdown ({dailyEntries.length} days)</Typography>
                       {expandedDays ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.disabled' }} />}
                     </Box>
                     <Collapse in={expandedDays}>
-                      <TableContainer>
+                      <TableContainer sx={{ overflowX: 'auto' }}>
                         <Table size="small">
                           <TableHead sx={{ bgcolor: 'action.hover' }}>
                             <TableRow>
@@ -554,10 +554,44 @@ export default function TimesheetGenerator() {
                     </Typography>
                   </Paper>
                 )}
+
+                {/* Mobile-only task details (stacked below) */}
+                {sortedTasks.length > 0 && (
+                  <Paper elevation={0} sx={{ display: { xs: 'block', md: 'none' }, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none', borderBottom: '1px solid', borderBottomColor: 'divider' }}
+                      onClick={() => setExpandedTasks(v => !v)}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Task Details ({sortedTasks.length})</Typography>
+                      {expandedTasks ? <ExpandLessIcon sx={{ fontSize: 18, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 18, color: 'text.disabled' }} />}
+                    </Box>
+                    <Collapse in={expandedTasks}>
+                      <TableContainer sx={{ overflowX: 'auto' }}>
+                        <Table size="small">
+                          <TableHead sx={{ bgcolor: 'action.hover' }}>
+                            <TableRow>
+                              {['Date', 'Task', 'Comment', 'Hrs'].map((h, i) => (
+                                <TableCell key={h} sx={{ ...TH, textAlign: i === 3 ? 'right' : 'left' }}>{h}</TableCell>
+                              ))}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {sortedTasks.map((t, i) => (
+                              <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                                <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
+                                <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem' }}>{t.taskTitle}</TableCell>
+                                <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem' }}>{t.comment || '—'}</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Collapse>
+                  </Paper>
+                )}
               </Box>
 
               {sortedTasks.length > 0 && (
-                <Box sx={{ display: 'flex', flexShrink: 0, width: taskPanelWidth, alignSelf: 'stretch' }}>
+                <Box sx={{ display: { xs: 'none', md: 'flex' }, flexShrink: 0, width: taskPanelWidth, alignSelf: 'stretch' }}>
                   <Box
                     onMouseDown={onTaskDragStart}
                     sx={{
@@ -609,7 +643,7 @@ export default function TimesheetGenerator() {
         {/* Right panel — bulk results */}
         {!isSingle && bulkResults && (
           <Grid item xs={12} md={8}>
-            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+            <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Generation Results</Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -624,7 +658,7 @@ export default function TimesheetGenerator() {
                   ))}
                 </Box>
               </Box>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>

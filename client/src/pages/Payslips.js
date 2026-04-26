@@ -178,7 +178,7 @@ export default function Payslips() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Payslips</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => setShowBulkPanel(v => !v)}
@@ -263,7 +263,7 @@ export default function Payslips() {
       <Grid container spacing={2}>
         {/* Periods sidebar */}
         <Grid item xs={12} md={3}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary', mb: 1 }}>Periods</Typography>
               <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -306,7 +306,7 @@ export default function Payslips() {
 
         {/* Payslips table */}
         <Grid item xs={12} md={9}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
                 {selectedPeriod ? selectedPeriod.period_name : 'Select a Period'}
@@ -329,7 +329,7 @@ export default function Payslips() {
                 <Typography sx={{ fontSize: '0.875rem' }}>No payslips generated for this period</Typography>
               </Box>
             ) : (
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>

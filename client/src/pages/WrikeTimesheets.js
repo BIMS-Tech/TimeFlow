@@ -205,8 +205,8 @@ export default function WrikeTimesheets() {
 
       {/* Table */}
       {!loading && visibleData.length > 0 && (
-        <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-          <TableContainer>
+        <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <TableContainer sx={{ overflowX: 'auto' }}>
             <Table size="small">
               <TableHead sx={{ bgcolor: 'action.hover' }}>
                 <TableRow>

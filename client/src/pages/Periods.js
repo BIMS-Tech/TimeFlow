@@ -238,7 +238,7 @@ export default function Periods() {
     ? Math.ceil((new Date(editForm.end_date) - new Date(editForm.start_date)) / 86400000) + 1 : null;
 
   const PeriodPanel = ({ title, icon, color, periods: list, accentBg, periodType }) => (
-    <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden', height: '100%' }}>
+    <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', height: '100%' }}>
       <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', bgcolor: accentBg, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           {React.cloneElement(icon, { sx: { fontSize: 16, color } })}
@@ -315,7 +315,7 @@ export default function Periods() {
 
         {/* Period detail */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden', height: '100%' }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', height: '100%' }}>
             {!selectedPeriod ? (
               <Box sx={{ py: 12, textAlign: 'center', color: 'text.disabled' }}>
                 <CalendarMonthIcon sx={{ fontSize: 48, opacity: 0.18, mb: 1.5 }} />
@@ -362,7 +362,7 @@ export default function Periods() {
                 <Divider />
 
                 {/* Summaries table */}
-                <TableContainer>
+                <TableContainer sx={{ overflowX: 'auto' }}>
                   <Table size="small">
                     <TableHead sx={{ bgcolor: 'action.hover' }}>
                       <TableRow>

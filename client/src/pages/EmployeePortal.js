@@ -9,8 +9,11 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
-  InputLabel, LinearProgress, TextField, Dialog, DialogTitle, DialogContent
+  InputLabel, LinearProgress, TextField, Dialog, DialogTitle, DialogContent,
+  AppBar, Toolbar
 } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import KeyIcon from '@mui/icons-material/Key';
@@ -24,6 +27,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import MenuIcon from '@mui/icons-material/Menu';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { getMissingBankFields } from '../utils/employeeProfile';
@@ -84,7 +88,7 @@ function PortalCategoryHoursPanel({ timesheets }) {
   const maxHours = categories.length ? Math.max(...categories.map(c => parseFloat(c.total_hours))) : 0;
 
   return (
-    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden', mt: 2.5 }}>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, mt: 2.5 }}>
       {/* Header */}
       <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Hours by Category</Typography>
@@ -209,7 +213,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
 
       {/* Recent payslips */}
       {payslips.length > 0 && (
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
           <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Recent Payslips</Typography>
             {payslips.length > 3 && (
@@ -272,8 +276,8 @@ function PayslipsSection({ payslips, currency }) {
 
   return (
     <>
-    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
-      <TableContainer>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
+      <TableContainer sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -414,7 +418,7 @@ function ProfileSection({ employee, onUpdated }) {
       )}
 
       {/* Employment Info (read-only) */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
         <SectionHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Employment Details" />
         <Box sx={{ p: 2.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           {[
@@ -436,7 +440,7 @@ function ProfileSection({ employee, onUpdated }) {
       </Paper>
 
       {/* Name Details */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
         <SectionHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Name Details" sub="used in bank transfer files" />
         <Box sx={{ p: 2.5 }}>
           <Grid container spacing={2}>
@@ -448,7 +452,7 @@ function ProfileSection({ employee, onUpdated }) {
       </Paper>
 
       {/* Bank Details — read-only */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
         <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Bank Details" sub="managed by admin" />
         <Box sx={{ px: 2.5, py: 1.5, bgcolor: '#f8fafc', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -469,7 +473,7 @@ function ProfileSection({ employee, onUpdated }) {
 
       {/* DFT / International Fields (foreign only) — read-only */}
       {isForeign && (
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
           <SectionHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="International Transfer Details" sub="managed by admin" />
           <Box sx={{ p: 2.5 }}>
             <Grid container spacing={2}>
@@ -528,7 +532,7 @@ function SettingsSection({ user }) {
 
   return (
     <Box sx={{ maxWidth: 440 }}>
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <KeyIcon sx={{ color: '#6366f1', fontSize: 20 }} />
           <Typography sx={{ fontWeight: 700 }}>Change Password</Typography>
@@ -566,6 +570,9 @@ export default function EmployeePortal() {
   const { user, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [section, setSection] = useState('dashboard');
   const [employee, setEmployee] = useState(null);
   const [timesheets, setTimesheets] = useState([]);
@@ -591,92 +598,120 @@ export default function EmployeePortal() {
 
   const initials = employee?.name?.slice(0, 2).toUpperCase() || user?.username?.slice(0, 2).toUpperCase() || 'ME';
 
+  const drawerContent = (
+    <>
+      {/* Logo */}
+      <Box sx={{ px: 2.5, pt: 3, pb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ width: 36, height: 36, bgcolor: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
+            <AccessTimeFilledIcon sx={{ color: '#818cf8', fontSize: 20 }} />
+          </Box>
+          <Box>
+            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1rem', lineHeight: 1.1 }}>Timeflow</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Employee Portal</Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
+
+      {/* Nav */}
+      <Box sx={{ flex: 1, py: 1.5 }}>
+        <Typography sx={{ px: 3, py: 0.75, fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          My Portal
+        </Typography>
+        <List sx={{ px: 1.5 }}>
+          {NAV_ITEMS.map(({ key, label, icon }) => {
+            const active = section === key;
+            return (
+              <ListItem key={key} disablePadding sx={{ mb: 0.25 }}>
+                <ListItemButton onClick={() => { setSection(key); setMobileOpen(false); }} sx={{
+                  borderRadius: '4px', px: 2, py: 1,
+                  color: active ? 'white' : 'rgba(255,255,255,0.55)',
+                  background: active ? 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)' : 'transparent',
+                  boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                  '&:hover:not([aria-selected="true"])': { bgcolor: 'rgba(255,255,255,0.07)', color: 'white' },
+                  transition: 'all 0.15s',
+                }}>
+                  <ListItemIcon sx={{ color: active ? 'white' : 'rgba(255,255,255,0.4)', minWidth: 36 }}>
+                    {icon}
+                  </ListItemIcon>
+                  <ListItemText primary={label} sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem', fontWeight: active ? 700 : 500 } }} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
+
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
+
+      {/* User */}
+      <Box sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', fontWeight: 700, bgcolor: 'rgba(99,102,241,0.3)', color: '#818cf8', borderRadius: '4px' }}>
+            {initials}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ color: 'white', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {employee?.name || user?.username}
+            </Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Employee</Typography>
+          </Box>
+          <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
+            <IconButton size="small" onClick={toggleTheme} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
+              {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Logout" arrow>
+            <IconButton size="small" onClick={handleLogout} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+    </>
+  );
+
+  const drawerSx = {
+    width: DRAWER_W, flexShrink: 0,
+    '& .MuiDrawer-paper': {
+      width: DRAWER_W,
+      background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)',
+      border: 'none',
+      boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
+    },
+  };
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Sidebar */}
-      <Drawer variant="permanent" sx={{
-        width: DRAWER_W, flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: DRAWER_W,
-          background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)',
-          border: 'none',
-          boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-        },
-      }}>
-        {/* Logo */}
-        <Box sx={{ px: 2.5, pt: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 36, height: 36, bgcolor: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
-              <AccessTimeFilledIcon sx={{ color: '#818cf8', fontSize: 20 }} />
-            </Box>
-            <Box>
-              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1rem', lineHeight: 1.1 }}>Timeflow</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Employee Portal</Typography>
-            </Box>
-          </Box>
-        </Box>
+      {/* Mobile top bar */}
+      {isMobile && (
+        <AppBar position="fixed" elevation={0} sx={{ bgcolor: '#0f172a', borderBottom: '1px solid rgba(255,255,255,0.08)', zIndex: theme.zIndex.drawer + 1 }}>
+          <Toolbar sx={{ gap: 1.5 }}>
+            <IconButton edge="start" onClick={() => setMobileOpen(v => !v)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              <MenuIcon />
+            </IconButton>
+            <AccessTimeFilledIcon sx={{ color: '#818cf8', fontSize: 20 }} />
+            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1rem', flex: 1 }}>Timeflow</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>{sectionTitle}</Typography>
+          </Toolbar>
+        </AppBar>
+      )}
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
-
-        {/* Nav */}
-        <Box sx={{ flex: 1, py: 1.5 }}>
-          <Typography sx={{ px: 3, py: 0.75, fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-            My Portal
-          </Typography>
-          <List sx={{ px: 1.5 }}>
-            {NAV_ITEMS.map(({ key, label, icon }) => {
-              const active = section === key;
-              return (
-                <ListItem key={key} disablePadding sx={{ mb: 0.25 }}>
-                  <ListItemButton onClick={() => setSection(key)} sx={{
-                    borderRadius: '4px', px: 2, py: 1,
-                    color: active ? 'white' : 'rgba(255,255,255,0.55)',
-                    background: active ? 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)' : 'transparent',
-                    boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
-                    '&:hover:not([aria-selected="true"])': { bgcolor: 'rgba(255,255,255,0.07)', color: 'white' },
-                    transition: 'all 0.15s',
-                  }}>
-                    <ListItemIcon sx={{ color: active ? 'white' : 'rgba(255,255,255,0.4)', minWidth: 36 }}>
-                      {icon}
-                    </ListItemIcon>
-                    <ListItemText primary={label} sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem', fontWeight: active ? 700 : 500 } }} />
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
-          </List>
-        </Box>
-
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
-
-        {/* User */}
-        <Box sx={{ p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', fontWeight: 700, bgcolor: 'rgba(99,102,241,0.3)', color: '#818cf8', borderRadius: '4px' }}>
-              {initials}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ color: 'white', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {employee?.name || user?.username}
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Employee</Typography>
-            </Box>
-            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
-              <IconButton size="small" onClick={toggleTheme} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
-                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Logout" arrow>
-              <IconButton size="small" onClick={handleLogout} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
-                <LogoutIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      </Drawer>
+      {/* Sidebar — temporary on mobile, permanent on desktop */}
+      {isMobile ? (
+        <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={drawerSx}>
+          {drawerContent}
+        </Drawer>
+      ) : (
+        <Drawer variant="permanent" sx={drawerSx}>
+          {drawerContent}
+        </Drawer>
+      )}
 
       {/* Main content */}
-      <Box component="main" sx={{ flex: 1, p: 3, minWidth: 0, overflowY: 'auto' }}>
+      <Box component="main" sx={{ flex: 1, p: { xs: 2, md: 3 }, pt: { xs: 9, md: 3 }, minWidth: 0, overflowY: 'auto' }}>
         <Box sx={{ maxWidth: 900, mx: 'auto' }}>
           {/* Page header */}
           <Box sx={{ mb: 3 }}>
