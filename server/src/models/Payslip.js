@@ -1,6 +1,17 @@
 const db = require('../database/connection');
 const { v4: uuidv4 } = require('uuid');
 
+// Serialises payslip number generation within a single process instance.
+// Prevents two parallel bulk-generation jobs from reading the same COUNT
+// and producing the same sequence number (ER_DUP_ENTRY on insert).
+let _seqLock = Promise.resolve();
+function withSeqLock(fn) {
+  const next = _seqLock.then(fn);
+  // Always advance the lock even if fn rejects, so the queue never jams.
+  _seqLock = next.catch(() => {});
+  return next;
+}
+
 /**
  * Payslip Model
  */
@@ -65,44 +76,63 @@ class Payslip {
   }
 
   /**
-   * Generate a new payslip number
+   * Generate a unique payslip number for the current month.
+   * Uses MAX of existing sequences (not COUNT) so gaps from deletions
+   * never cause collisions, and must be called inside withSeqLock.
    */
-  static async generatePayslipNumber() {
+  static async _nextPayslipNumber() {
     const date = new Date();
-    const year = date.getFullYear();
+    const year  = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    
-    // Get count for this month
-    const count = await db.getOne(`
-      SELECT COUNT(*) as count FROM payslips
-      WHERE YEAR(generated_at) = ? AND MONTH(generated_at) = ?
-    `, [year, month]);
-    
-    const sequence = String(count.count + 1).padStart(4, '0');
-    return `PAY-${year}${month}-${sequence}`;
+    const prefix = `PAY-${year}${month}-`;
+
+    const row = await db.getOne(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(payslip_number, '-', -1) AS UNSIGNED)), 0) + 1 AS next_seq
+       FROM payslips WHERE payslip_number LIKE ?`,
+      [`${prefix}%`]
+    );
+    return `${prefix}${String(row.next_seq).padStart(4, '0')}`;
+  }
+
+  static async generatePayslipNumber() {
+    return withSeqLock(() => this._nextPayslipNumber());
   }
 
   /**
-   * Create a new payslip
+   * Create a new payslip.
+   * Serialises number generation with withSeqLock and retries up to 5 times
+   * on ER_DUP_ENTRY so cross-instance races (multiple Cloud Run pods) also
+   * resolve cleanly without surfacing an error to the caller.
    */
   static async create(data) {
-    const payslipNumber = data.payslip_number || await this.generatePayslipNumber();
-    
-    const id = await db.insert('payslips', {
-      summary_id: data.summary_id,
-      payslip_number: payslipNumber,
-      employee_id: data.employee_id,
-      period_id: data.period_id,
-      total_hours: data.total_hours,
-      hourly_rate: data.hourly_rate,
-      gross_amount: data.gross_amount,
-      tax_deductions: data.tax_deductions || 0,
-      other_deductions: data.other_deductions || 0,
-      net_amount: data.net_amount,
-      pdf_path: data.pdf_path || null,
-      status: 'generated'
-    });
-    return this.findById(id);
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const payslipNumber = await withSeqLock(() => this._nextPayslipNumber());
+      try {
+        const id = await db.insert('payslips', {
+          summary_id:       data.summary_id,
+          payslip_number:   payslipNumber,
+          employee_id:      data.employee_id,
+          period_id:        data.period_id,
+          total_hours:      data.total_hours,
+          hourly_rate:      data.hourly_rate,
+          gross_amount:     data.gross_amount,
+          tax_deductions:   data.tax_deductions   || 0,
+          other_deductions: data.other_deductions || 0,
+          net_amount:       data.net_amount,
+          pdf_path:         data.pdf_path || null,
+          status:           'generated'
+        });
+        return this.findById(id);
+      } catch (err) {
+        const isDup = err.code === 'ER_DUP_ENTRY' && err.message.includes('payslip_number');
+        if (isDup && attempt < MAX_ATTEMPTS) {
+          console.warn(`[Payslip] Duplicate payslip number ${payslipNumber} on attempt ${attempt}, retrying…`);
+          continue;
+        }
+        throw err;
+      }
+    }
   }
 
   /**
