@@ -156,7 +156,7 @@ export default function Periods() {
         toast.success('Period created');
         setShowCreateModal(false);
         setCreateForm(EMPTY_FORM);
-        fetchPeriods();
+        setAllPeriods(prev => [res.data, ...prev]);
       }
     } catch (e) { toast.error(e.response?.data?.error || 'Failed to create period'); }
     finally { setCreateSaving(false); }
@@ -170,13 +170,18 @@ export default function Periods() {
       setQuickSaving(true);
       if (quickType === 'local') {
         const res = await timesheetAPI.createMonthlyPeriods(quickYear, quickMonth);
-        if (res.success) toast.success(`Created ${res.data.length} local periods`);
+        if (res.success) {
+          toast.success(`Created ${res.data.length} local periods`);
+          setAllPeriods(prev => [...res.data, ...prev]);
+        }
       } else {
         const res = await timesheetAPI.createForeignMonthlyPeriod(quickYear, quickMonth);
-        if (res.success) toast.success('International period created');
+        if (res.success) {
+          toast.success('International period created');
+          setAllPeriods(prev => [res.data, ...prev]);
+        }
       }
       setShowQuickModal(false);
-      fetchPeriods();
     } catch (e) { toast.error(e.response?.data?.error || 'Failed to generate periods'); }
     finally { setQuickSaving(false); }
   };
@@ -198,7 +203,7 @@ export default function Periods() {
       if (res.success) {
         toast.success('Period updated');
         setShowEditModal(false);
-        fetchPeriods();
+        setAllPeriods(prev => prev.map(p => p.id === editingId ? res.data : p));
         if (selectedPeriod?.id === editingId) setSelectedPeriod(res.data);
       }
     } catch (e) { toast.error(e.response?.data?.error || 'Failed to update period'); }
@@ -212,8 +217,8 @@ export default function Periods() {
       await timesheetAPI.deletePeriod(deleteTarget.id);
       toast.success('Period deleted');
       if (selectedPeriod?.id === deleteTarget.id) { setSelectedPeriod(null); setSummaries([]); }
+      setAllPeriods(prev => prev.filter(p => p.id !== deleteTarget.id));
       setDeleteTarget(null);
-      fetchPeriods();
     } catch (e) { toast.error(e.response?.data?.error || 'Failed to delete period'); }
     finally { setDeleteLoading(false); }
   };
@@ -226,7 +231,6 @@ export default function Periods() {
       toast.dismiss();
       if (res.success) {
         toast.success(`Processed ${res.data.processed} timesheets`);
-        fetchPeriods();
         if (selectedPeriod?.id === periodId) fetchSummaries(periodId);
       }
     } catch { toast.dismiss(); toast.error('Failed to process period'); }

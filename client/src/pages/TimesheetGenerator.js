@@ -89,6 +89,7 @@ export default function TimesheetGenerator() {
 
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [currentGenEmp, setCurrentGenEmp] = useState(null);
 
   // Single-employee result (detailed)
   const [preview, setPreview] = useState(null);
@@ -207,9 +208,11 @@ export default function TimesheetGenerator() {
       // Multiple employees: loop and collect results
       const results = [];
       setProgress({ done: 0, total: empIds.length });
+      setCurrentGenEmp(null);
 
       for (let i = 0; i < empIds.length; i++) {
         const emp = employees.find(e => e.id === empIds[i]);
+        setCurrentGenEmp(emp.name);
         try {
           const previewRes = await timesheetGeneratorAPI.preview(emp.id, startDate, endDate);
           if (previewRes.data.totalHours === 0) {
@@ -223,6 +226,7 @@ export default function TimesheetGenerator() {
         }
         setProgress({ done: i + 1, total: empIds.length });
       }
+      setCurrentGenEmp(null);
 
       setBulkResults(results);
       const generated = results.filter(r => r.status === 'generated').length;
@@ -423,7 +427,7 @@ export default function TimesheetGenerator() {
 
             {/* Generate button + progress */}
             {!isDone && (
-              <Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Button variant="contained" fullWidth
                   startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
                   onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign)}
@@ -432,9 +436,32 @@ export default function TimesheetGenerator() {
                     ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)
                     : `Generate Payslip${selectedIds.size !== 1 ? 's' : ''}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
                 </Button>
+
+                {/* Bulk progress panel */}
                 {generating && !isSingle && progress.total > 0 && (
-                  <LinearProgress variant="determinate" value={(progress.done / progress.total) * 100}
-                    sx={{ mt: 1, borderRadius: 1, height: 6, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#10b981' } }} />
+                  <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0, p: 2, bgcolor: '#f8fafc' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary' }}>
+                        Generating payslips…
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: '#10b981' }}>
+                        {Math.round((progress.done / progress.total) * 100)}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(progress.done / progress.total) * 100}
+                      sx={{ height: 8, borderRadius: 4, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#10b981', borderRadius: 4 } }}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                      <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>
+                        {currentGenEmp ? `Processing: ${currentGenEmp}` : `${progress.done} of ${progress.total} done`}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>
+                        {progress.done} / {progress.total}
+                      </Typography>
+                    </Box>
+                  </Paper>
                 )}
               </Box>
             )}

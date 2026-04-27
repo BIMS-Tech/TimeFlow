@@ -264,7 +264,6 @@ class TimesheetService {
     const fullSummary = await TimeEntriesSummary.getWithDetails(summary.id);
     const period = await PayPeriod.findById(fullSummary.period_id);
 
-    // Mark as approved first — approval must succeed even if Drive upload fails
     await TimeEntriesSummary.markApproved(summary.id, approvedBy);
     fullSummary.approval_status = 'approved';
 
