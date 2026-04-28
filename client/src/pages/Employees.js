@@ -238,16 +238,16 @@ export default function Employees() {
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                {['Employee', 'Contact', 'Department', 'Rate', 'Bank Profile', 'Wrike', 'Portal', 'Status', 'Actions'].map(h => (
+                {['Employee', 'Contact', 'Department', 'Rate', 'Gov IDs', 'Bank Profile', 'Wrike', 'Portal', 'Status', 'Actions'].map(h => (
                   <TableCell key={h} sx={TH}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
               ) : filtered.map(emp => {
                 const hasPortal = !!emp.portal_user_id;
                 const portalActive = emp.id in portalOverrides ? portalOverrides[emp.id] : !!emp.portal_active;
@@ -260,13 +260,47 @@ export default function Employees() {
                         </Avatar>
                         <Box>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{emp.name}</Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.employee_id}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.employee_id}</Typography>
+                            {emp.employee_type && (
+                              <Chip
+                                label={emp.employee_type}
+                                size="small"
+                                sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700,
+                                  bgcolor: emp.hire_category === 'foreign' ? '#0ea5e918' : '#6366f118',
+                                  color: emp.hire_category === 'foreign' ? '#0ea5e9' : '#6366f1' }}
+                              />
+                            )}
+                          </Box>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell sx={TD}>{emp.email}</TableCell>
                     <TableCell sx={TD}>{emp.department || <span style={{ color: '#94a3b8' }}>—</span>}</TableCell>
                     <TableCell sx={TD}>{emp.currency} {emp.hourly_rate}/hr</TableCell>
+                    <TableCell sx={{ ...TD, textAlign: 'center' }}>
+                      {emp.hire_category === 'local' ? (() => {
+                        const hasSSS       = !!emp.sss_number;
+                        const hasPhil      = !!emp.philhealth_number;
+                        const hasPagibig   = !!emp.pagibig_number;
+                        const hasTIN       = !!emp.payee_tin;
+                        const filled = [hasSSS, hasPhil, hasPagibig, hasTIN].filter(Boolean).length;
+                        const missingIds = [
+                          !hasSSS     && 'SSS',
+                          !hasPhil    && 'PhilHealth',
+                          !hasPagibig && 'Pag-IBIG',
+                          !hasTIN     && 'TIN',
+                        ].filter(Boolean);
+                        return filled === 4
+                          ? <Chip label="Complete" size="small" icon={<CheckCircleIcon />}
+                              sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
+                          : <Tooltip title={`Missing: ${missingIds.join(', ')}`} arrow>
+                              <Chip label={`${filled}/4`} size="small" icon={<WarningAmberIcon />}
+                                sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#f59e0b' } }} />
+                            </Tooltip>;
+                      })()
+                      : <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>N/A</Typography>}
+                    </TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {(() => {
                         const missing = getMissingBankFields(emp);

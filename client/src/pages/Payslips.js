@@ -280,21 +280,30 @@ export default function Payslips() {
                   </Box>
                 )}
               </Box>
-              {generating && genProgress?.total > 0 && (
+              {generating && (
                 <Box sx={{ mt: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-                      {genProgress.current ? `Processing: ${genProgress.current}` : 'Processing employees…'}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1' }}>
-                      {Math.round((genProgress.done / genProgress.total) * 100)}%
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(genProgress.done / genProgress.total) * 100}
-                    sx={{ height: 6, borderRadius: 3, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#6366f1', borderRadius: 3 } }}
-                  />
+                  {genProgress?.total > 0 ? (
+                    <>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+                          {genProgress.current ? `Processing: ${genProgress.current}` : 'Processing employees…'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1' }}>
+                          {Math.round((genProgress.done / genProgress.total) * 100)}%
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(genProgress.done / genProgress.total) * 100}
+                        sx={{ height: 6, borderRadius: 3, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#6366f1', borderRadius: 3 } }}
+                      />
+                    </>
+                  ) : (
+                    <LinearProgress
+                      variant="indeterminate"
+                      sx={{ height: 6, borderRadius: 3, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#6366f1', borderRadius: 3 } }}
+                    />
+                  )}
                 </Box>
               )}
             </Box>
