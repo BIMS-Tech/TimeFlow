@@ -1,4 +1,5 @@
 const db = require('../database/connection');
+const { getHireCategory } = require('../services/payroll-deductions.service');
 
 /**
  * Employee Model
@@ -66,6 +67,8 @@ class Employee {
    * Create a new employee
    */
   static async create(data) {
+    const employeeType   = data.employee_type || null;
+    const derivedCategory = employeeType ? getHireCategory(employeeType) : null;
     const id = await db.insert('employees', {
       employee_id: data.employee_id,
       name: data.name,
@@ -74,8 +77,12 @@ class Employee {
       position: data.position || null,
       hourly_rate: data.hourly_rate || 500.00,
       currency: data.currency || 'USD',
+      employee_type: employeeType,
       employment_type: data.employment_type || 'full_time',
-      hire_category: data.hire_category || 'local',
+      hire_category: derivedCategory || data.hire_category || 'local',
+      sss_number: data.sss_number || null,
+      philhealth_number: data.philhealth_number || null,
+      pagibig_number: data.pagibig_number || null,
       // Name parts (for XCS local bank file)
       first_name: data.first_name || null,
       last_name: data.last_name || null,
@@ -112,7 +119,11 @@ class Employee {
    * Update an employee
    */
   static async update(id, data) {
-    await db.update('employees', data, 'id = ?', [id]);
+    const updateData = { ...data };
+    if (updateData.employee_type) {
+      updateData.hire_category = getHireCategory(updateData.employee_type);
+    }
+    await db.update('employees', updateData, 'id = ?', [id]);
     return this.findById(id);
   }
 

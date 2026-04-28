@@ -20,8 +20,13 @@ CREATE TABLE IF NOT EXISTS employees (
     position VARCHAR(100),
     hourly_rate DECIMAL(10, 2) DEFAULT 500.00,
     currency VARCHAR(10) DEFAULT 'USD',
+    employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL') DEFAULT NULL,
     employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
     hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+    -- Government ID numbers (PH)
+    sss_number VARCHAR(20) DEFAULT NULL,
+    philhealth_number VARCHAR(20) DEFAULT NULL,
+    pagibig_number VARCHAR(20) DEFAULT NULL,
     -- Name parts (used for local XCS bank file)
     first_name VARCHAR(100) DEFAULT NULL,
     last_name VARCHAR(100) DEFAULT NULL,
@@ -110,8 +115,13 @@ CREATE TABLE IF NOT EXISTS time_entries_summary (
     hourly_rate DECIMAL(10, 2) NOT NULL,
     gross_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
     deductions DECIMAL(12, 2) DEFAULT 0,
+    sss_ee       DECIMAL(12, 2) DEFAULT 0,
+    sss_mpf      DECIMAL(12, 2) DEFAULT 0,
+    philhealth_ee DECIMAL(12, 2) DEFAULT 0,
+    pagibig_ee   DECIMAL(12, 2) DEFAULT 0,
+    bir_tax      DECIMAL(12, 2) DEFAULT 0,
     net_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-    
+
     -- Approval workflow fields
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     approved_at DATETIME NULL,
@@ -169,6 +179,11 @@ CREATE TABLE IF NOT EXISTS payslips (
     gross_amount DECIMAL(12, 2) NOT NULL,
     tax_deductions DECIMAL(12, 2) DEFAULT 0,
     other_deductions DECIMAL(12, 2) DEFAULT 0,
+    sss_ee       DECIMAL(12, 2) DEFAULT 0,
+    sss_mpf      DECIMAL(12, 2) DEFAULT 0,
+    philhealth_ee DECIMAL(12, 2) DEFAULT 0,
+    pagibig_ee   DECIMAL(12, 2) DEFAULT 0,
+    bir_tax      DECIMAL(12, 2) DEFAULT 0,
     net_amount DECIMAL(12, 2) NOT NULL,
     
     -- File information
@@ -455,23 +470,46 @@ DELIMITER ;
 -- Run these ALTER statements once on existing databases.
 -- schema.sql already includes these columns for fresh installs.
 -- ============================================
+-- Note: ADD COLUMN without IF NOT EXISTS — run only on databases that don't yet have these columns.
 ALTER TABLE employees
-  ADD COLUMN IF NOT EXISTS employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
-  ADD COLUMN IF NOT EXISTS hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
-  -- Name parts (XCS local bank file)
-  ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS middle_name VARCHAR(100) DEFAULT NULL,
-  -- Bank details
-  ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_swift_code VARCHAR(50) DEFAULT NULL,
-  -- International DFT fields
-  ADD COLUMN IF NOT EXISTS remittance_type VARCHAR(50) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS beneficiary_code VARCHAR(50) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS beneficiary_address TEXT DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS bank_address VARCHAR(255) DEFAULT NULL;
+  ADD COLUMN employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
+  ADD COLUMN hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
+  ADD COLUMN first_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN last_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN middle_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN bank_name VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN bank_account_number VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN bank_account_name VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN bank_branch VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN bank_swift_code VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN remittance_type VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN beneficiary_code VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN beneficiary_address TEXT DEFAULT NULL,
+  ADD COLUMN bank_address VARCHAR(255) DEFAULT NULL;
+
+-- ============================================
+-- MIGRATION: PH Payroll Logic
+-- New employee type system, government IDs, and deduction breakdown columns.
+-- Run on existing databases; schema.sql already includes these for fresh installs.
+-- ============================================
+ALTER TABLE employees
+  ADD COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL') DEFAULT NULL,
+  ADD COLUMN sss_number VARCHAR(20) DEFAULT NULL,
+  ADD COLUMN philhealth_number VARCHAR(20) DEFAULT NULL,
+  ADD COLUMN pagibig_number VARCHAR(20) DEFAULT NULL;
+
+ALTER TABLE time_entries_summary
+  ADD COLUMN sss_ee       DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN sss_mpf      DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN philhealth_ee DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN pagibig_ee   DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN bir_tax      DECIMAL(12,2) DEFAULT 0;
+
+ALTER TABLE payslips
+  ADD COLUMN sss_ee       DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN sss_mpf      DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN philhealth_ee DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN pagibig_ee   DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN bir_tax      DECIMAL(12,2) DEFAULT 0;
 
 -- End of schema

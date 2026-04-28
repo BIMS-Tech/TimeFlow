@@ -25,10 +25,27 @@ import { getMissingBankFields } from '../utils/employeeProfile';
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
 
+const EMPLOYEE_TYPES = [
+  { value: 'FTE-LCL',  label: 'FTE-LCL — Full-Time Employee (Local)',           category: 'local'   },
+  { value: 'FTE-INTL', label: 'FTE-INTL — Full-Time Employee (International)',   category: 'foreign' },
+  { value: 'PTE-WB',   label: 'PTE-WB — Part-Time with Benefits',               category: 'local'   },
+  { value: 'PTE-WOB',  label: 'PTE-WOB — Part-Time without Benefits',           category: 'local'   },
+  { value: 'PTE-INTL', label: 'PTE-INTL — Part-Time (International)',           category: 'foreign' },
+  { value: 'PB-LCL',   label: 'PB-LCL — Project-Based (Local)',                 category: 'local'   },
+  { value: 'PB-INTL',  label: 'PB-INTL — Project-Based (International)',        category: 'foreign' },
+];
+
+function deriveHireCategory(employeeType) {
+  const found = EMPLOYEE_TYPES.find(t => t.value === employeeType);
+  return found ? found.category : 'local';
+}
+
 const EMPTY_FORM = {
   employee_id: '', name: '', email: '', department: '', position: '',
-  hourly_rate: 500, currency: 'USD', employment_type: 'full_time', hire_category: 'local',
+  hourly_rate: 500, currency: 'PHP', employee_type: '', employment_type: 'full_time', hire_category: 'local',
   wrike_user_id: '', hire_date: '',
+  // Government IDs (PH)
+  sss_number: '', philhealth_number: '', pagibig_number: '', payee_tin: '',
   // Name parts (XCS local bank file)
   first_name: '', last_name: '', middle_name: '',
   // Bank details
@@ -37,7 +54,7 @@ const EMPTY_FORM = {
   remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
   country_of_destination: '', purpose_nature: '',
   intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
-  payee_tin: '', payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '',
+  payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '',
   tax_code: '',
 };
 
@@ -72,11 +89,16 @@ export default function Employees() {
     setForm(emp ? {
       employee_id: emp.employee_id, name: emp.name, email: emp.email,
       department: emp.department || '', position: emp.position || '',
-      hourly_rate: emp.hourly_rate, currency: emp.currency || 'USD',
+      hourly_rate: emp.hourly_rate, currency: emp.currency || 'PHP',
+      employee_type: emp.employee_type || '',
       employment_type: emp.employment_type || 'full_time',
       hire_category: emp.hire_category || 'local',
       wrike_user_id: emp.wrike_user_id || '',
       hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
+      sss_number: emp.sss_number || '',
+      philhealth_number: emp.philhealth_number || '',
+      pagibig_number: emp.pagibig_number || '',
+      payee_tin: emp.payee_tin || '',
       first_name: emp.first_name || '', last_name: emp.last_name || '', middle_name: emp.middle_name || '',
       bank_name: emp.bank_name || '', bank_account_number: emp.bank_account_number || '',
       bank_account_name: emp.bank_account_name || '', bank_branch: emp.bank_branch || '',
@@ -87,7 +109,7 @@ export default function Employees() {
       intermediary_bank_name: emp.intermediary_bank_name || '',
       intermediary_bank_address: emp.intermediary_bank_address || '',
       intermediary_bank_swift: emp.intermediary_bank_swift || '',
-      payee_tin: emp.payee_tin || '', payee_zip_code: emp.payee_zip_code || '',
+      payee_zip_code: emp.payee_zip_code || '',
       payee_foreign_address: emp.payee_foreign_address || '',
       payee_foreign_zip_code: emp.payee_foreign_zip_code || '',
       tax_code: emp.tax_code || '',
@@ -313,36 +335,51 @@ export default function Employees() {
             <Grid item xs={4}><TextField fullWidth label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             <Grid item xs={5}><TextField fullWidth label="Position" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             <Grid item xs={3}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            {/* Row 3: Rate · Currency · Employment Type · Hire Category */}
+            {/* Row 3: Rate · Currency · Employee Type */}
             <Grid item xs={3}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             <Grid item xs={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Currency</InputLabel>
                 <Select label="Currency" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} sx={{ borderRadius: '10px' }}>
-                  <MenuItem value="USD">USD $</MenuItem>
                   <MenuItem value="PHP">PHP ₱</MenuItem>
+                  <MenuItem value="USD">USD $</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={7}>
               <FormControl fullWidth size="small">
-                <InputLabel>Employment Type</InputLabel>
-                <Select label="Employment Type" value={form.employment_type} onChange={e => setForm(f => ({ ...f, employment_type: e.target.value }))} sx={{ borderRadius: '10px' }}>
-                  <MenuItem value="full_time">Full-Time</MenuItem>
-                  <MenuItem value="part_time">Part-Time</MenuItem>
-                  <MenuItem value="contractor">Contractor</MenuItem>
+                <InputLabel>Employee Type</InputLabel>
+                <Select
+                  label="Employee Type"
+                  value={form.employee_type}
+                  onChange={e => {
+                    const et = e.target.value;
+                    setForm(f => ({ ...f, employee_type: et, hire_category: deriveHireCategory(et) }));
+                  }}
+                  sx={{ borderRadius: '10px' }}
+                >
+                  <MenuItem value=""><em>— Select type —</em></MenuItem>
+                  {EMPLOYEE_TYPES.map(t => (
+                    <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Hire Category</InputLabel>
-                <Select label="Hire Category" value={form.hire_category} onChange={e => setForm(f => ({ ...f, hire_category: e.target.value }))} sx={{ borderRadius: '10px' }}>
-                  <MenuItem value="local">Local</MenuItem>
-                  <MenuItem value="foreign">Foreign</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+
+            {/* Government IDs — shown for local types */}
+            {form.hire_category === 'local' && (
+              <Grid item xs={12}>
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Government IDs</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={3}><TextField fullWidth label="SSS No." placeholder="XX-XXXXXXX-X" value={form.sss_number} onChange={e => setForm(f => ({ ...f, sss_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={3}><TextField fullWidth label="PhilHealth No." placeholder="XX-XXXXXXXXX-X" value={form.philhealth_number} onChange={e => setForm(f => ({ ...f, philhealth_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={3}><TextField fullWidth label="Pag-IBIG No." placeholder="XXXX-XXXX-XXXX" value={form.pagibig_number} onChange={e => setForm(f => ({ ...f, pagibig_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={3}><TextField fullWidth label="TIN (BIR)" placeholder="XXX-XXX-XXX-XXXX" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  </Grid>
+                </Box>
+              </Grid>
+            )}
 
             {/* Name for payroll file */}
             <Grid item xs={12}>

@@ -274,11 +274,14 @@ class PDFService {
         const regularHours  = parseFloat(summary.regular_hours)   || 0;
         const overtimeHours = parseFloat(summary.overtime_hours)  || 0;
         const grossAmount   = parseFloat(summary.gross_amount)    || 0;
-        const taxDed        = parseFloat(summary.tax_deductions)  || 0;
-        const otherDed      = parseFloat(summary.other_deductions)|| 0;
-        const deductions    = parseFloat(summary.deductions)      || 0;
-        const netAmount     = parseFloat(summary.net_amount)      || grossAmount;
-        const totalDed      = taxDed + otherDed + deductions;
+        const sssEE         = parseFloat(summary.sss_ee)          || 0;
+        const sssMPF        = parseFloat(summary.sss_mpf)         || 0;
+        const philhealthEE  = parseFloat(summary.philhealth_ee)   || 0;
+        const pagibigEE     = parseFloat(summary.pagibig_ee)      || 0;
+        const birTax        = parseFloat(summary.bir_tax)         || 0;
+        const govtDed       = sssEE + sssMPF + philhealthEE + pagibigEE;
+        const totalDed      = govtDed + birTax;
+        const netAmount     = parseFloat(summary.net_amount)      || Math.max(0, grossAmount - totalDed);
         const overtimeRate  = hourlyRate * 1.5;
         const regularPay    = regularHours  * hourlyRate;
         const overtimePay   = overtimeHours * overtimeRate;
@@ -316,6 +319,10 @@ class PDFService {
         const T2_H        = ROW_H + ROW_H;
         const T3_H        = ROW_H + ROW_H;
         const EARN_H      = HDR_H + (9 + 1) * ROW_H;// header + 9 rows + total
+        const hasDeductions = totalDed > 0;
+        // Deductions section: section heading (17) + header row + 5 data rows (SSS, PhilHealth, Pag-IBIG, Tax, Total)
+        const DED_ROWS    = (sssEE > 0 ? 1 : 0) + (sssMPF > 0 ? 1 : 0) + (philhealthEE > 0 ? 1 : 0) + (pagibigEE > 0 ? 1 : 0) + (birTax > 0 ? 1 : 0);
+        const DED_H       = hasDeductions ? (17 + HDR_H + (DED_ROWS + 1) * ROW_H + 12) : 0;
         const NETPAY_H    = ROW_H;
         const BANK_H      = bankRows * ROW_H + (bankRows > 0 ? 10 : 0);
         const FOOTER_H    = 26;
@@ -323,7 +330,7 @@ class PDFService {
 
         const CONTENT_H = STRIP_H + LOGO_H + ADDR_H + GAP_AFTER_LOGO +
                           T1_H + 8 + T2_H + 8 + T3_H + SECTIONS_GAPS +
-                          EARN_H + NETPAY_H + BANK_H + FOOTER_H;
+                          EARN_H + DED_H + NETPAY_H + BANK_H + FOOTER_H;
 
         const PAGE_H    = CONTENT_H + 40;           // 20pt top pad + 20pt bottom pad
         const TOP_PAD   = 20;
@@ -434,9 +441,11 @@ class PDFService {
         y += GAP_AFTER_LOGO;
 
         // ── Table 1 — Employee info ──────────────────────────────────────────
-        const empType = employee.employment_type === 'contractor' ? 'FREELANCE'
-                      : employee.employment_type === 'part_time'  ? 'PART TIME'
-                      : 'FULL TIME';
+        const empType = employee.employee_type
+          ? employee.employee_type
+          : (employee.employment_type === 'contractor' ? 'FREELANCE'
+             : employee.employment_type === 'part_time' ? 'PART TIME'
+             : 'FULL TIME');
         const payDate = summary.approved_at
           ? this.formatDate(summary.approved_at)
           : this.formatDate(now);
@@ -484,8 +493,8 @@ class PDFService {
         y = hdrRow(MARGIN, y, t3, ROW_H);
         y = dataRow(MARGIN, y, t3, [
           fmt2(grossAmount),
-          fmt2(totalDed),
-          fmt2(taxDed),
+          fmt2(govtDed),
+          fmt2(birTax),
           fmt2(netAmount),
         ]);
         y += 12;
@@ -525,6 +534,34 @@ class PDFService {
           fmt2(grossAmount),
         ], { bold: true });
         y += 12;
+
+        // ── Deductions section (government contributions + BIR tax) ──────────
+        if (hasDeductions) {
+          y = section(y, 'Deductions');
+
+          const tD = [
+            { label: 'Description',  w: 285, dataAlign: 'left'  },
+            { label: '',             w: 85,  dataAlign: 'left'  },
+            { label: '',             w: 80,  dataAlign: 'left'  },
+            { label: '',             w: 75,  dataAlign: 'left'  },
+            { label: 'Amount',       w: 65,  dataAlign: 'right' },
+          ];
+          y = hdrRow(MARGIN, y, tD, HDR_H);
+
+          const dedRows = [];
+          if (sssEE   > 0) dedRows.push(['SSS — Employee Share (1st cut-off)',    '', '', '', fmt2(sssEE)]);
+          if (sssMPF  > 0) dedRows.push(['SSS — Mandatory Provident Fund (MPF)',   '', '', '', fmt2(sssMPF)]);
+          if (philhealthEE > 0) dedRows.push(['PhilHealth — Employee Contribution', '', '', '', fmt2(philhealthEE)]);
+          if (pagibigEE > 0) dedRows.push(['Pag-IBIG (HDMF) — Employee Share',    '', '', '', fmt2(pagibigEE)]);
+          if (birTax  > 0) dedRows.push(['BIR Withholding Tax',                   '', '', '', fmt2(birTax)]);
+          for (const row of dedRows) {
+            y = dataRow(MARGIN, y, tD, row);
+          }
+          y = dataRow(MARGIN, y, tD, [
+            'Total Deductions', '', '', '', fmt2(totalDed),
+          ], { bold: true });
+          y += 12;
+        }
 
         // ── Net Pay section ──────────────────────────────────────────────────
         y = section(y, 'Net Pay');

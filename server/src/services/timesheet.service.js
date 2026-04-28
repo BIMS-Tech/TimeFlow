@@ -6,6 +6,7 @@ const Payslip = require('../models/Payslip');
 const wrikeService = require('./wrike.service');
 const pdfService = require('./pdf.service');
 const csvService = require('./csv.service');
+const { computeDeductions } = require('./payroll-deductions.service');
 const db = require('../database/connection');
 const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
@@ -166,16 +167,24 @@ class TimesheetService {
     // Calculate hours breakdown
     const hoursBreakdown = await this.calculateHoursBreakdown(employee.id, period, totalHours, hourlyRate);
 
+    // Compute PH government deductions based on employee type
+    const ded = computeDeductions(employee.employee_type, hoursBreakdown.grossAmount, period);
+
     // Create or update summary
     summary = await TimeEntriesSummary.upsert({
-      employee_id: employee.id,
-      period_id: period.id,
-      total_hours: hoursBreakdown.totalHours,
+      employee_id:   employee.id,
+      period_id:     period.id,
+      total_hours:   hoursBreakdown.totalHours,
       regular_hours: hoursBreakdown.regularHours,
       overtime_hours: hoursBreakdown.overtimeHours,
-      hourly_rate: hourlyRate,
-      gross_amount: hoursBreakdown.grossAmount,
-      net_amount: hoursBreakdown.grossAmount
+      hourly_rate:   hourlyRate,
+      gross_amount:  hoursBreakdown.grossAmount,
+      sss_ee:        ded.sssEE,
+      sss_mpf:       ded.sssMPF,
+      philhealth_ee: ded.philhealthEE,
+      pagibig_ee:    ded.pagibigEE,
+      bir_tax:       ded.birTax,
+      net_amount:    Math.max(0, hoursBreakdown.grossAmount - ded.total),
     });
 
     // Get task breakdown
@@ -344,15 +353,20 @@ class TimesheetService {
 
     // Create payslip record — pass the same number used in the PDF
     const payslip = await Payslip.create({
-      summary_id: summary.id,
+      summary_id:    summary.id,
       payslip_number: payslipNumber,
-      employee_id: summary.employee_id,
-      period_id: period.id,
-      total_hours: summary.total_hours,
-      hourly_rate: summary.hourly_rate,
-      gross_amount: summary.gross_amount,
-      net_amount: summary.net_amount,
-      pdf_path: pdfResult.filePath
+      employee_id:   summary.employee_id,
+      period_id:     period.id,
+      total_hours:   summary.total_hours,
+      hourly_rate:   summary.hourly_rate,
+      gross_amount:  summary.gross_amount,
+      sss_ee:        summary.sss_ee        || 0,
+      sss_mpf:       summary.sss_mpf       || 0,
+      philhealth_ee: summary.philhealth_ee  || 0,
+      pagibig_ee:    summary.pagibig_ee    || 0,
+      bir_tax:       summary.bir_tax       || 0,
+      net_amount:    summary.net_amount,
+      pdf_path:      pdfResult.filePath,
     });
 
     console.log(`✅ Payslip generated: ${payslipNumber}`);

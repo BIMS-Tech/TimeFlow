@@ -91,6 +91,14 @@ class TimeEntriesSummary {
   static async upsert(data) {
     const existing = await this.findByEmployeeAndPeriod(data.employee_id, data.period_id);
     
+    const deductionFields = {
+      sss_ee:        data.sss_ee        || 0,
+      sss_mpf:       data.sss_mpf       || 0,
+      philhealth_ee: data.philhealth_ee  || 0,
+      pagibig_ee:    data.pagibig_ee    || 0,
+      bir_tax:       data.bir_tax       || 0,
+    };
+
     if (existing) {
       await db.update('time_entries_summary', {
         total_hours: data.total_hours,
@@ -99,20 +107,22 @@ class TimeEntriesSummary {
         hourly_rate: data.hourly_rate,
         gross_amount: data.gross_amount,
         net_amount: data.net_amount,
+        ...deductionFields,
         updated_at: new Date()
       }, 'id = ?', [existing.id]);
       return this.findById(existing.id);
     } else {
       const id = await db.insert('time_entries_summary', {
-        employee_id: data.employee_id,
-        period_id: data.period_id,
-        total_hours: data.total_hours,
+        employee_id:   data.employee_id,
+        period_id:     data.period_id,
+        total_hours:   data.total_hours,
         regular_hours: data.regular_hours || data.total_hours,
         overtime_hours: data.overtime_hours || 0,
-        hourly_rate: data.hourly_rate,
-        gross_amount: data.gross_amount,
-        net_amount: data.net_amount || data.gross_amount,
-        deductions: data.deductions || 0
+        hourly_rate:   data.hourly_rate,
+        gross_amount:  data.gross_amount,
+        net_amount:    data.net_amount || data.gross_amount,
+        deductions:    data.deductions || 0,
+        ...deductionFields,
       });
       return this.findById(id);
     }
