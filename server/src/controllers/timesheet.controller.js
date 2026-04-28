@@ -578,30 +578,47 @@ class TimesheetController {
   }
 
   /**
-   * Bulk approve & generate payslips
+   * Bulk approve & generate payslips (async)
    * POST /api/timesheet/bulk-generate-payslips
    */
   async bulkGeneratePayslips(req, res) {
+    const jobWorker = require('../services/job-worker.service');
     try {
       const { periodId, employeeIds } = req.body;
       if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
-      const result = await timesheetService.bulkApproveAndGenerate(periodId, employeeIds || null);
-      res.json({ success: true, data: result });
+      const job = await jobWorker.enqueueJob('bulk_generate', { periodId, employeeIds: employeeIds || null });
+      res.json({ success: true, data: { jobId: job.id, status: 'queued' } });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
   }
 
   /**
-   * POST /api/timesheet/generate-payslips-for-period
+   * POST /api/timesheet/generate-payslips-for-period (async)
    * Full pipeline: fetch Wrike timelogs → import → generate payslips
    */
   async generatePayslipsForPeriod(req, res) {
+    const jobWorker = require('../services/job-worker.service');
     try {
       const { periodId, employeeIds } = req.body;
       if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
-      const result = await timesheetService.generatePayslipsForPeriod(periodId, employeeIds || null);
-      res.json({ success: true, data: result });
+      const job = await jobWorker.enqueueJob('generate_period', { periodId, employeeIds: employeeIds || null });
+      res.json({ success: true, data: { jobId: job.id, status: 'queued' } });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Poll job status
+   * GET /api/jobs/:id
+   */
+  async getJobStatus(req, res) {
+    const jobWorker = require('../services/job-worker.service');
+    try {
+      const job = await jobWorker.getJob(req.params.id);
+      if (!job) return res.status(404).json({ success: false, error: 'Job not found' });
+      res.json({ success: true, data: job });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -648,17 +665,18 @@ class TimesheetController {
   }
 
   /**
-   * Submit timesheet for approval — imports timelogs, generates PDF, creates Wrike task
+   * Submit timesheet for approval — enqueues an async job and returns immediately
    * POST /api/timesheet/submit
    */
   async submitTimesheet(req, res) {
+    const jobWorker = require('../services/job-worker.service');
     try {
       const { employeeId, startDate, endDate, periodName } = req.body;
       if (!employeeId || !startDate || !endDate) {
         return res.status(400).json({ success: false, error: 'employeeId, startDate and endDate are required' });
       }
-      const result = await timesheetService.submitTimesheet(employeeId, startDate, endDate, periodName);
-      res.json({ success: true, data: result });
+      const job = await jobWorker.enqueueJob('submit', { employeeId, startDate, endDate, periodName });
+      res.json({ success: true, data: { jobId: job.id, status: 'queued' } });
     } catch (error) {
       console.error('❌ submitTimesheet error:', error.message);
       res.status(500).json({ success: false, error: error.message });

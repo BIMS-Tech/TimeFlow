@@ -161,6 +161,13 @@ export const timesheetGeneratorAPI = {
 };
 
 // ============================================
+// Jobs API (async payroll job polling)
+// ============================================
+export const jobsAPI = {
+  getStatus: (id) => api.get(`/jobs/${id}`),
+};
+
+// ============================================
 // Wrike API
 // ============================================
 export const wrikeAPI = {

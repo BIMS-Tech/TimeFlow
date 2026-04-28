@@ -217,6 +217,12 @@ router.post('/timesheet/bulk-generate-payslips', timesheetController.bulkGenerat
 router.post('/timesheet/generate-payslips-for-period', timesheetController.generatePayslipsForPeriod.bind(timesheetController));
 
 /**
+ * @route GET /api/jobs/:id
+ * @desc Poll async payroll job status
+ */
+router.get('/jobs/:id', timesheetController.getJobStatus.bind(timesheetController));
+
+/**
  * @route GET /api/payroll/bank-file
  * @desc Generate bank transfer file for a period (?periodId=X&type=local|foreign)
  */

@@ -125,12 +125,43 @@ async function runMigrations() {
     `ALTER TABLE pay_periods ADD COLUMN period_type ENUM('local','foreign') NOT NULL DEFAULT 'local'`,
     // Seed admin user (INSERT IGNORE skips silently if email already exists)
     `INSERT IGNORE INTO users (username, email, password_hash, role, is_active) VALUES ('dam', 'dam@bims.tech', '$2a$10$o/Mq7JOam81/UrSQn6T91ei1RrYVgAqn4HVboXCkzlJ1GBaue5.UG', 'admin', 1)`,
+
+    // Philippine payroll deduction fields
+    `ALTER TABLE employees ADD COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL') DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN sss_number VARCHAR(20) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN philhealth_number VARCHAR(20) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN pagibig_number VARCHAR(20) DEFAULT NULL`,
+    `ALTER TABLE time_entries_summary ADD COLUMN sss_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE time_entries_summary ADD COLUMN sss_mpf DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE time_entries_summary ADD COLUMN philhealth_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE time_entries_summary ADD COLUMN pagibig_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE time_entries_summary ADD COLUMN bir_tax DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN sss_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN sss_mpf DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN philhealth_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN pagibig_ee DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN bir_tax DECIMAL(12,2) DEFAULT 0`,
+
+    // Async payroll job queue
+    `CREATE TABLE IF NOT EXISTS payroll_jobs (
+      id VARCHAR(36) NOT NULL,
+      type VARCHAR(50) NOT NULL DEFAULT 'submit',
+      status ENUM('queued','processing','done','failed') NOT NULL DEFAULT 'queued',
+      payload JSON NOT NULL,
+      result JSON DEFAULT NULL,
+      error TEXT DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_pj_status (status),
+      INDEX idx_pj_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
   ];
   for (const sql of migrations) {
     try {
       await db.query(sql);
     } catch (e) {
-      if (!e.message.includes('Duplicate column')) {
+      if (!e.message.includes('Duplicate column') && !e.message.includes('already exists')) {
         console.warn('⚠️  Migration warning:', e.message);
       }
     }
@@ -152,6 +183,10 @@ async function startServer() {
     // Run schema migrations
     console.log('🔄 Running migrations...');
     await runMigrations();
+
+    // Resume any jobs that were queued/processing before the last restart
+    const jobWorker = require('./services/job-worker.service');
+    await jobWorker.drainQueued();
 
     // Start HTTP server
     app.listen(PORT, () => {

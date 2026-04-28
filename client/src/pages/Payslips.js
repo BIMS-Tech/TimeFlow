@@ -16,7 +16,20 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { timesheetAPI, payslipsAPI, employeesAPI } from '../api';
+import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI } from '../api';
+
+function pollJob(jobId) {
+  return new Promise((resolve, reject) => {
+    const id = setInterval(async () => {
+      try {
+        const res = await jobsAPI.getStatus(jobId);
+        const job = res.data;
+        if (job.status === 'done') { clearInterval(id); resolve(job.result); }
+        else if (job.status === 'failed') { clearInterval(id); reject(new Error(job.error || 'Job failed')); }
+      } catch (err) { clearInterval(id); reject(err); }
+    }, 1500);
+  });
+}
 import { getMissingBankFields } from '../utils/employeeProfile';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
@@ -116,15 +129,20 @@ export default function Payslips() {
     try {
       const empIds = selectAll ? null : selectedEmployeeIds;
       const res = await payslipsAPI.generateForPeriod(selectedPeriod.id, empIds);
-      if (res.success) {
-        setBulkResult(res.data);
-        const { generated, skipped, errors } = res.data;
+      let data = res.data;
+      if (data?.jobId) {
+        toast('Generating payslips in background…', { icon: '⚙️', duration: 3000 });
+        data = await pollJob(data.jobId);
+      }
+      if (data) {
+        setBulkResult(data);
+        const { generated, skipped, errors } = data;
         if (generated > 0) toast.success(`Generated ${generated} payslip(s)`);
         else if (skipped > 0) toast(`${skipped} already generated — nothing new to create`, { icon: 'ℹ️' });
         else if (errors?.length) toast.error(`${errors.length} error(s) — check results`);
         fetchPayslips(selectedPeriod.id);
       }
-    } catch (e) { toast.error(e.response?.data?.error || 'Generation failed'); }
+    } catch (e) { toast.error(e.response?.data?.error || e.message || 'Generation failed'); }
     finally { setGenerating(false); }
   };
 

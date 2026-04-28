@@ -20,7 +20,29 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AddIcon from '@mui/icons-material/Add';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { employeesAPI, timesheetAPI, timesheetGeneratorAPI } from '../api';
+import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI } from '../api';
+
+function pollJob(jobId, onProgress) {
+  return new Promise((resolve, reject) => {
+    const id = setInterval(async () => {
+      try {
+        const res = await jobsAPI.getStatus(jobId);
+        const job = res.data;
+        if (onProgress) onProgress(job.status);
+        if (job.status === 'done') {
+          clearInterval(id);
+          resolve(job.result);
+        } else if (job.status === 'failed') {
+          clearInterval(id);
+          reject(new Error(job.error || 'Job failed'));
+        }
+      } catch (err) {
+        clearInterval(id);
+        reject(err);
+      }
+    }, 1500);
+  });
+}
 
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
 
@@ -180,7 +202,7 @@ export default function TimesheetGenerator() {
     const empIds = [...selectedIds];
 
     if (isSingle) {
-      // Single employee: detailed preview + submit
+      // Single employee: detailed preview + submit (async job)
       const emp = employees.find(e => e.id === empIds[0]);
       try {
         const previewRes = await timesheetGeneratorAPI.preview(emp.id, startDate, endDate);
@@ -196,16 +218,20 @@ export default function TimesheetGenerator() {
         }
         if (previewRes.data.source === 'db') toast('Using imported hours from database.', { icon: 'ℹ️', duration: 5000 });
         const res = await timesheetGeneratorAPI.submit(emp.id, startDate, endDate, selectedPeriod.period_name);
-        setSubmitted(res.data);
-        if (res.data?.alreadyPending) toast('This timesheet has already been processed.', { icon: 'ℹ️', duration: 5000 });
+        let resultData = res.data;
+        if (resultData?.jobId) {
+          resultData = await pollJob(resultData.jobId);
+        }
+        setSubmitted(resultData);
+        if (resultData?.alreadyPending) toast('This timesheet has already been processed.', { icon: 'ℹ️', duration: 5000 });
         else toast.success('Payslip generated successfully!');
       } catch (err) {
-        toast.error(err.response?.data?.error || 'Failed to generate payslip');
+        toast.error(err.response?.data?.error || err.message || 'Failed to generate payslip');
       } finally {
         setGenerating(false);
       }
     } else {
-      // Multiple employees: loop and collect results
+      // Multiple employees: loop, submit each as async job, poll for each result
       const results = [];
       setProgress({ done: 0, total: empIds.length });
       setCurrentGenEmp(null);
@@ -219,10 +245,14 @@ export default function TimesheetGenerator() {
             results.push({ emp, status: 'no_hours', noApprovedHours: previewRes.data.noApprovedHours });
           } else {
             const res = await timesheetGeneratorAPI.submit(emp.id, startDate, endDate, selectedPeriod.period_name);
-            results.push({ emp, status: res.data?.alreadyPending ? 'exists' : 'generated', hours: previewRes.data.totalHours, gross: previewRes.data.grossAmount });
+            let resultData = res.data;
+            if (resultData?.jobId) {
+              resultData = await pollJob(resultData.jobId);
+            }
+            results.push({ emp, status: resultData?.alreadyPending ? 'exists' : 'generated', hours: previewRes.data.totalHours, gross: previewRes.data.grossAmount });
           }
         } catch (err) {
-          results.push({ emp, status: 'error', error: err.response?.data?.error || 'Failed' });
+          results.push({ emp, status: 'error', error: err.response?.data?.error || err.message || 'Failed' });
         }
         setProgress({ done: i + 1, total: empIds.length });
       }
