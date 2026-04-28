@@ -21,9 +21,17 @@ class JobWorkerService {
     if (!row) return null;
     return {
       ...row,
-      payload: this._parseJSON(row.payload),
-      result:  this._parseJSON(row.result),
+      payload:  this._parseJSON(row.payload),
+      progress: this._parseJSON(row.progress),
+      result:   this._parseJSON(row.result),
     };
+  }
+
+  async updateProgress(jobId, done, total, current) {
+    await db.query(
+      `UPDATE payroll_jobs SET progress = ?, updated_at = NOW() WHERE id = ?`,
+      [JSON.stringify({ done, total, current: current || null }), jobId]
+    );
   }
 
   // Pick up queued/stuck-processing jobs after a server restart
@@ -60,6 +68,9 @@ class JobWorkerService {
       // Lazy-load to avoid circular deps at module load time
       const timesheetService = require('./timesheet.service');
 
+      const onProgress = (done, total, current) =>
+        this.updateProgress(jobId, done, total, current).catch(() => {});
+
       let result;
       switch (job.type) {
         case 'submit': {
@@ -69,12 +80,12 @@ class JobWorkerService {
         }
         case 'bulk_generate': {
           const { periodId, employeeIds } = job.payload;
-          result = await timesheetService.bulkApproveAndGenerate(periodId, employeeIds || null);
+          result = await timesheetService.bulkApproveAndGenerate(periodId, employeeIds || null, onProgress);
           break;
         }
         case 'generate_period': {
           const { periodId, employeeIds } = job.payload;
-          result = await timesheetService.generatePayslipsForPeriod(periodId, employeeIds || null);
+          result = await timesheetService.generatePayslipsForPeriod(periodId, employeeIds || null, onProgress);
           break;
         }
         default:

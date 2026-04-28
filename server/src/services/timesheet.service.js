@@ -728,7 +728,7 @@ class TimesheetService {
    * of one Wrike call per employee, then imports and generates payslips sequentially.
    * Returns per-employee details so the frontend can show a result table.
    */
-  async generatePayslipsForPeriod(periodId, employeeIds = null) {
+  async generatePayslipsForPeriod(periodId, employeeIds = null, onProgress = null) {
     const period = await PayPeriod.findById(periodId);
     if (!period) throw new Error('Period not found');
 
@@ -756,51 +756,56 @@ class TimesheetService {
     }
 
     const results = { generated: 0, skipped: 0, errors: [], details: [] };
+    let completed = 0;
+    const total = targets.length;
+    if (onProgress && total > 0) onProgress(0, total, null);
 
     // Process all employees in parallel — PDF concurrency is capped by pdfLimiter inside generatePayslip
     await Promise.allSettled(targets.map(async (emp) => {
       if (!emp.wrike_user_id) {
         results.skipped++;
         results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'skipped', error: 'No Wrike ID' });
-        return;
-      }
-      const userLogs = timelogsByUser[emp.wrike_user_id] || [];
-      if (!userLogs.length) {
-        results.skipped++;
-        results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'no_hours' });
-        return;
-      }
-      try {
-        await this._importLogs(emp.id, period.start_date, period.end_date, userLogs, taskTitles);
-        const result = await this.processEmployeeTimesheet(emp, period);
-        if (!result.success) {
+      } else {
+        const userLogs = timelogsByUser[emp.wrike_user_id] || [];
+        if (!userLogs.length) {
           results.skipped++;
-          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: result.reason === ERR_ALREADY_APPROVED ? 'exists' : 'skipped' });
+          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'no_hours' });
         } else {
-          results.generated++;
-          results.details.push({
-            emp:    { name: emp.name, employee_id: emp.employee_id },
-            status: result.alreadyPending ? 'exists' : 'generated',
-            hours:  result.summary?.total_hours,
-            gross:  result.payslip?.gross_amount,
-          });
-        }
-      } catch (err) {
-        const msg = err.message || '';
-        if (msg.includes(ERR_ALREADY_GENERATED) || msg.includes(ERR_ALREADY_APPROVED)) {
-          results.skipped++;
-          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'exists' });
-        } else {
-          results.errors.push({ employeeName: emp.name, error: msg });
-          results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'error', error: msg });
+          try {
+            await this._importLogs(emp.id, period.start_date, period.end_date, userLogs, taskTitles);
+            const result = await this.processEmployeeTimesheet(emp, period);
+            if (!result.success) {
+              results.skipped++;
+              results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: result.reason === ERR_ALREADY_APPROVED ? 'exists' : 'skipped' });
+            } else {
+              results.generated++;
+              results.details.push({
+                emp:    { name: emp.name, employee_id: emp.employee_id },
+                status: result.alreadyPending ? 'exists' : 'generated',
+                hours:  result.summary?.total_hours,
+                gross:  result.payslip?.gross_amount,
+              });
+            }
+          } catch (err) {
+            const msg = err.message || '';
+            if (msg.includes(ERR_ALREADY_GENERATED) || msg.includes(ERR_ALREADY_APPROVED)) {
+              results.skipped++;
+              results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'exists' });
+            } else {
+              results.errors.push({ employeeName: emp.name, error: msg });
+              results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'error', error: msg });
+            }
+          }
         }
       }
+      completed++;
+      if (onProgress) onProgress(completed, total, emp.name);
     }));
 
     return { period: period.period_name, ...results };
   }
 
-  async bulkApproveAndGenerate(periodId, employeeIds = null) {
+  async bulkApproveAndGenerate(periodId, employeeIds = null, onProgress = null) {
     const period = await PayPeriod.findById(periodId);
     if (!period) throw new Error('Period not found');
 
@@ -810,6 +815,9 @@ class TimesheetService {
       : summaries;
 
     const results = { generated: 0, skipped: 0, errors: [] };
+    let completed = 0;
+    const total = targets.length;
+    if (onProgress && total > 0) onProgress(0, total, null);
 
     // Process all summaries in parallel — PDF concurrency is capped by pdfLimiter inside generatePayslip
     await Promise.allSettled(targets.map(async (s) => {
@@ -832,6 +840,8 @@ class TimesheetService {
       } catch (err) {
         results.errors.push({ summaryId: s.id, employeeName: s.employee_name || s.employee_id, error: err.message });
       }
+      completed++;
+      if (onProgress) onProgress(completed, total, s.employee_name || null);
     }));
 
     return { period: period.period_name, ...results };

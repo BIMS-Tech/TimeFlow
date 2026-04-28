@@ -148,6 +148,7 @@ async function runMigrations() {
       type VARCHAR(50) NOT NULL DEFAULT 'submit',
       status ENUM('queued','processing','done','failed') NOT NULL DEFAULT 'queued',
       payload JSON NOT NULL,
+      progress JSON DEFAULT NULL,
       result JSON DEFAULT NULL,
       error TEXT DEFAULT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -156,6 +157,8 @@ async function runMigrations() {
       INDEX idx_pj_status (status),
       INDEX idx_pj_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+    // Add progress column to existing payroll_jobs tables (no-op if just created above)
+    `ALTER TABLE payroll_jobs ADD COLUMN progress JSON DEFAULT NULL`,
   ];
   for (const sql of migrations) {
     try {

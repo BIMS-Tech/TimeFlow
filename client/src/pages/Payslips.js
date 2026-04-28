@@ -5,7 +5,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, CircularProgress, Grid, Divider, Checkbox, FormControlLabel,
-  List, ListItem, ListItemText, Select, MenuItem, InputLabel, FormControl
+  List, ListItem, ListItemText, Select, MenuItem, InputLabel, FormControl,
+  LinearProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -17,20 +18,21 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI } from '../api';
+import { getMissingBankFields } from '../utils/employeeProfile';
 
-function pollJob(jobId) {
+function pollJob(jobId, onProgress) {
   return new Promise((resolve, reject) => {
     const id = setInterval(async () => {
       try {
         const res = await jobsAPI.getStatus(jobId);
         const job = res.data;
+        if (job.progress && onProgress) onProgress(job.progress);
         if (job.status === 'done') { clearInterval(id); resolve(job.result); }
         else if (job.status === 'failed') { clearInterval(id); reject(new Error(job.error || 'Job failed')); }
       } catch (err) { clearInterval(id); reject(err); }
     }, 1500);
   });
 }
-import { getMissingBankFields } from '../utils/employeeProfile';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -59,6 +61,7 @@ export default function Payslips() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [selectAll, setSelectAll] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
 
   // PDF viewer state
@@ -125,14 +128,14 @@ export default function Payslips() {
   const handleBulkGenerate = async () => {
     if (!selectedPeriod) return toast.error('Select a period first');
     setGenerating(true);
+    setGenProgress(null);
     setBulkResult(null);
     try {
       const empIds = selectAll ? null : selectedEmployeeIds;
       const res = await payslipsAPI.generateForPeriod(selectedPeriod.id, empIds);
       let data = res.data;
       if (data?.jobId) {
-        toast('Generating payslips in background…', { icon: '⚙️', duration: 3000 });
-        data = await pollJob(data.jobId);
+        data = await pollJob(data.jobId, (p) => setGenProgress(p));
       }
       if (data) {
         setBulkResult(data);
@@ -143,7 +146,7 @@ export default function Payslips() {
         fetchPayslips(selectedPeriod.id);
       }
     } catch (e) { toast.error(e.response?.data?.error || e.message || 'Generation failed'); }
-    finally { setGenerating(false); }
+    finally { setGenerating(false); setGenProgress(null); }
   };
 
   const handleViewPDF = async (payslip) => {
@@ -260,17 +263,38 @@ export default function Payslips() {
                 </List>
               </Box>
             )}
-            <Box sx={{ mt: 2, display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Button variant="contained" startIcon={generating ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <AutoAwesomeIcon />}
-                onClick={handleBulkGenerate} disabled={generating || !selectedPeriod || (!selectAll && selectedEmployeeIds.length === 0)}
-                sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
-                {generating ? 'Generating…' : 'Generate Now'}
-              </Button>
-              {bulkResult && (
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Chip label={`${bulkResult.generated} generated`} size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
-                  {bulkResult.skipped > 0 && <Chip label={`${bulkResult.skipped} skipped`} size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700 }} />}
-                  {bulkResult.errors?.length > 0 && <Chip label={`${bulkResult.errors.length} errors`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Button variant="contained" startIcon={generating ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <AutoAwesomeIcon />}
+                  onClick={handleBulkGenerate} disabled={generating || !selectedPeriod || (!selectAll && selectedEmployeeIds.length === 0)}
+                  sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                  {generating
+                    ? (genProgress?.total > 0 ? `Generating ${genProgress.done} / ${genProgress.total}…` : 'Generating…')
+                    : 'Generate Now'}
+                </Button>
+                {bulkResult && (
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Chip label={`${bulkResult.generated} generated`} size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
+                    {bulkResult.skipped > 0 && <Chip label={`${bulkResult.skipped} skipped`} size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700 }} />}
+                    {bulkResult.errors?.length > 0 && <Chip label={`${bulkResult.errors.length} errors`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+                  </Box>
+                )}
+              </Box>
+              {generating && genProgress?.total > 0 && (
+                <Box sx={{ mt: 1.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+                      {genProgress.current ? `Processing: ${genProgress.current}` : 'Processing employees…'}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1' }}>
+                      {Math.round((genProgress.done / genProgress.total) * 100)}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(genProgress.done / genProgress.total) * 100}
+                    sx={{ height: 6, borderRadius: 3, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#6366f1', borderRadius: 3 } }}
+                  />
                 </Box>
               )}
             </Box>
