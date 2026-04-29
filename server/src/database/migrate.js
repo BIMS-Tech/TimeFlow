@@ -60,6 +60,12 @@ async function runMigrations() {
         sql: `ALTER TABLE time_entries ADD COLUMN category VARCHAR(255) DEFAULT NULL AFTER project_name`
       },
       {
+        name: 'add_employee_address_and_bank_address_local',
+        check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'employee_address'`,
+        sql: `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL AFTER middle_name`
+      },
+      {
         name: 'add_dft_fields_country_purpose_to_employees',
         check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'country_of_destination'`,

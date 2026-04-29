@@ -48,6 +48,7 @@ const EMPTY_FORM = {
   sss_number: '', philhealth_number: '', pagibig_number: '', payee_tin: '',
   // Name parts (XCS local bank file)
   first_name: '', last_name: '', middle_name: '',
+  employee_address: '',
   // Bank details
   bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '',
   // DFT international fields
@@ -100,6 +101,7 @@ export default function Employees() {
       pagibig_number: emp.pagibig_number || '',
       payee_tin: emp.payee_tin || '',
       first_name: emp.first_name || '', last_name: emp.last_name || '', middle_name: emp.middle_name || '',
+      employee_address: emp.employee_address || '',
       bank_name: emp.bank_name || '', bank_account_number: emp.bank_account_number || '',
       bank_account_name: emp.bank_account_name || '', bank_branch: emp.bank_branch || '',
       bank_swift_code: emp.bank_swift_code || '',
@@ -442,6 +444,31 @@ export default function Employees() {
                 </Grid>
               </Box>
             </Grid>
+
+            {/* Address Details — local employees only */}
+            {form.hire_category === 'local' && (
+              <Grid item xs={12}>
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Address Details</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField fullWidth label="Employee Address" multiline rows={2}
+                        placeholder="House/Unit no., Street, Barangay, City, Province, ZIP"
+                        value={form.employee_address}
+                        onChange={e => setForm(f => ({ ...f, employee_address: e.target.value }))}
+                        size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField fullWidth label="Bank Branch Address"
+                        placeholder="Full address of the bank branch"
+                        value={form.bank_address}
+                        onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))}
+                        size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
+            )}
 
             {/* DFT International Transfer Fields (foreign only) */}
             {form.hire_category === 'foreign' && (<>

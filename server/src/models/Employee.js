@@ -87,6 +87,7 @@ class Employee {
       first_name: data.first_name || null,
       last_name: data.last_name || null,
       middle_name: data.middle_name || null,
+      employee_address: data.employee_address || null,
       // Bank details
       bank_name: data.bank_name || null,
       bank_account_number: data.bank_account_number || null,

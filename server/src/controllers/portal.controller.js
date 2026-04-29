@@ -188,7 +188,7 @@ class PortalController {
    */
   async updateProfile(req, res) {
     try {
-      const allowed = ['first_name', 'last_name', 'middle_name'];
+      const allowed = ['first_name', 'last_name', 'middle_name', 'employee_address'];
       const updates = {};
       for (const key of allowed) {
         if (req.body[key] !== undefined) updates[key] = req.body[key] || null;

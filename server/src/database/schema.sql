@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS employees (
     first_name VARCHAR(100) DEFAULT NULL,
     last_name VARCHAR(100) DEFAULT NULL,
     middle_name VARCHAR(100) DEFAULT NULL,
+    -- Address (local employees)
+    employee_address TEXT DEFAULT NULL,
     -- Bank details
     bank_name VARCHAR(100) DEFAULT NULL,
     bank_account_number VARCHAR(100) DEFAULT NULL,

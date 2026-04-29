@@ -540,26 +540,21 @@ class PDFService {
           y = section(y, 'Deductions');
 
           const tD = [
-            { label: 'Description',  w: 285, dataAlign: 'left'  },
-            { label: '',             w: 85,  dataAlign: 'left'  },
-            { label: '',             w: 80,  dataAlign: 'left'  },
-            { label: '',             w: 75,  dataAlign: 'left'  },
+            { label: 'Description',  w: 440, dataAlign: 'left'  },
             { label: 'Amount',       w: 65,  dataAlign: 'right' },
           ];
           y = hdrRow(MARGIN, y, tD, HDR_H);
 
           const dedRows = [];
-          if (sssEE   > 0) dedRows.push(['SSS — Employee Share (1st cut-off)',    '', '', '', fmt2(sssEE)]);
-          if (sssMPF  > 0) dedRows.push(['SSS — Mandatory Provident Fund (MPF)',   '', '', '', fmt2(sssMPF)]);
-          if (philhealthEE > 0) dedRows.push(['PhilHealth — Employee Contribution', '', '', '', fmt2(philhealthEE)]);
-          if (pagibigEE > 0) dedRows.push(['Pag-IBIG (HDMF) — Employee Share',    '', '', '', fmt2(pagibigEE)]);
-          if (birTax  > 0) dedRows.push(['BIR Withholding Tax',                   '', '', '', fmt2(birTax)]);
+          if (sssEE        > 0) dedRows.push(['SSS — Employee Share (1st cut-off)',    fmt2(sssEE)]);
+          if (sssMPF       > 0) dedRows.push(['SSS — Mandatory Provident Fund (MPF)',   fmt2(sssMPF)]);
+          if (philhealthEE > 0) dedRows.push(['PhilHealth — Employee Contribution',     fmt2(philhealthEE)]);
+          if (pagibigEE    > 0) dedRows.push(['Pag-IBIG (HDMF) — Employee Share',      fmt2(pagibigEE)]);
+          if (birTax       > 0) dedRows.push(['BIR Withholding Tax',                   fmt2(birTax)]);
           for (const row of dedRows) {
             y = dataRow(MARGIN, y, tD, row);
           }
-          y = dataRow(MARGIN, y, tD, [
-            'Total Deductions', '', '', '', fmt2(totalDed),
-          ], { bold: true });
+          y = dataRow(MARGIN, y, tD, ['Total Deductions', fmt2(totalDed)], { bold: true });
           y += 12;
         }
 

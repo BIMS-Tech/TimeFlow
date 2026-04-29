@@ -362,8 +362,8 @@ const R = ({ label, value, xs = 12, sm = 6 }) => (
 function ProfileSection({ employee, onUpdated }) {
   const isForeign = employee?.hire_category === 'foreign';
   const emptyForm = {
-    first_name: '', last_name: '', middle_name: '',
-    bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '',
+    first_name: '', last_name: '', middle_name: '', employee_address: '',
+    bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '', bank_address: '',
     remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
     country_of_destination: '', purpose_nature: '',
     intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
@@ -450,6 +450,25 @@ function ProfileSection({ employee, onUpdated }) {
           </Grid>
         </Box>
       </Paper>
+
+      {/* Address Details — local employees only */}
+      {!isForeign && (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
+          <SectionHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Address Details" />
+          <Box sx={{ p: 2.5 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={12}>
+                <TextField fullWidth label="Employee Address" multiline rows={2} size="small"
+                  placeholder="House/Unit no., Street, Barangay, City, Province, ZIP"
+                  value={form.employee_address || ''}
+                  onChange={e => setForm(f => ({ ...f, employee_address: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+              </Grid>
+              <R label="Bank Branch Address" value={form.bank_address} xs={12} sm={12} />
+            </Grid>
+          </Box>
+        </Paper>
+      )}
 
       {/* Bank Details — read-only */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
