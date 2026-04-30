@@ -140,10 +140,15 @@ class EmployeeController {
     try {
       const employee = await Employee.findById(req.params.id);
       if (!employee) {
-        return res.status(404).json({
-          success: false,
-          error: 'Employee not found'
-        });
+        return res.status(404).json({ success: false, error: 'Employee not found' });
+      }
+
+      // If employee_id is being changed, ensure the new one is not already taken
+      if (req.body.employee_id && req.body.employee_id !== employee.employee_id) {
+        const conflict = await Employee.findByEmployeeId(req.body.employee_id);
+        if (conflict) {
+          return res.status(400).json({ success: false, error: `Employee ID "${req.body.employee_id}" is already in use` });
+        }
       }
 
       const updated = await Employee.update(req.params.id, req.body);

@@ -361,7 +361,7 @@ export default function Employees() {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Row 1: ID · Name · Email */}
             <Grid item xs={3}>
-              <TextField fullWidth label="Employee ID *" value={form.employee_id} disabled={!!editing}
+              <TextField fullWidth label="Employee ID *" value={form.employee_id}
                 onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
                 size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             </Grid>

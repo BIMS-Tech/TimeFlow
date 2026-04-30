@@ -159,6 +159,8 @@ async function runMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
     // Add progress column to existing payroll_jobs tables (no-op if just created above)
     `ALTER TABLE payroll_jobs ADD COLUMN progress JSON DEFAULT NULL`,
+    // Employee address (local employees)
+    `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL`,
   ];
   for (const sql of migrations) {
     try {
