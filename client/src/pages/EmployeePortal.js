@@ -364,7 +364,7 @@ function ProfileSection({ employee, onUpdated }) {
   const emptyForm = {
     first_name: '', last_name: '', middle_name: '', employee_address: '',
     bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '', bank_address: '',
-    remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
+    remittance_type: '', beneficiary_code: '', beneficiary_address: '',
     country_of_destination: '', purpose_nature: '',
     intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
     payee_tin: '', payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '', tax_code: '',
