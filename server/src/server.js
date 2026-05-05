@@ -161,6 +161,25 @@ async function runMigrations() {
     `ALTER TABLE payroll_jobs ADD COLUMN progress JSON DEFAULT NULL`,
     // Employee address (local employees)
     `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL`,
+    // Add Independent Contractor to employee_type enum
+    `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC') DEFAULT NULL`,
+    // Cash advance deduction column for summaries and payslips
+    `ALTER TABLE time_entries_summary ADD COLUMN cash_advance DECIMAL(12,2) DEFAULT 0`,
+    `ALTER TABLE payslips ADD COLUMN cash_advance DECIMAL(12,2) DEFAULT 0`,
+    // Timesheet verification table
+    `CREATE TABLE IF NOT EXISTS timesheet_verifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      employee_id INT NOT NULL,
+      period_id INT NOT NULL,
+      verified_hours DECIMAL(10,2) DEFAULT NULL,
+      cash_advance DECIMAL(12,2) DEFAULT 0,
+      status ENUM('pending','verified','rejected') NOT NULL DEFAULT 'pending',
+      notes TEXT DEFAULT NULL,
+      verified_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_tv_emp_period (employee_id, period_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
   ];
   for (const sql of migrations) {
     try {

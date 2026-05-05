@@ -20,7 +20,8 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AddIcon from '@mui/icons-material/Add';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI } from '../api';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI, verificationsAPI } from '../api';
 
 function pollJob(jobId, onProgress) {
   return new Promise((resolve, reject) => {
@@ -146,11 +147,20 @@ export default function TimesheetGenerator() {
   // Multi-employee result (summary table)
   const [bulkResults, setBulkResults] = useState(null);
 
+  // Verification statuses for selected period { [employeeId]: { status, verified_hours, cash_advance } }
+  const [verificationStatus, setVerificationStatus] = useState({});
+
   const hasSelection = selectedIds.size > 0;
   const allSelected = employees.length > 0 && selectedIds.size === employees.length;
   const isSingle = selectedIds.size === 1;
   const isDone = isSingle ? !!submitted : !!bulkResults;
   const step = isDone ? 2 : (hasSelection && selectedPeriod) ? 1 : 0;
+
+  // Derive which selected employees are unverified for the current period
+  const unverifiedSelected = selectedPeriod
+    ? [...selectedIds].filter(id => verificationStatus[id]?.status !== 'verified')
+    : [];
+  const hasUnverified = unverifiedSelected.length > 0;
 
   // Derive the required period type from selected employees
   const selectedEmps = employees.filter(e => selectedIds.has(e.id));
@@ -175,6 +185,14 @@ export default function TimesheetGenerator() {
       .catch(() => toast.error('Failed to load periods'))
       .finally(() => setPeriodsLoading(false));
   }, []);
+
+  // Fetch verification statuses whenever the selected period changes
+  useEffect(() => {
+    if (!selectedPeriod) { setVerificationStatus({}); return; }
+    verificationsAPI.getStatus(selectedPeriod.id)
+      .then(res => setVerificationStatus(res.data || {}))
+      .catch(() => setVerificationStatus({}));
+  }, [selectedPeriod]);
 
   const toggleEmployee = (id) => {
     setSelectedIds(prev => {
@@ -354,7 +372,20 @@ export default function TimesheetGenerator() {
                               sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#6366f1' } }}
                             />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography sx={{ fontWeight: checked ? 600 : 400, fontSize: '0.875rem', color: 'text.primary', lineHeight: 1.3 }}>{emp.name}</Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontWeight: checked ? 600 : 400, fontSize: '0.875rem', color: 'text.primary', lineHeight: 1.3 }}>{emp.name}</Typography>
+                                {selectedPeriod && (() => {
+                                  const vs = verificationStatus[emp.id];
+                                  if (!vs) return null;
+                                  const map = {
+                                    verified: { label: 'Verified', bg: '#10b98115', color: '#10b981' },
+                                    rejected: { label: 'Rejected', bg: '#ef444415', color: '#ef4444' },
+                                    pending:  { label: 'Pending',  bg: '#f59e0b15', color: '#f59e0b' },
+                                  };
+                                  const s = map[vs.status] || map.pending;
+                                  return <Chip label={s.label} size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: s.bg, color: s.color }} />;
+                                })()}
+                              </Box>
                               <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
                                 {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''} · {emp.currency || 'USD'} {emp.hourly_rate}/hr
                               </Typography>
@@ -414,7 +445,7 @@ export default function TimesheetGenerator() {
                     const typeColor  = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
                     return (
                       <Box key={p.id}
-                        onClick={() => { setSelectedPeriod(p); setPreview(null); setSubmitted(null); setBulkResults(null); }}
+                        onClick={() => { setSelectedPeriod(p); setPreview(null); setSubmitted(null); setBulkResults(null); setVerificationStatus({}); }}
                         sx={{ px: 2, py: 1.25, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           bgcolor: isSelected ? `${typeColor}08` : 'transparent',
                           borderBottom: idx < filteredPeriods.length - 1 ? '1px solid' : 'none',
@@ -458,9 +489,15 @@ export default function TimesheetGenerator() {
             {/* Generate button + progress */}
             {!isDone && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {hasUnverified && hasSelection && selectedPeriod && (
+                  <Alert severity="warning" icon={<VerifiedUserIcon fontSize="small" />} sx={{ borderRadius: 0, fontSize: '0.8rem', py: 0.75 }}>
+                    <strong>{unverifiedSelected.length} selected employee{unverifiedSelected.length > 1 ? 's are' : ' is'} not verified</strong> for this period.
+                    {' '}<Link to="/timesheet-verify" style={{ color: 'inherit', fontWeight: 700 }}>Go to Generate Timesheet</Link> to verify first.
+                  </Alert>
+                )}
                 <Button variant="contained" fullWidth
                   startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
-                  onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign)}
+                  onClick={handleGenerate} disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign) || hasUnverified}
                   sx={{ py: 1.5, borderRadius: '4px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>
                   {generating
                     ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)

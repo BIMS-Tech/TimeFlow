@@ -279,8 +279,9 @@ class PDFService {
         const philhealthEE  = parseFloat(summary.philhealth_ee)   || 0;
         const pagibigEE     = parseFloat(summary.pagibig_ee)      || 0;
         const birTax        = parseFloat(summary.bir_tax)         || 0;
+        const cashAdvance   = parseFloat(summary.cash_advance)    || 0;
         const govtDed       = sssEE + sssMPF + philhealthEE + pagibigEE;
-        const totalDed      = govtDed + birTax;
+        const totalDed      = govtDed + birTax + cashAdvance;
         const netAmount     = parseFloat(summary.net_amount)      || Math.max(0, grossAmount - totalDed);
         const overtimeRate  = hourlyRate * 1.5;
         const regularPay    = regularHours  * hourlyRate;
@@ -321,7 +322,7 @@ class PDFService {
         const EARN_H      = HDR_H + (9 + 1) * ROW_H;// header + 9 rows + total
         const hasDeductions = totalDed > 0;
         // Deductions section: section heading (17) + header row + 5 data rows (SSS, PhilHealth, Pag-IBIG, Tax, Total)
-        const DED_ROWS    = (sssEE > 0 ? 1 : 0) + (sssMPF > 0 ? 1 : 0) + (philhealthEE > 0 ? 1 : 0) + (pagibigEE > 0 ? 1 : 0) + (birTax > 0 ? 1 : 0);
+        const DED_ROWS    = (sssEE > 0 ? 1 : 0) + (sssMPF > 0 ? 1 : 0) + (philhealthEE > 0 ? 1 : 0) + (pagibigEE > 0 ? 1 : 0) + (birTax > 0 ? 1 : 0) + (cashAdvance > 0 ? 1 : 0);
         const DED_H       = hasDeductions ? (17 + HDR_H + (DED_ROWS + 1) * ROW_H + 12) : 0;
         const NETPAY_H    = ROW_H;
         const BANK_H      = bankRows * ROW_H + (bankRows > 0 ? 10 : 0);
@@ -551,6 +552,7 @@ class PDFService {
           if (philhealthEE > 0) dedRows.push(['PhilHealth — Employee Contribution',     fmt2(philhealthEE)]);
           if (pagibigEE    > 0) dedRows.push(['Pag-IBIG (HDMF) — Employee Share',      fmt2(pagibigEE)]);
           if (birTax       > 0) dedRows.push(['BIR Withholding Tax',                   fmt2(birTax)]);
+          if (cashAdvance  > 0) dedRows.push(['Cash Advance',                           fmt2(cashAdvance)]);
           for (const row of dedRows) {
             y = dataRow(MARGIN, y, tD, row);
           }

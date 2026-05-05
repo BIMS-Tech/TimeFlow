@@ -119,8 +119,10 @@ class TimesheetService {
 
   /**
    * Process timesheet for a single employee
+   * @param {object} opts.overrideHours - Use this total instead of reading from time_entries
+   * @param {number} opts.cashAdvance - Cash advance deduction amount
    */
-  async processEmployeeTimesheet(employee, period) {
+  async processEmployeeTimesheet(employee, period, { overrideHours = null, cashAdvance = 0 } = {}) {
     console.log(`📋 Processing timesheet for ${employee.name}...`);
 
     // Check if summary already exists
@@ -153,8 +155,10 @@ class TimesheetService {
       return { success: true, summary: approvalResult.summary, payslip: approvalResult.payslip };
     }
 
-    // Calculate hours from time entries
-    const totalHours = await TimeEntry.getTotalHours(employee.id, period.start_date, period.end_date);
+    // Calculate hours from time entries (or use admin-verified override)
+    const totalHours = overrideHours !== null
+      ? parseFloat(overrideHours)
+      : await TimeEntry.getTotalHours(employee.id, period.start_date, period.end_date);
 
     if (totalHours === 0) {
       console.log(`⏭️  ${employee.name} has no hours for this period`);
@@ -170,6 +174,8 @@ class TimesheetService {
     // Compute PH government deductions based on employee type
     const ded = computeDeductions(employee.employee_type, hoursBreakdown.grossAmount, period);
 
+    const cashAdv = parseFloat(cashAdvance) || 0;
+
     // Create or update summary
     summary = await TimeEntriesSummary.upsert({
       employee_id:   employee.id,
@@ -184,7 +190,8 @@ class TimesheetService {
       philhealth_ee: ded.philhealthEE,
       pagibig_ee:    ded.pagibigEE,
       bir_tax:       ded.birTax,
-      net_amount:    Math.max(0, hoursBreakdown.grossAmount - ded.total),
+      cash_advance:  cashAdv,
+      net_amount:    Math.max(0, hoursBreakdown.grossAmount - ded.total - cashAdv),
     });
 
     // Get task breakdown
@@ -625,7 +632,7 @@ class TimesheetService {
   /**
    * Process timesheet for an employee and period — imports approved Wrike timelogs and generates payslip.
    */
-  async submitTimesheet(employeeId, startDate, endDate, periodName = null) {
+  async submitTimesheet(employeeId, startDate, endDate, periodName = null, verifiedHours = null, cashAdvance = 0) {
     const employee = await Employee.findById(employeeId);
     if (!employee) throw new Error('Employee not found');
 
@@ -642,7 +649,21 @@ class TimesheetService {
       period = await PayPeriod.create({ period_name: name, start_date: startDate, end_date: endDate });
     }
 
-    // Fetch and import only APPROVED Wrike timelogs for this employee + range
+    if (verifiedHours !== null) {
+      // Admin has manually verified hours — skip Wrike fetch, use verified data directly
+      const result = await this.processEmployeeTimesheet(employee, period, {
+        overrideHours: verifiedHours,
+        cashAdvance,
+      });
+      if (!result.success) {
+        if (result.reason === 'no_hours') throw new Error('Verified hours are zero — nothing to generate.');
+        if (result.reason === ERR_ALREADY_APPROVED) throw new Error(ERR_ALREADY_GENERATED);
+        throw new Error(`Timesheet processing failed: ${result.reason}`);
+      }
+      return result;
+    }
+
+    // No verified override — fetch and import APPROVED Wrike timelogs
     let timelogs = await wrikeService.getTimeLogs(startDate, endDate, [employee.wrike_user_id]);
     const allTimelogs = timelogs;
     timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
@@ -658,7 +679,7 @@ class TimesheetService {
     await this._importLogs(employee.id, startDate, endDate, userLogs, taskTitles);
 
     // Now run standard timesheet processing for this employee + period
-    const result = await this.processEmployeeTimesheet(employee, period);
+    const result = await this.processEmployeeTimesheet(employee, period, { cashAdvance });
 
     // Surface failures as real errors so the HTTP layer returns non-200
     if (!result.success) {

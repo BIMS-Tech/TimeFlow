@@ -173,9 +173,25 @@ export const jobsAPI = {
 export const wrikeAPI = {
   getWeeklyTimelogs: (date, approvedOnly = false) =>
     api.get(`/wrike/timelogs${date ? `?date=${date}` : '?'}${approvedOnly ? '&approvedOnly=true' : ''}`),
+  getMonthlyTimelogs: (month, approvedOnly = false) =>
+    api.get(`/wrike/timelogs/monthly?month=${month}${approvedOnly ? '&approvedOnly=true' : ''}`),
   importWeek: (date, approvedOnly = false) => api.post('/wrike/import', { date, approvedOnly }),
   backfillCategories: () => api.post('/wrike/backfill-categories'),
   getContacts: () => api.get('/wrike/contacts'),
+};
+
+// ============================================
+// Timesheet Verifications API
+// ============================================
+export const verificationsAPI = {
+  getForPeriod: (periodId) => api.get(`/verifications/period/${periodId}`),
+  upsert: (data) => api.post('/verifications/upsert', data),
+  bulk: (period_id, employee_ids, status) => api.post('/verifications/bulk', { period_id, employee_ids, status }),
+  getStatus: (periodId, employeeIds) => {
+    const p = new URLSearchParams({ periodId });
+    if (employeeIds?.length) p.set('employeeIds', employeeIds.join(','));
+    return api.get(`/verifications/status?${p}`);
+  },
 };
 
 // ============================================

@@ -97,6 +97,7 @@ class TimeEntriesSummary {
       philhealth_ee: data.philhealth_ee  || 0,
       pagibig_ee:    data.pagibig_ee    || 0,
       bir_tax:       data.bir_tax       || 0,
+      cash_advance:  data.cash_advance  || 0,
     };
 
     if (existing) {

@@ -33,6 +33,7 @@ const EMPLOYEE_TYPES = [
   { value: 'PTE-INTL', label: 'PTE-INTL — Part-Time (International)',           category: 'foreign' },
   { value: 'PB-LCL',   label: 'PB-LCL — Project-Based (Local)',                 category: 'local'   },
   { value: 'PB-INTL',  label: 'PB-INTL — Project-Based (International)',        category: 'foreign' },
+  { value: 'IC',        label: 'IC — Independent Contractor',                    category: 'local'   },
 ];
 
 function deriveHireCategory(employeeType) {

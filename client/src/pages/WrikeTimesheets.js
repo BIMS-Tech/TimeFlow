@@ -4,7 +4,7 @@ import {
   Box, Paper, Typography, Button, Chip, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel, Alert,
-  FormControlLabel, Switch
+  FormControlLabel, Switch,
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -15,6 +15,10 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PeopleIcon from '@mui/icons-material/People';
 import { wrikeAPI, employeesAPI } from '../api';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import DateRangeIcon from '@mui/icons-material/DateRange';
+import CalendarViewMonthIcon from '@mui/icons-material/CalendarViewMonth';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
@@ -45,18 +49,25 @@ function formatCurrency(amount, currency) {
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 1.5 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 1.5 };
 
+function getMonthOf(dateStr) {
+  return dateStr.substring(0, 7);
+}
+
 export default function WrikeTimesheets() {
+  const [viewMode,  setViewMode]  = useState('weekly'); // 'weekly' | 'monthly'
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date().toISOString().split('T')[0]));
-  const [data, setData] = useState([]);
-  const [days, setDays] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [month,     setMonth]     = useState(() => getMonthOf(new Date().toISOString()));
+  const [data,      setData]      = useState([]);
+  const [days,      setDays]      = useState([]);
+  const [weeks,     setWeeks]     = useState([]); // monthly mode — week buckets
+  const [loading,   setLoading]   = useState(false);
   const [importing, setImporting] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
-  const [error, setError] = useState(null);
+  const [error,     setError]     = useState(null);
   const [selectedEmpId, setSelectedEmpId] = useState('');
   const [employees, setEmployees] = useState([]);
   const [approvedOnly, setApprovedOnly] = useState(false);
-  const [backfilling, setBackfilling] = useState(false);
+  const [backfilling,  setBackfilling]  = useState(false);
 
   useEffect(() => {
     employeesAPI.getAll(false).then(res => setEmployees(res.data || [])).catch(() => {});
@@ -66,9 +77,17 @@ export default function WrikeTimesheets() {
     setLoading(true);
     setError(null);
     try {
-      const res = await wrikeAPI.getWeeklyTimelogs(weekStart, approvedOnly);
-      setData(res.data || []);
-      setDays(res.days || []);
+      if (viewMode === 'monthly') {
+        const res = await wrikeAPI.getMonthlyTimelogs(month, approvedOnly);
+        setData(res.data || []);
+        setWeeks(res.weeks || []);
+        setDays([]);
+      } else {
+        const res = await wrikeAPI.getWeeklyTimelogs(weekStart, approvedOnly);
+        setData(res.data || []);
+        setDays(res.days || []);
+        setWeeks([]);
+      }
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
       setError(msg);
@@ -76,7 +95,7 @@ export default function WrikeTimesheets() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, approvedOnly]);
+  }, [viewMode, weekStart, month, approvedOnly]);
 
   useEffect(() => { fetchTimelogs(); }, [fetchTimelogs]);
 
@@ -109,8 +128,9 @@ export default function WrikeTimesheets() {
 
   const toggleRow = (id) => setExpandedRows(p => ({ ...p, [id]: !p[id] }));
 
-  const weekEnd = addDays(weekStart, 6);
+  const weekEnd   = addDays(weekStart, 6);
   const weekLabel = `${fmtDay(weekStart)} – ${fmtDay(weekEnd)}, ${new Date(weekStart).getFullYear()}`;
+  const monthLabel = new Date(month + '-15').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const visibleData = selectedEmpId ? data.filter(r => String(r.employee.id) === selectedEmpId) : data;
   const totalHours = visibleData.reduce((s, r) => s + r.totalHours, 0);
   const unlinked = data.filter(r => !r.employee.wrike_user_id);
@@ -119,7 +139,15 @@ export default function WrikeTimesheets() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Wrike Timesheets</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Work Timesheets</Typography>
+          <ToggleButtonGroup value={viewMode} exclusive size="small"
+            onChange={(_, v) => { if (v) setViewMode(v); }}
+            sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.78rem', px: 1.5, py: 0.5, borderRadius: '8px !important', border: '1px solid !important', borderColor: 'divider !important', mx: 0.25 } }}>
+            <ToggleButton value="weekly"><DateRangeIcon sx={{ fontSize: 15, mr: 0.5 }} />Weekly</ToggleButton>
+            <ToggleButton value="monthly"><CalendarViewMonthIcon sx={{ fontSize: 15, mr: 0.5 }} />Monthly</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>All Employees</InputLabel>
@@ -138,17 +166,26 @@ export default function WrikeTimesheets() {
               <Switch checked={approvedOnly} onChange={e => setApprovedOnly(e.target.checked)} size="small"
                 sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#10b981' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10b981' } }} />
             }
-            label={<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: approvedOnly ? '#10b981' : 'text.secondary' }}>Approved Timesheets Only</Typography>}
+            label={<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: approvedOnly ? '#10b981' : 'text.secondary' }}>Approved Only</Typography>}
           />
-          <Button variant="outlined" onClick={() => setWeekStart(getMondayOf(new Date().toISOString().split('T')[0]))}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-            This Week
-          </Button>
-          <Button variant="contained" startIcon={importing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
-            onClick={handleImport} disabled={importing || loading}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-            {importing ? 'Importing…' : `Import${approvedOnly ? ' (Approved)' : ''} to DB`}
-          </Button>
+          {viewMode === 'weekly' ? (
+            <Button variant="outlined" onClick={() => setWeekStart(getMondayOf(new Date().toISOString().split('T')[0]))}
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+              This Week
+            </Button>
+          ) : (
+            <Button variant="outlined" onClick={() => setMonth(getMonthOf(new Date().toISOString()))}
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+              This Month
+            </Button>
+          )}
+          {viewMode === 'weekly' && (
+            <Button variant="contained" startIcon={importing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
+              onClick={handleImport} disabled={importing || loading}
+              sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+              {importing ? 'Importing…' : `Import${approvedOnly ? ' (Approved)' : ''} to DB`}
+            </Button>
+          )}
           <Tooltip title="Re-fetch categories from Wrike and fix all uncategorized entries">
             <Button variant="outlined" onClick={handleBackfill} disabled={backfilling}
               startIcon={backfilling ? <CircularProgress size={14} /> : null}
@@ -165,20 +202,34 @@ export default function WrikeTimesheets() {
         </Box>
       </Box>
 
-      {/* Week navigator */}
+      {/* Week / Month navigator */}
       <Paper elevation={0} sx={{ p: 2, borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <IconButton onClick={() => setWeekStart(p => addDays(p, -7))} size="small"
+        <IconButton
+          onClick={() => viewMode === 'weekly'
+            ? setWeekStart(p => addDays(p, -7))
+            : setMonth(p => { const d = new Date(p + '-15'); d.setMonth(d.getMonth() - 1); return d.toISOString().substring(0,7); })
+          }
+          size="small"
           sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
         <Box sx={{ textAlign: 'center', flex: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>{weekLabel}</Typography>
-            {approvedOnly && <Chip label="Approved timesheets only" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
+            <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>
+              {viewMode === 'weekly' ? weekLabel : monthLabel}
+            </Typography>
+            {approvedOnly && <Chip label="Approved only" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
           </Box>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>Week of {weekStart}</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>
+            {viewMode === 'weekly' ? `Week of ${weekStart}` : `Monthly view — ${month}`}
+          </Typography>
         </Box>
-        <IconButton onClick={() => setWeekStart(p => addDays(p, 7))} size="small"
+        <IconButton
+          onClick={() => viewMode === 'weekly'
+            ? setWeekStart(p => addDays(p, 7))
+            : setMonth(p => { const d = new Date(p + '-15'); d.setMonth(d.getMonth() + 1); return d.toISOString().substring(0,7); })
+          }
+          size="small"
           sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronRightIcon fontSize="small" />
         </IconButton>
@@ -203,7 +254,7 @@ export default function WrikeTimesheets() {
         </Paper>
       )}
 
-      {/* Table */}
+      {/* Table — weekly or monthly */}
       {!loading && visibleData.length > 0 && (
         <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <TableContainer sx={{ overflowX: 'auto' }}>
@@ -211,22 +262,28 @@ export default function WrikeTimesheets() {
               <TableHead sx={{ bgcolor: 'action.hover' }}>
                 <TableRow>
                   <TableCell sx={{ ...TH, minWidth: 180 }}>Employee</TableCell>
-                  {days.map((d, i) => (
+                  {viewMode === 'weekly' ? days.map((d, i) => (
                     <TableCell key={d} sx={{ ...TH, textAlign: 'center', minWidth: 72 }}>
                       <div>{DAY_LABELS[i]}</div>
                       <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
                     </TableCell>
+                  )) : weeks.map((w, i) => (
+                    <TableCell key={w.start} sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>
+                      <div>Wk {i + 1}</div>
+                      <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(w.start)}</div>
+                    </TableCell>
                   ))}
                   <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>Total</TableCell>
                   <TableCell sx={{ ...TH, textAlign: 'right', minWidth: 120 }}>Est. Pay</TableCell>
-                  <TableCell sx={{ ...TH, width: 36 }}></TableCell>
+                  {viewMode === 'weekly' && <TableCell sx={{ ...TH, width: 36 }}></TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {visibleData.map(row => {
-                  const emp = row.employee;
+                  const emp     = row.employee;
                   const hasLogs = row.totalHours > 0;
                   const expanded = expandedRows[emp.id];
+                  const colCount = (viewMode === 'weekly' ? days.length : weeks.length) + (viewMode === 'weekly' ? 4 : 3);
                   return (
                     <React.Fragment key={emp.id}>
                       <TableRow sx={{ opacity: emp.is_active ? 1 : 0.5, '&:hover': { bgcolor: 'action.hover' } }}>
@@ -235,7 +292,7 @@ export default function WrikeTimesheets() {
                           <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.department || emp.employee_id}</Typography>
                           {!emp.wrike_user_id && <Typography sx={{ fontSize: '0.65rem', color: '#f59e0b', mt: 0.25 }}>No Wrike ID linked</Typography>}
                         </TableCell>
-                        {days.map(d => {
+                        {viewMode === 'weekly' ? days.map(d => {
                           const h = row.dailyHours?.[d] || 0;
                           return (
                             <TableCell key={d} sx={{ ...TD, textAlign: 'center' }}>
@@ -248,7 +305,17 @@ export default function WrikeTimesheets() {
                               ) : <span style={{ color: '#cbd5e1' }}>—</span>}
                             </TableCell>
                           );
-                        })}
+                        }) : (row.weekHours || []).map((h, i) => (
+                          <TableCell key={i} sx={{ ...TD, textAlign: 'center' }}>
+                            {h > 0 ? (
+                              <Chip label={h.toFixed(1)} size="small" sx={{
+                                height: 24, fontWeight: 700, fontSize: '0.75rem',
+                                bgcolor: h >= 40 ? '#10b98115' : h >= 20 ? '#6366f115' : '#f59e0b15',
+                                color: h >= 40 ? '#10b981' : h >= 20 ? '#6366f1' : '#f59e0b',
+                              }} />
+                            ) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                          </TableCell>
+                        ))}
                         <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
                           {row.totalHours.toFixed(1)}h
                         </TableCell>
@@ -260,17 +327,19 @@ export default function WrikeTimesheets() {
                             {CURRENCY_SYMBOLS[emp.currency] || emp.currency}{emp.hourly_rate}/hr
                           </Typography>
                         </TableCell>
-                        <TableCell sx={TD}>
-                          {row.taskDetails?.length > 0 && (
-                            <IconButton size="small" onClick={() => toggleRow(emp.id)} sx={{ color: 'text.disabled' }}>
-                              {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
-                            </IconButton>
-                          )}
-                        </TableCell>
+                        {viewMode === 'weekly' && (
+                          <TableCell sx={TD}>
+                            {row.taskDetails?.length > 0 && (
+                              <IconButton size="small" onClick={() => toggleRow(emp.id)} sx={{ color: 'text.disabled' }}>
+                                {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
+                              </IconButton>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
-                      {expanded && row.taskDetails?.length > 0 && (
+                      {viewMode === 'weekly' && expanded && row.taskDetails?.length > 0 && (
                         <TableRow>
-                          <TableCell colSpan={days.length + 4} sx={{ p: 0, bgcolor: 'action.hover' }}>
+                          <TableCell colSpan={colCount} sx={{ p: 0, bgcolor: 'action.hover' }}>
                             <Box sx={{ px: 3, py: 1.5 }}>
                               <Table size="small">
                                 <TableHead>
@@ -303,12 +372,17 @@ export default function WrikeTimesheets() {
               <TableBody>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ ...TD, fontWeight: 700 }}>Totals</TableCell>
-                  {days.map(d => {
+                  {viewMode === 'weekly' ? days.map(d => {
                     const dt = visibleData.reduce((s, r) => s + (r.dailyHours?.[d] || 0), 0);
                     return <TableCell key={d} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{dt > 0 ? `${dt.toFixed(1)}h` : '—'}</TableCell>;
+                  }) : (weeks || []).map((_, i) => {
+                    const wt = visibleData.reduce((s, r) => s + ((r.weekHours || [])[i] || 0), 0);
+                    return <TableCell key={i} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{wt > 0 ? `${wt.toFixed(1)}h` : '—'}</TableCell>;
                   })}
-                  <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{totalHours.toFixed(1)}h</TableCell>
-                  <TableCell colSpan={2} sx={{ ...TD, textAlign: 'right', color: 'text.disabled', fontSize: '0.8rem' }}>Mixed currencies</TableCell>
+                  <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
+                    {visibleData.reduce((s, r) => s + r.totalHours, 0).toFixed(1)}h
+                  </TableCell>
+                  <TableCell colSpan={viewMode === 'weekly' ? 2 : 1} sx={{ ...TD, textAlign: 'right', color: 'text.disabled', fontSize: '0.8rem' }}>Mixed currencies</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

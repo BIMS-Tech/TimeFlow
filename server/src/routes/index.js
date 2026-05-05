@@ -9,6 +9,7 @@ const authController = require('../controllers/auth.controller');
 const wrikeController = require('../controllers/wrike.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const portalController = require('../controllers/portal.controller');
+const verificationController = require('../controllers/verification.controller');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -320,6 +321,7 @@ router.post('/employees/:id/reset-password', employeeController.resetPassword.bi
  * @desc Fetch weekly timelogs from Wrike for all employees
  */
 router.get('/wrike/timelogs', wrikeController.getWeeklyTimelogs.bind(wrikeController));
+router.get('/wrike/timelogs/monthly', wrikeController.getMonthlyTimelogs.bind(wrikeController));
 
 /**
  * @route POST /api/wrike/import
@@ -373,6 +375,15 @@ router.post('/webhooks/retry', webhookController.retryUnprocessedEvents.bind(web
  * @desc Test webhook endpoint
  */
 router.post('/webhooks/test', webhookController.testWebhook.bind(webhookController));
+
+// ============================================
+// TIMESHEET VERIFICATION ROUTES
+// ============================================
+
+router.get('/verifications/status',            verificationController.getStatus.bind(verificationController));
+router.get('/verifications/period/:periodId',  verificationController.getForPeriod.bind(verificationController));
+router.post('/verifications/upsert',           verificationController.upsert.bind(verificationController));
+router.post('/verifications/bulk',             verificationController.bulk.bind(verificationController));
 
 // ============================================
 // EMPLOYEE PORTAL ROUTES

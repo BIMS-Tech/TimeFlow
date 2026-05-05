@@ -136,6 +136,72 @@ class WrikeController {
   }
 
   /**
+   * GET /api/wrike/timelogs/monthly?month=YYYY-MM&approvedOnly=true
+   * Aggregates Wrike timelogs for a full calendar month, grouped by employee and week.
+   */
+  async getMonthlyTimelogs(req, res) {
+    try {
+      const month       = req.query.month || new Date().toISOString().substring(0, 7);
+      const approvedOnly = req.query.approvedOnly === 'true';
+      const [year, mon] = month.split('-').map(Number);
+
+      const startDate = `${year}-${String(mon).padStart(2,'0')}-01`;
+      const lastDay   = new Date(year, mon, 0).getDate();
+      const endDate   = `${year}-${String(mon).padStart(2,'0')}-${lastDay}`;
+
+      const allEmployees   = await Employee.findAll(false);
+      const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
+      const wrikeIds       = linkedEmployees.map(e => e.wrike_user_id);
+
+      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+      if (approvedOnly) {
+        timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+      }
+
+      const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
+      const taskTitles = await wrikeService.getTaskTitles(allTaskIds);
+      const byUser     = wrikeService.groupTimeLogsByUser(timelogs);
+
+      // Build week labels for the month (Mon–Sun buckets)
+      const weeks = [];
+      let cursor = new Date(startDate + 'T12:00:00Z');
+      while (cursor.getUTCDay() !== 1) cursor.setUTCDate(cursor.getUTCDate() - 1); // rewind to Monday
+      while (cursor <= new Date(endDate + 'T23:59:59Z')) {
+        const wStart = cursor.toISOString().split('T')[0];
+        const wEnd   = new Date(cursor); wEnd.setUTCDate(wEnd.getUTCDate() + 6);
+        weeks.push({ start: wStart, end: wEnd.toISOString().split('T')[0] });
+        cursor.setUTCDate(cursor.getUTCDate() + 7);
+      }
+
+      const rows = allEmployees.map(emp => {
+        const userLogs = emp.wrike_user_id ? (byUser[emp.wrike_user_id] || []) : [];
+        const weekHours = weeks.map(w => {
+          return userLogs.filter(l => l.date >= w.start && l.date <= w.end)
+                         .reduce((s, l) => s + l.hours, 0);
+        });
+        const totalHours = weekHours.reduce((a, b) => a + b, 0);
+        const currency   = emp.currency || 'USD';
+        const pay        = +(totalHours * parseFloat(emp.hourly_rate)).toFixed(2);
+
+        return {
+          employee: {
+            id: emp.id, employee_id: emp.employee_id, name: emp.name,
+            department: emp.department, hourly_rate: emp.hourly_rate,
+            currency, wrike_user_id: emp.wrike_user_id, is_active: emp.is_active,
+          },
+          weekHours,
+          totalHours: +totalHours.toFixed(2),
+          pay,
+        };
+      });
+
+      res.json({ success: true, month, startDate, endDate, weeks, data: rows });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * POST /api/wrike/import
    * Body: { date: 'YYYY-MM-DD', approvedOnly: true }  — imports the full week into time_entries
    */

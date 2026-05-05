@@ -74,8 +74,8 @@ class JobWorkerService {
       let result;
       switch (job.type) {
         case 'submit': {
-          const { employeeId, startDate, endDate, periodName } = job.payload;
-          result = await timesheetService.submitTimesheet(employeeId, startDate, endDate, periodName);
+          const { employeeId, startDate, endDate, periodName, verifiedHours, cashAdvance } = job.payload;
+          result = await timesheetService.submitTimesheet(employeeId, startDate, endDate, periodName, verifiedHours ?? null, cashAdvance ?? 0);
           break;
         }
         case 'bulk_generate': {

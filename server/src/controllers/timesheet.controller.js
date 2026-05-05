@@ -667,15 +667,45 @@ class TimesheetController {
   /**
    * Submit timesheet for approval — enqueues an async job and returns immediately
    * POST /api/timesheet/submit
+   * Requires a verified timesheet_verifications record for the employee + period.
    */
   async submitTimesheet(req, res) {
     const jobWorker = require('../services/job-worker.service');
+    const db = require('../database/connection');
     try {
       const { employeeId, startDate, endDate, periodName } = req.body;
       if (!employeeId || !startDate || !endDate) {
         return res.status(400).json({ success: false, error: 'employeeId, startDate and endDate are required' });
       }
-      const job = await jobWorker.enqueueJob('submit', { employeeId, startDate, endDate, periodName });
+
+      // Require a verified record before generating payslip
+      const period = await db.getOne(
+        'SELECT id FROM pay_periods WHERE start_date = ? AND end_date = ?',
+        [startDate, endDate]
+      );
+      if (!period) {
+        return res.status(400).json({
+          success: false,
+          error: 'Timesheet not verified. Open Generate Timesheet, select this period, and verify the employee before generating a payslip.',
+          code: 'NOT_VERIFIED',
+        });
+      }
+      const verification = await db.getOne(
+        'SELECT * FROM timesheet_verifications WHERE employee_id = ? AND period_id = ?',
+        [employeeId, period.id]
+      );
+      if (!verification || verification.status !== 'verified') {
+        return res.status(400).json({
+          success: false,
+          error: 'Timesheet not verified. Open Generate Timesheet, select this period, and verify the employee before generating a payslip.',
+          code: 'NOT_VERIFIED',
+        });
+      }
+
+      const verifiedHours = verification.verified_hours !== null ? parseFloat(verification.verified_hours) : null;
+      const cashAdvance   = parseFloat(verification.cash_advance) || 0;
+
+      const job = await jobWorker.enqueueJob('submit', { employeeId, startDate, endDate, periodName, verifiedHours, cashAdvance });
       res.json({ success: true, data: { jobId: job.id, status: 'queued' } });
     } catch (error) {
       console.error('❌ submitTimesheet error:', error.message);

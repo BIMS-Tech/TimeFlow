@@ -14,6 +14,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -32,17 +33,18 @@ import Periods from './pages/Periods';
 import Payslips from './pages/Payslips';
 import WrikeTimesheets from './pages/WrikeTimesheets';
 import TimesheetGenerator from './pages/TimesheetGenerator';
+import GenerateTimesheet from './pages/GenerateTimesheet';
 import EmployeePortal from './pages/EmployeePortal';
 
 const DRAWER_WIDTH = 268;
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',          icon: <DashboardIcon />,               path: '/',         end: true },
-  { label: 'Employees',          icon: <PeopleIcon />,                  path: '/employees' },
-  { label: 'Pay Periods',        icon: <CalendarMonthIcon />,           path: '/periods'   },
-  { label: 'Payslips',           icon: <ReceiptLongIcon />,             path: '/payslips'  },
-  { label: 'Generate Payslips',  icon: <AddchartIcon />,                path: '/generate'  },
-  { label: 'Wrike Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike'     },
+  { label: 'Dashboard',           icon: <DashboardIcon />,               path: '/',                  end: true },
+  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees'          },
+  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods'            },
+  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify'   },
+  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate'           },
+  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike'              },
 ];
 
 function ProtectedRoute({ children }) {
@@ -289,13 +291,14 @@ function AppLayout() {
         }}
       >
         <Routes>
-          <Route path="/"           element={<Dashboard />} />
-          <Route path="/employees"  element={<Employees />} />
-          <Route path="/periods"    element={<Periods />} />
-          <Route path="/payslips"   element={<Payslips />} />
-          <Route path="/generate"   element={<TimesheetGenerator />} />
-          <Route path="/wrike"      element={<WrikeTimesheets />} />
-          <Route path="*"           element={<Navigate to="/" replace />} />
+          <Route path="/"                   element={<Dashboard />} />
+          <Route path="/employees"          element={<Employees />} />
+          <Route path="/periods"            element={<Periods />} />
+          <Route path="/payslips"           element={<Payslips />} />
+          <Route path="/timesheet-verify"   element={<GenerateTimesheet />} />
+          <Route path="/generate"           element={<TimesheetGenerator />} />
+          <Route path="/wrike"              element={<WrikeTimesheets />} />
+          <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
     </Box>
