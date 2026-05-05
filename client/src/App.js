@@ -11,7 +11,6 @@ import toast from 'react-hot-toast';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
