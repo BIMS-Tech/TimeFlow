@@ -26,8 +26,15 @@ class VerificationController {
       const startDate = toDateStr(period.start_date);
       const endDate   = toDateStr(period.end_date);
 
+      // Filter employees to match the period type
+      const isForeign = period.period_type === 'foreign';
       const employees = await db.query(
-        'SELECT id, employee_id, name, department, position, hourly_rate, currency, hire_category, employee_type FROM employees WHERE is_active = 1 ORDER BY name'
+        `SELECT id, employee_id, name, department, position, hourly_rate, currency, hire_category, employee_type
+         FROM employees
+         WHERE is_active = 1
+           AND (hire_category = ? OR (? = 'local' AND hire_category IS NULL))
+         ORDER BY name`,
+        [isForeign ? 'foreign' : 'local', isForeign ? 'foreign' : 'local']
       );
 
       const hoursRows = await db.query(
