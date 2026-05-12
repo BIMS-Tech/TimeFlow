@@ -12,6 +12,17 @@ const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
 require('dotenv').config();
 
+function toLocalDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).substring(0, 10);
+}
+
 // Simple concurrency limiter — max N PDF jobs running simultaneously
 function createLimiter(concurrency) {
   let active = 0;
@@ -909,7 +920,7 @@ class TimesheetService {
       // D row: transaction data (one per employee)
       // C row: tax period / payee-payor info (one per employee)
       // W row: withholding tax data (one per employee)
-      const transactionDate = new Date().toISOString().split('T')[0];
+      const transactionDate = toLocalDateStr(new Date());
       const sourceAccount = process.env.BANK_SOURCE_ACCOUNT || '';
       const payorName = process.env.PAYOR_NAME || '';
       const payorTin = process.env.PAYOR_TIN || '';
@@ -948,8 +959,8 @@ class TimesheetService {
         // C row – tax period / payee-payor
         lines.push([
           'C',
-          period.start_date ? period.start_date.toISOString ? period.start_date.toISOString().split('T')[0] : String(period.start_date).split('T')[0] : '',
-          period.end_date ? period.end_date.toISOString ? period.end_date.toISOString().split('T')[0] : String(period.end_date).split('T')[0] : '',
+          toLocalDateStr(period.start_date),
+          toLocalDateStr(period.end_date),
           emp.bank_account_name || emp.name || '',
           emp.payee_tin || '',
           emp.beneficiary_address || '',
@@ -992,7 +1003,7 @@ class TimesheetService {
         escape(emp.first_name || ''),
         escape(emp.middle_name || ''),
         escape(emp.bank_account_number || ''),
-        escape(Number(p.net_amount || 0).toFixed(2)),
+        Number(p.net_amount || 0).toFixed(2),
       ].join(','));
     });
     return {

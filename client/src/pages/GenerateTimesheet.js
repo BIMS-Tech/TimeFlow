@@ -294,9 +294,9 @@ export default function GenerateTimesheet() {
                           </TableCell>
                           <TableCell sx={{ ...TD, textAlign: 'center' }}>
                             {ver?.verified_hours != null ? (
-                              <Typography sx={{ fontWeight: 700, color: ver.verified_hours !== row.actual_hours ? '#f59e0b' : 'text.primary' }}>
+                              <Typography sx={{ fontWeight: 700, color: parseFloat(ver.verified_hours) !== row.actual_hours ? '#f59e0b' : 'text.primary' }}>
                                 {parseFloat(ver.verified_hours).toFixed(1)}h
-                                {ver.verified_hours !== row.actual_hours && <Typography component="span" sx={{ fontSize: '0.65rem', color: '#f59e0b', ml: 0.5 }}>override</Typography>}
+                                {parseFloat(ver.verified_hours) !== row.actual_hours && <Typography component="span" sx={{ fontSize: '0.65rem', color: '#f59e0b', ml: 0.5 }}>override</Typography>}
                               </Typography>
                             ) : (
                               <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>—</Typography>
@@ -380,7 +380,7 @@ export default function GenerateTimesheet() {
                 <strong style={{ color: '#10b981' }}>{verifiedCount}</strong> of {data.length} verified
               </Typography>
               <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                <strong>{data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (r.verification?.verified_hours ?? r.actual_hours), 0).toFixed(1)}h</strong> total hours
+                <strong>{data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (r.verification?.verified_hours != null ? parseFloat(r.verification.verified_hours) : r.actual_hours), 0).toFixed(1)}h</strong> total hours
               </Typography>
             </Box>
             {verifiedCount === withHours && withHours > 0 && (

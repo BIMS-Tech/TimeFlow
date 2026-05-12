@@ -8,7 +8,6 @@ import {
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -61,13 +60,11 @@ export default function WrikeTimesheets() {
   const [days,      setDays]      = useState([]);
   const [weeks,     setWeeks]     = useState([]); // monthly mode — week buckets
   const [loading,   setLoading]   = useState(false);
-  const [importing, setImporting] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
   const [error,     setError]     = useState(null);
   const [selectedEmpId, setSelectedEmpId] = useState('');
   const [employees, setEmployees] = useState([]);
   const [approvedOnly, setApprovedOnly] = useState(false);
-  const [backfilling,  setBackfilling]  = useState(false);
 
   useEffect(() => {
     employeesAPI.getAll(false).then(res => setEmployees(res.data || [])).catch(() => {});
@@ -98,33 +95,6 @@ export default function WrikeTimesheets() {
   }, [viewMode, weekStart, month, approvedOnly]);
 
   useEffect(() => { fetchTimelogs(); }, [fetchTimelogs]);
-
-  const handleImport = async () => {
-    setImporting(true);
-    try {
-      const res = await wrikeAPI.importWeek(weekStart, approvedOnly);
-      toast.success(res.message);
-      fetchTimelogs();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Import failed');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleBackfill = async () => {
-    setBackfilling(true);
-    try {
-      const res = await wrikeAPI.backfillCategories();
-      const { updated, total } = res.data;
-      if (updated > 0) toast.success(`Fixed categories for ${updated} of ${total} entries`);
-      else toast.success(`No uncategorized entries found (all ${total} already have categories)`);
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Backfill failed');
-    } finally {
-      setBackfilling(false);
-    }
-  };
 
   const toggleRow = (id) => setExpandedRows(p => ({ ...p, [id]: !p[id] }));
 
@@ -179,20 +149,6 @@ export default function WrikeTimesheets() {
               This Month
             </Button>
           )}
-          {viewMode === 'weekly' && (
-            <Button variant="contained" startIcon={importing ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DownloadIcon />}
-              onClick={handleImport} disabled={importing || loading}
-              sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-              {importing ? 'Importing…' : `Import${approvedOnly ? ' (Approved)' : ''} to DB`}
-            </Button>
-          )}
-          <Tooltip title="Re-fetch categories from Wrike and fix all uncategorized entries">
-            <Button variant="outlined" onClick={handleBackfill} disabled={backfilling}
-              startIcon={backfilling ? <CircularProgress size={14} /> : null}
-              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#f59e0b', color: '#f59e0b', '&:hover': { borderColor: '#d97706', bgcolor: '#fef3c720' } }}>
-              {backfilling ? 'Fixing…' : 'Fix Categories'}
-            </Button>
-          </Tooltip>
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
               sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
