@@ -12,6 +12,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddchartIcon from '@mui/icons-material/Addchart';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods',           roles: ['super_admin', 'admin'] },
   { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify',  roles: ['super_admin', 'admin', 'hr'] },
   { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'admin', 'hr'] },
+  { label: 'Payslips',            icon: <ReceiptIcon />,                 path: '/payslips',          roles: ['super_admin', 'admin', 'hr'] },
   { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'admin', 'hr'] },
   { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin'] },
 ];
