@@ -14,6 +14,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -33,17 +34,19 @@ import Payslips from './pages/Payslips';
 import WrikeTimesheets from './pages/WrikeTimesheets';
 import TimesheetGenerator from './pages/TimesheetGenerator';
 import GenerateTimesheet from './pages/GenerateTimesheet';
+import UserManagement from './pages/UserManagement';
 import EmployeePortal from './pages/EmployeePortal';
 
 const DRAWER_WIDTH = 268;
 
 const NAV_ITEMS = [
   { label: 'Dashboard',           icon: <DashboardIcon />,               path: '/',                  end: true },
-  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees'          },
-  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods'            },
-  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify'   },
-  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate'           },
-  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike'              },
+  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees',         roles: ['super_admin', 'admin'] },
+  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods',           roles: ['super_admin', 'admin'] },
+  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify',  roles: ['super_admin', 'admin', 'hr'] },
+  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'admin', 'hr'] },
+  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'admin', 'hr'] },
+  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin'] },
 ];
 
 function ProtectedRoute({ children }) {
@@ -51,10 +54,18 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
+function RequireRole({ roles, children }) {
+  const { user } = useAuth();
+  if (!user || !roles.includes(user.role)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function SidebarNav({ onNavigate }) {
+  const { user } = useAuth();
+  const visibleItems = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(user?.role));
   return (
     <List sx={{ px: 1.5 }}>
-      {NAV_ITEMS.map((item) => (
+      {visibleItems.map((item) => (
         <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
           <ListItemButton
             component={NavLink}
@@ -297,6 +308,7 @@ function AppLayout() {
           <Route path="/timesheet-verify"   element={<GenerateTimesheet />} />
           <Route path="/generate"           element={<TimesheetGenerator />} />
           <Route path="/wrike"              element={<WrikeTimesheets />} />
+          <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>

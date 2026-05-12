@@ -180,6 +180,11 @@ async function runMigrations() {
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_tv_emp_period (employee_id, period_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+    // Multi-role user system
+    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','hr','accountant','viewer') DEFAULT 'viewer'`,
+    // Upgrade the seed admin user to super_admin
+    `UPDATE users SET role = 'super_admin' WHERE username = 'dam' AND email = 'dam@bims.tech' AND role = 'admin'`,
   ];
   for (const sql of migrations) {
     try {

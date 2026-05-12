@@ -233,4 +233,13 @@ export const portalAPI = {
     api.post('/portal/change-password', { currentPassword, newPassword }),
 };
 
+export const usersAPI = {
+  getAll:        ()         => api.get('/admin/users'),
+  create:        (data)     => api.post('/admin/users', data),
+  update:        (id, data) => api.put(`/admin/users/${id}`, data),
+  resetPassword: (id, pwd)  => api.post(`/admin/users/${id}/reset-password`, { password: pwd }),
+  deactivate:    (id)       => api.post(`/admin/users/${id}/deactivate`),
+  activate:      (id)       => api.post(`/admin/users/${id}/activate`),
+};
+
 export default api;

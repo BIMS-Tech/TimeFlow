@@ -8,8 +8,14 @@ const webhookController = require('../controllers/webhook.controller');
 const authController = require('../controllers/auth.controller');
 const wrikeController = require('../controllers/wrike.controller');
 const authMiddleware = require('../middleware/auth.middleware');
+const { requireRole } = require('../middleware/auth.middleware');
 const portalController = require('../controllers/portal.controller');
 const verificationController = require('../controllers/verification.controller');
+const adminController = require('../controllers/admin.controller');
+
+const requireSuperAdmin   = requireRole('super_admin');
+const requireAdminOrAbove = requireRole('super_admin', 'admin');
+const requireHROrAbove    = requireRole('super_admin', 'admin', 'hr');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -109,22 +115,22 @@ router.get('/timesheet/periods', timesheetController.getPeriods.bind(timesheetCo
  * @route POST /api/timesheet/periods
  * @desc Create a new period
  */
-router.post('/timesheet/periods', timesheetController.createPeriod.bind(timesheetController));
+router.post('/timesheet/periods', requireAdminOrAbove, timesheetController.createPeriod.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/monthly
  * @desc Create periods for a month
  */
-router.post('/timesheet/periods/monthly', timesheetController.createMonthlyPeriods.bind(timesheetController));
-router.post('/timesheet/periods/foreign-monthly', timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
+router.post('/timesheet/periods/monthly', requireAdminOrAbove, timesheetController.createMonthlyPeriods.bind(timesheetController));
+router.post('/timesheet/periods/foreign-monthly', requireAdminOrAbove, timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id
  * @desc Get period by ID
  */
 router.get('/timesheet/periods/:id', timesheetController.getPeriod.bind(timesheetController));
-router.put('/timesheet/periods/:id', timesheetController.updatePeriod.bind(timesheetController));
-router.delete('/timesheet/periods/:id', timesheetController.deletePeriod.bind(timesheetController));
+router.put('/timesheet/periods/:id', requireAdminOrAbove, timesheetController.updatePeriod.bind(timesheetController));
+router.delete('/timesheet/periods/:id', requireAdminOrAbove, timesheetController.deletePeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id/summaries
@@ -243,7 +249,7 @@ router.get('/employees', employeeController.getAll.bind(employeeController));
  * @route POST /api/employees
  * @desc Create new employee
  */
-router.post('/employees', employeeController.create.bind(employeeController));
+router.post('/employees', requireAdminOrAbove, employeeController.create.bind(employeeController));
 
 /**
  * @route GET /api/employees/:id
@@ -255,13 +261,13 @@ router.get('/employees/:id', employeeController.getById.bind(employeeController)
  * @route PUT /api/employees/:id
  * @desc Update employee
  */
-router.put('/employees/:id', employeeController.update.bind(employeeController));
+router.put('/employees/:id', requireAdminOrAbove, employeeController.update.bind(employeeController));
 
 /**
  * @route DELETE /api/employees/:id
  * @desc Delete employee
  */
-router.delete('/employees/:id', employeeController.delete.bind(employeeController));
+router.delete('/employees/:id', requireAdminOrAbove, employeeController.delete.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/deactivate
@@ -384,6 +390,17 @@ router.get('/verifications/status',            verificationController.getStatus.
 router.get('/verifications/period/:periodId',  verificationController.getForPeriod.bind(verificationController));
 router.post('/verifications/upsert',           verificationController.upsert.bind(verificationController));
 router.post('/verifications/bulk',             verificationController.bulk.bind(verificationController));
+
+// ============================================
+// ADMIN — USER MANAGEMENT ROUTES (super_admin only)
+// ============================================
+
+router.get('/admin/users',                    requireSuperAdmin, adminController.listUsers.bind(adminController));
+router.post('/admin/users',                   requireSuperAdmin, adminController.createUser.bind(adminController));
+router.put('/admin/users/:id',                requireSuperAdmin, adminController.updateUser.bind(adminController));
+router.post('/admin/users/:id/reset-password', requireSuperAdmin, adminController.resetPassword.bind(adminController));
+router.post('/admin/users/:id/deactivate',    requireSuperAdmin, adminController.deactivateUser.bind(adminController));
+router.post('/admin/users/:id/activate',      requireSuperAdmin, adminController.activateUser.bind(adminController));
 
 // ============================================
 // EMPLOYEE PORTAL ROUTES

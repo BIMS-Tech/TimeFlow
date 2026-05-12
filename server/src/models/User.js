@@ -56,6 +56,22 @@ class User {
     return this.findById(id);
   }
 
+  static async findAll() {
+    return db.query(
+      'SELECT id, username, email, role, employee_id, is_active, last_login, created_at FROM users WHERE employee_id IS NULL ORDER BY created_at ASC',
+    );
+  }
+
+  static async updateProfile(id, data) {
+    const allowed = {};
+    if (data.username !== undefined) allowed.username = data.username;
+    if (data.email   !== undefined) allowed.email     = data.email;
+    if (data.role    !== undefined) allowed.role      = data.role;
+    if (Object.keys(allowed).length === 0) return this.findById(id);
+    await db.update('users', allowed, 'id = ?', [id]);
+    return this.findById(id);
+  }
+
   static async findByEmployeeId(employeeId) {
     return db.getOne(
       'SELECT id, username, email, role, employee_id, is_active FROM users WHERE employee_id = ?',

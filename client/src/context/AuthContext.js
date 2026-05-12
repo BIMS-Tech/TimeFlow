@@ -24,8 +24,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const isSuperAdmin   = user?.role === 'super_admin';
+  const isAdminOrAbove = isSuperAdmin || user?.role === 'admin';
+  const isHROrAbove    = isAdminOrAbove || user?.role === 'hr';
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isSuperAdmin, isAdminOrAbove, isHROrAbove }}>
       {children}
     </AuthContext.Provider>
   );
