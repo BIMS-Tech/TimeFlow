@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate 
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Typography, Avatar, Divider, Tooltip, IconButton, AppBar, Toolbar, useMediaQuery, useTheme,
+  Dialog, DialogTitle, DialogContent, CircularProgress,
 } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -22,6 +23,7 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -108,7 +110,39 @@ function SidebarNav({ onNavigate }) {
   );
 }
 
-function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout }) {
+const WRIKE_FORM_URL = 'https://www.wrike.com/forms/ABC6G5BOWQCGUMDM';
+
+function RequestFormDialog({ open, onClose }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
+      PaperProps={{ sx: { borderRadius: '16px', height: '80vh', overflow: 'hidden' } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1rem' }}>File a Request</Typography>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ p: 0, position: 'relative' }}>
+        {!loaded && (
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper', zIndex: 1 }}>
+            <CircularProgress size={32} sx={{ color: '#10b981' }} />
+          </Box>
+        )}
+        <iframe
+          src={WRIKE_FORM_URL}
+          title="File a Request"
+          width="100%"
+          height="100%"
+          style={{ border: 'none', display: 'block' }}
+          onLoad={() => setLoaded(true)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout, onOpenRequest }) {
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : 'TF';
   return (
     <>
@@ -149,13 +183,10 @@ function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout }) {
       {/* Request / Suggestions */}
       <Box sx={{ px: 2, py: 1.5 }}>
         <Box
-          component="a"
-          href="https://www.wrike.com/workspace.htm#/forms?formid=2817821"
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={onOpenRequest}
           sx={{
             display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.1,
-            borderRadius: '12px', textDecoration: 'none', cursor: 'pointer',
+            borderRadius: '12px', cursor: 'pointer',
             background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
             border: '1px solid rgba(16,185,129,0.25)',
             transition: 'all 0.2s',
@@ -217,7 +248,8 @@ function AppLayout() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [requestOpen,  setRequestOpen]  = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -228,6 +260,7 @@ function AppLayout() {
   const drawerProps = {
     user, mode, toggleTheme, handleLogout,
     onNavigate: isMobile ? () => setMobileOpen(false) : undefined,
+    onOpenRequest: () => setRequestOpen(true),
   };
 
   const drawerContent = (
@@ -270,8 +303,7 @@ function AppLayout() {
               </Typography>
             </Box>
             <Tooltip title="File a Request" arrow>
-              <IconButton component="a" href="https://www.wrike.com/workspace.htm#/forms?formid=2817821" target="_blank" rel="noopener noreferrer"
-                size="small" sx={{ color: '#10b981' }}>
+              <IconButton onClick={() => setRequestOpen(true)} size="small" sx={{ color: '#10b981' }}>
                 <OpenInNewIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -346,6 +378,8 @@ function AppLayout() {
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
+
+      <RequestFormDialog open={requestOpen} onClose={() => setRequestOpen(false)} />
     </Box>
   );
 }
