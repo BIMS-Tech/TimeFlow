@@ -81,6 +81,11 @@ export const employeesAPI = {
   revokeAccess: (id) => api.post(`/employees/${id}/revoke-access`),
   restoreAccess: (id) => api.post(`/employees/${id}/restore-access`),
   resetPassword: (id) => api.post(`/employees/${id}/reset-password`),
+  bulkUpload: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/employees/bulk', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
 };
 
 // ============================================

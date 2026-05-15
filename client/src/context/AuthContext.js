@@ -24,12 +24,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const isSuperAdmin   = user?.role === 'super_admin';
-  const isAdminOrAbove = isSuperAdmin || user?.role === 'admin';
-  const isHROrAbove    = isAdminOrAbove || user?.role === 'hr';
+  const isSuperAdmin      = user?.role === 'super_admin';
+  const isHROrAbove       = isSuperAdmin || user?.role === 'hr';
+  const isPayrollOrAbove  = isHROrAbove  || user?.role === 'payroll_officer';
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isSuperAdmin, isAdminOrAbove, isHROrAbove }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isSuperAdmin, isHROrAbove, isPayrollOrAbove }}>
       {children}
     </AuthContext.Provider>
   );

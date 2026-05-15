@@ -1,7 +1,9 @@
 const db = require('../database/connection');
 const User = require('../models/User');
 
-const ALLOWED_ROLES = ['super_admin', 'admin', 'hr', 'accountant', 'viewer'];
+const ALLOWED_ROLES = ['super_admin', 'hr', 'payroll_officer'];
+// Roles that HR is allowed to create/manage (cannot manage peers or superiors)
+const HR_MANAGEABLE_ROLES = ['payroll_officer'];
 
 class AdminController {
   async listUsers(req, res) {
@@ -21,6 +23,9 @@ class AdminController {
       }
       if (!ALLOWED_ROLES.includes(role)) {
         return res.status(400).json({ success: false, error: 'Invalid role' });
+      }
+      if (req.user.role === 'hr' && !HR_MANAGEABLE_ROLES.includes(role)) {
+        return res.status(403).json({ success: false, error: 'HR can only create Payroll Officer accounts' });
       }
       if (password.length < 6) {
         return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
@@ -50,6 +55,15 @@ class AdminController {
       if (role && !ALLOWED_ROLES.includes(role)) {
         return res.status(400).json({ success: false, error: 'Invalid role' });
       }
+      if (req.user.role === 'hr') {
+        const target = await User.findById(id);
+        if (target && !HR_MANAGEABLE_ROLES.includes(target.role)) {
+          return res.status(403).json({ success: false, error: 'HR can only manage Payroll Officer accounts' });
+        }
+        if (role && !HR_MANAGEABLE_ROLES.includes(role)) {
+          return res.status(403).json({ success: false, error: 'HR can only assign the Payroll Officer role' });
+        }
+      }
 
       const user = await User.updateProfile(id, { username, email, role });
       res.json({ success: true, data: user });
@@ -64,6 +78,12 @@ class AdminController {
       const { password } = req.body;
       if (!password || password.length < 6) {
         return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+      }
+      if (req.user.role === 'hr') {
+        const target = await User.findById(id);
+        if (target && !HR_MANAGEABLE_ROLES.includes(target.role)) {
+          return res.status(403).json({ success: false, error: 'HR can only reset passwords for Payroll Officer accounts' });
+        }
       }
       await User.updatePassword(id, password);
       res.json({ success: true, message: 'Password updated successfully' });
@@ -80,6 +100,9 @@ class AdminController {
       }
       const target = await User.findById(id);
       if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (req.user.role === 'hr' && !HR_MANAGEABLE_ROLES.includes(target.role)) {
+        return res.status(403).json({ success: false, error: 'HR can only deactivate Payroll Officer accounts' });
+      }
 
       if (target.role === 'super_admin') {
         const activeSuperAdmins = await db.query(
@@ -100,6 +123,12 @@ class AdminController {
   async activateUser(req, res) {
     try {
       const { id } = req.params;
+      if (req.user.role === 'hr') {
+        const target = await User.findById(id);
+        if (target && !HR_MANAGEABLE_ROLES.includes(target.role)) {
+          return res.status(403).json({ success: false, error: 'HR can only activate Payroll Officer accounts' });
+        }
+      }
       const user = await User.setActive(id, true);
       res.json({ success: true, data: user });
     } catch (error) {

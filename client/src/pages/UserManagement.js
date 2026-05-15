@@ -19,14 +19,13 @@ import { usersAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_META = {
-  super_admin: { label: 'Super Admin', bg: '#6366f115', color: '#6366f1' },
-  admin:       { label: 'Admin',       bg: '#3b82f615', color: '#3b82f6' },
-  hr:          { label: 'HR',          bg: '#10b98115', color: '#10b981' },
-  accountant:  { label: 'Accountant',  bg: '#f59e0b15', color: '#f59e0b' },
-  viewer:      { label: 'Viewer',      bg: '#64748b15', color: '#64748b' },
+  super_admin:      { label: 'Super Admin',      bg: '#6366f115', color: '#6366f1' },
+  hr:               { label: 'HR',               bg: '#10b98115', color: '#10b981' },
+  payroll_officer:  { label: 'Payroll Officer',  bg: '#f59e0b15', color: '#f59e0b' },
 };
 
-const SELECTABLE_ROLES = ['super_admin', 'admin', 'hr', 'accountant', 'viewer'];
+const ALL_ROLES         = ['super_admin', 'hr', 'payroll_officer'];
+const HR_ALLOWED_ROLES  = ['payroll_officer'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
@@ -66,10 +65,11 @@ function PasswordField({ label, value, onChange, error }) {
   );
 }
 
-const emptyAdd = { username: '', email: '', password: '', role: 'hr' };
+const emptyAdd = { username: '', email: '', password: '', role: 'payroll_officer' };
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
+  const selectableRoles = currentUser?.role === 'super_admin' ? ALL_ROLES : HR_ALLOWED_ROLES;
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -226,7 +226,7 @@ export default function UserManagement() {
 
       {/* Role legend */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-        {SELECTABLE_ROLES.map(r => <RoleChip key={r} role={r} />)}
+        {ALL_ROLES.map(r => <RoleChip key={r} role={r} />)}
       </Box>
 
       {/* Table */}
@@ -339,16 +339,15 @@ export default function UserManagement() {
           <FormControl size="small" fullWidth error={!!addErr.role}>
             <InputLabel>Role</InputLabel>
             <Select label="Role" value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}>
-              {SELECTABLE_ROLES.map(r => (
+              {selectableRoles.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>
           </FormControl>
           <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
-            <strong>Super Admin</strong> — full access + user management<br />
-            <strong>Admin</strong> — full access (no user management)<br />
-            <strong>HR</strong> — timesheet verification, generate timesheets &amp; payslips<br />
-            <strong>Viewer</strong> — read-only dashboard access
+            <strong>Super Admin</strong> — full access + manage all users<br />
+            <strong>HR</strong> — employee profiles, rates, timesheets; can add Payroll Officers<br />
+            <strong>Payroll Officer</strong> — pay periods, payslips, bank file generation
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -384,7 +383,7 @@ export default function UserManagement() {
               onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
               disabled={editUser && String(editUser.id) === String(currentUser?.id)}
             >
-              {SELECTABLE_ROLES.map(r => (
+              {selectableRoles.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>

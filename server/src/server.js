@@ -181,10 +181,19 @@ async function runMigrations() {
       UNIQUE KEY uq_tv_emp_period (employee_id, period_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
-    // Multi-role user system
+    // Multi-role user system (initial)
     `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','hr','accountant','viewer') DEFAULT 'viewer'`,
     // Upgrade the seed admin user to super_admin
     `UPDATE users SET role = 'super_admin' WHERE username = 'dam' AND email = 'dam@bims.tech' AND role = 'admin'`,
+
+    // Revised role structure: super_admin | hr | payroll_officer
+    // Step 1: expand enum to include payroll_officer so UPDATE below won't fail
+    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','hr','accountant','viewer','payroll_officer') DEFAULT 'payroll_officer'`,
+    // Step 2: remap obsolete roles
+    `UPDATE users SET role = 'hr' WHERE role = 'admin'`,
+    `UPDATE users SET role = 'payroll_officer' WHERE role IN ('accountant', 'viewer')`,
+    // Step 3: contract enum to final 3-role set
+    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer') DEFAULT 'payroll_officer'`,
   ];
   for (const sql of migrations) {
     try {

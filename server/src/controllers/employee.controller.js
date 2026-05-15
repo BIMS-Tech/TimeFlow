@@ -7,6 +7,32 @@ const invalidateEmployeeCache = () => {
   cache.del('db:dashboard').catch(() => {});
 };
 
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const result = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row = [];
+    let inQuotes = false;
+    let current = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        row.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    row.push(current.trim());
+    result.push(row);
+  }
+  return result;
+}
+
 /**
  * Employee Controller
  * Handles employee-related API endpoints
@@ -421,6 +447,107 @@ class EmployeeController {
         success: false,
         error: error.message
       });
+    }
+  }
+
+  /**
+   * Bulk upload employees from CSV
+   * POST /api/employees/bulk
+   */
+  async bulkUpload(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+      }
+
+      const text = req.file.buffer.toString('utf-8');
+      const rows = parseCSV(text);
+
+      if (rows.length < 2) {
+        return res.status(400).json({ success: false, error: 'CSV must have a header row and at least one data row' });
+      }
+
+      const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g, '_').trim());
+      const results = { created: 0, skipped: 0, errors: [] };
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.every(c => !c)) continue;
+
+        const data = {};
+        headers.forEach((h, idx) => { data[h] = row[idx] || ''; });
+
+        const rowNum = i + 1;
+        const missing = ['employee_id', 'name', 'email'].filter(f => !data[f]);
+        if (missing.length) {
+          results.errors.push({ row: rowNum, employee_id: data.employee_id || '?', error: `Missing required: ${missing.join(', ')}` });
+          results.skipped++;
+          continue;
+        }
+
+        const existingById = await Employee.findByEmployeeId(data.employee_id);
+        if (existingById) {
+          results.errors.push({ row: rowNum, employee_id: data.employee_id, error: 'Employee ID already exists — skipped' });
+          results.skipped++;
+          continue;
+        }
+        const existingByEmail = await Employee.findByEmail(data.email);
+        if (existingByEmail) {
+          results.errors.push({ row: rowNum, employee_id: data.employee_id, error: 'Email already exists — skipped' });
+          results.skipped++;
+          continue;
+        }
+
+        try {
+          await Employee.create({
+            employee_id:            data.employee_id,
+            name:                   data.name,
+            email:                  data.email,
+            department:             data.department             || null,
+            position:               data.position               || null,
+            hire_date:              data.hire_date              || null,
+            hourly_rate:            parseFloat(data.hourly_rate) || 500,
+            currency:               data.currency               || 'PHP',
+            employee_type:          data.employee_type          || null,
+            first_name:             data.first_name             || null,
+            last_name:              data.last_name              || null,
+            middle_name:            data.middle_name            || null,
+            sss_number:             data.sss_number             || null,
+            philhealth_number:      data.philhealth_number      || null,
+            pagibig_number:         data.pagibig_number         || null,
+            payee_tin:              data.payee_tin              || null,
+            employee_address:       data.employee_address       || null,
+            bank_name:              data.bank_name              || null,
+            bank_account_number:    data.bank_account_number    || null,
+            bank_account_name:      data.bank_account_name      || null,
+            bank_branch:            data.bank_branch            || null,
+            bank_swift_code:        data.bank_swift_code        || null,
+            wrike_user_id:          data.wrike_user_id          || null,
+            remittance_type:        data.remittance_type        || null,
+            beneficiary_code:       data.beneficiary_code       || null,
+            beneficiary_address:    data.beneficiary_address    || null,
+            bank_address:           data.bank_address           || null,
+            country_of_destination: data.country_of_destination || null,
+            purpose_nature:         data.purpose_nature         || null,
+            intermediary_bank_name:    data.intermediary_bank_name    || null,
+            intermediary_bank_address: data.intermediary_bank_address || null,
+            intermediary_bank_swift:   data.intermediary_bank_swift   || null,
+            payee_zip_code:         data.payee_zip_code         || null,
+            payee_foreign_address:  data.payee_foreign_address  || null,
+            payee_foreign_zip_code: data.payee_foreign_zip_code || null,
+            tax_code:               data.tax_code               || null,
+          });
+          results.created++;
+        } catch (err) {
+          results.errors.push({ row: rowNum, employee_id: data.employee_id, error: err.message });
+          results.skipped++;
+        }
+      }
+
+      invalidateEmployeeCache();
+      res.json({ success: true, data: results });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
     }
   }
 }

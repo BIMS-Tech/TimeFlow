@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Grid, MenuItem, Select, FormControl, InputLabel, CircularProgress, Avatar
+  Grid, MenuItem, Select, FormControl, InputLabel, CircularProgress, Avatar,
+  Autocomplete,
 } from '@mui/material';
+import { loadBankCodes, searchSwift, searchLocal } from '../utils/bankCodes';
 import AddIcon from '@mui/icons-material/Add';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -60,6 +64,66 @@ const EMPTY_FORM = {
   tax_code: '',
 };
 
+const TEMPLATE_COLS = [
+  'employee_id','name','email','department','position','hire_date',
+  'hourly_rate','currency','employee_type',
+  'first_name','last_name','middle_name',
+  'sss_number','philhealth_number','pagibig_number','payee_tin',
+  'employee_address',
+  'bank_name','bank_account_number','bank_account_name','bank_branch','bank_swift_code',
+  'wrike_user_id',
+  'remittance_type','beneficiary_code','beneficiary_address','bank_address',
+  'country_of_destination','purpose_nature',
+  'intermediary_bank_name','intermediary_bank_address','intermediary_bank_swift',
+  'payee_zip_code','payee_foreign_address','payee_foreign_zip_code','tax_code',
+];
+
+const TEMPLATE_EXAMPLE = {
+  employee_id: 'EMP001', name: 'Juan dela Cruz', email: 'juan@company.com',
+  department: 'Engineering', position: 'Developer', hire_date: '2025-01-15',
+  hourly_rate: '500', currency: 'PHP', employee_type: 'FTE-LCL',
+  first_name: 'Juan', last_name: 'dela Cruz', middle_name: 'Santos',
+  sss_number: '34-1234567-8', philhealth_number: '02-123456789-0',
+  pagibig_number: '1234-5678-9012', payee_tin: '123-456-789-000',
+  employee_address: '123 Main St, Cebu City, 6000',
+  bank_name: 'BDO', bank_account_number: '001234567890',
+  bank_account_name: 'Juan Santos dela Cruz', bank_branch: 'SM City Cebu',
+};
+
+function csvEscape(v) {
+  const s = String(v ?? '');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadTemplate() {
+  const header = TEMPLATE_COLS.join(',');
+  const example = TEMPLATE_COLS.map(c => csvEscape(TEMPLATE_EXAMPLE[c] ?? '')).join(',');
+  const blob = new Blob([`${header}\n${example}\n`], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'employee_bulk_upload_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseCSVClient(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const result = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row = [];
+    let inQ = false, cur = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (ch === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    row.push(cur.trim());
+    result.push(row);
+  }
+  return result;
+}
+
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +139,28 @@ export default function Employees() {
   const [contactSearch, setContactSearch] = useState('');
   const [portalOverrides, setPortalOverrides] = useState({});
 
+  // Bulk upload
+  const [bulkOpen,    setBulkOpen]    = useState(false);
+  const [bulkRows,    setBulkRows]    = useState([]);   // parsed preview rows
+  const [bulkHeaders, setBulkHeaders] = useState([]);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkResults, setBulkResults] = useState(null); // { created, skipped, errors }
+  const bulkFileRef = useRef();
+
+  // Bank code lookup
+  const [bankCodes,    setBankCodes]    = useState(null); // { local, foreign }
+  const [swiftOptions, setSwiftOptions] = useState([]);
+  const [localOptions, setLocalOptions] = useState([]);
+  const swiftDebounce = useRef(null);
+
+  // Load bank codes once when the form opens
+  const ensureBankCodes = useCallback(async () => {
+    if (bankCodes) return bankCodes;
+    const codes = await loadBankCodes();
+    setBankCodes(codes);
+    return codes;
+  }, [bankCodes]);
+
   useEffect(() => { fetchEmployees(); }, []);
 
   const fetchEmployees = async () => {
@@ -87,6 +173,7 @@ export default function Employees() {
   };
 
   const openModal = (emp = null) => {
+    ensureBankCodes();
     setEditing(emp);
     setForm(emp ? {
       employee_id: emp.employee_id, name: emp.name, email: emp.email,
@@ -201,6 +288,59 @@ export default function Employees() {
     finally { setLoadingContacts(false); }
   };
 
+  const openBulk = () => {
+    setBulkRows([]); setBulkHeaders([]); setBulkResults(null);
+    setBulkOpen(true);
+    setTimeout(() => bulkFileRef.current?.click(), 100);
+  };
+
+  const handleBulkFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const parsed = parseCSVClient(ev.target.result);
+      if (parsed.length < 2) { toast.error('CSV must have a header row and at least one data row'); return; }
+      setBulkHeaders(parsed[0]);
+      const dataRows = parsed.slice(1).filter(r => r.some(c => c));
+      setBulkRows(dataRows.map(r => {
+        const obj = {};
+        parsed[0].forEach((h, i) => { obj[h.toLowerCase().trim()] = r[i] || ''; });
+        const missing = ['employee_id','name','email'].filter(f => !obj[f]);
+        return { ...obj, _raw: r, _error: missing.length ? `Missing: ${missing.join(', ')}` : null };
+      }));
+      setBulkResults(null);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleBulkUpload = async () => {
+    const file = bulkFileRef.current?.files?.[0];
+    // Re-read from state rows (already parsed) — re-submit original file isn't easy; use a stored file ref
+    // Instead, reconstruct CSV from parsed rows to send
+    const validRows = bulkRows.filter(r => !r._error);
+    if (!validRows.length) { toast.error('No valid rows to upload'); return; }
+
+    setBulkUploading(true);
+    try {
+      // Rebuild CSV from parsed rows and send
+      const csvLines = [TEMPLATE_COLS.join(',')];
+      validRows.forEach(r => {
+        csvLines.push(TEMPLATE_COLS.map(c => csvEscape(r[c] ?? '')).join(','));
+      });
+      const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+      const csvFile = new File([blob], 'upload.csv', { type: 'text/csv' });
+      const res = await employeesAPI.bulkUpload(csvFile);
+      setBulkResults(res.data);
+      fetchEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
   const filtered = employees.filter(emp =>
     emp.name.toLowerCase().includes(search.toLowerCase()) ||
     emp.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -214,13 +354,26 @@ export default function Employees() {
 
   return (
     <Box>
+      {/* Hidden file input for bulk upload */}
+      <input ref={bulkFileRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleBulkFile} />
+
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Employees</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => openModal()}
-          sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-          Add Employee
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={downloadTemplate}
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+            Template
+          </Button>
+          <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={openBulk}
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+            Bulk Upload
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => openModal()}
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+            Add Employee
+          </Button>
+        </Box>
       </Box>
 
       {/* Search */}
@@ -435,12 +588,81 @@ export default function Employees() {
               <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
                 <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Bank Details</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}><TextField fullWidth label="Bank Name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid item xs={6}>
+                    {form.hire_category === 'local' ? (
+                      <Autocomplete
+                        freeSolo
+                        options={localOptions}
+                        getOptionLabel={o => typeof o === 'string' ? o : o.name}
+                        inputValue={form.bank_name}
+                        onInputChange={(_, val, reason) => {
+                          setForm(f => ({ ...f, bank_name: val }));
+                          if (reason === 'input' && bankCodes) setLocalOptions(searchLocal(bankCodes, val));
+                        }}
+                        onChange={(_, val) => {
+                          if (val && typeof val === 'object') setForm(f => ({ ...f, bank_name: val.name }));
+                        }}
+                        renderOption={(props, o) => (
+                          <Box component="li" {...props} key={o.code}>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>{o.name}</Typography>
+                            <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{o.code}</Typography>
+                          </Box>
+                        )}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Bank Name" size="small"
+                            helperText={!bankCodes ? 'Loading bank list…' : undefined}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                        )}
+                      />
+                    ) : (
+                      <TextField fullWidth label="Bank Name" value={form.bank_name}
+                        onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))}
+                        size="small" helperText="Auto-filled when SWIFT code is selected"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    )}
+                  </Grid>
                   <Grid item xs={6}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   <Grid item xs={form.hire_category === 'foreign' ? 6 : 6}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   <Grid item xs={form.hire_category === 'foreign' ? 3 : 6}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   {form.hire_category === 'foreign' && (
-                    <Grid item xs={3}><TextField fullWidth label="SWIFT / BIC Code" value={form.bank_swift_code} onChange={e => setForm(f => ({ ...f, bank_swift_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={3}>
+                      <Autocomplete
+                        freeSolo
+                        options={swiftOptions}
+                        getOptionLabel={o => typeof o === 'string' ? o : o.swift}
+                        inputValue={form.bank_swift_code}
+                        filterOptions={x => x}
+                        onInputChange={(_, val, reason) => {
+                          setForm(f => ({ ...f, bank_swift_code: val.toUpperCase() }));
+                          if (reason === 'input') {
+                            clearTimeout(swiftDebounce.current);
+                            swiftDebounce.current = setTimeout(() => {
+                              if (bankCodes && val.length >= 2) setSwiftOptions(searchSwift(bankCodes, val));
+                              else setSwiftOptions([]);
+                            }, 200);
+                          }
+                        }}
+                        onChange={(_, val) => {
+                          if (val && typeof val === 'object') {
+                            setForm(f => ({ ...f, bank_swift_code: val.swift, bank_name: val.name }));
+                            setSwiftOptions([]);
+                          }
+                        }}
+                        renderOption={(props, o) => (
+                          <Box component="li" {...props} key={o.swift}>
+                            <Box>
+                              <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: '#6366f1' }}>{o.swift}</Typography>
+                              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{o.name}</Typography>
+                            </Box>
+                          </Box>
+                        )}
+                        renderInput={(params) => (
+                          <TextField {...params} label="SWIFT / BIC Code" size="small"
+                            helperText={!bankCodes ? 'Loading…' : 'Type 2+ chars to search'}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                        )}
+                      />
+                    </Grid>
                   )}
                 </Grid>
               </Box>
@@ -554,6 +776,127 @@ export default function Employees() {
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', minWidth: 100 }}>
             {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : editing ? 'Update' : 'Create'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={bulkOpen} onClose={() => setBulkOpen(false)} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: '4px' } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Bulk Upload Employees</span>
+          <Button size="small" startIcon={<DownloadIcon />} onClick={downloadTemplate}
+            sx={{ textTransform: 'none', color: '#6366f1', fontWeight: 600 }}>
+            Download Template
+          </Button>
+        </DialogTitle>
+        <DialogContent>
+          {!bulkRows.length && !bulkResults && (
+            <Box sx={{ py: 4, textAlign: 'center', border: '2px dashed', borderColor: 'divider', borderRadius: 2, cursor: 'pointer', '&:hover': { borderColor: '#6366f1', bgcolor: '#6366f108' } }}
+              onClick={() => bulkFileRef.current?.click()}>
+              <UploadFileIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography sx={{ fontWeight: 600, color: 'text.secondary' }}>Click to select a CSV file</Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mt: 0.5 }}>
+                Use the template above — employee_id, name, and email are required
+              </Typography>
+            </Box>
+          )}
+
+          {bulkRows.length > 0 && !bulkResults && (() => {
+            const valid   = bulkRows.filter(r => !r._error).length;
+            const invalid = bulkRows.filter(r =>  r._error).length;
+            return (
+              <>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Chip label={`${valid} valid`}   size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
+                  {invalid > 0 && <Chip label={`${invalid} invalid`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', ml: 'auto' }}>
+                    Reviewing {bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} — invalid rows will be skipped
+                  </Typography>
+                </Box>
+                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', maxHeight: 360, overflowY: 'auto' }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'action.hover' }}>
+                        <TableCell sx={TH}>Row</TableCell>
+                        <TableCell sx={TH}>ID</TableCell>
+                        <TableCell sx={TH}>Name</TableCell>
+                        <TableCell sx={TH}>Email</TableCell>
+                        <TableCell sx={TH}>Dept</TableCell>
+                        <TableCell sx={TH}>Type</TableCell>
+                        <TableCell sx={TH}>Rate</TableCell>
+                        <TableCell sx={TH}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {bulkRows.map((r, i) => (
+                        <TableRow key={i} sx={{ bgcolor: r._error ? '#ef444408' : 'transparent' }}>
+                          <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.75rem' }}>{i + 2}</TableCell>
+                          <TableCell sx={TD}>{r.employee_id || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
+                          <TableCell sx={TD}>{r.name || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
+                          <TableCell sx={{ ...TD, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
+                          <TableCell sx={TD}>{r.department || '—'}</TableCell>
+                          <TableCell sx={TD}>{r.employee_type || '—'}</TableCell>
+                          <TableCell sx={TD}>{r.hourly_rate ? `${r.currency || 'PHP'} ${r.hourly_rate}` : '—'}</TableCell>
+                          <TableCell sx={TD}>
+                            {r._error
+                              ? <Tooltip title={r._error} arrow><Chip label="Error" size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.68rem', cursor: 'help' }} /></Tooltip>
+                              : <Chip label="Ready" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            );
+          })()}
+
+          {bulkResults && (
+            <Box sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: '#10b981', borderRadius: 2, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>{bulkResults.created}</Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>Employees Created</Typography>
+                </Paper>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: bulkResults.skipped > 0 ? '#f59e0b' : 'divider', borderRadius: 2, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: bulkResults.skipped > 0 ? '#f59e0b' : 'text.disabled' }}>{bulkResults.skipped}</Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>Skipped</Typography>
+                </Paper>
+              </Box>
+              {bulkResults.errors.length > 0 && (
+                <>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Skip Details</Typography>
+                  <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }}>
+                    {bulkResults.errors.map((e, i) => (
+                      <Box key={i} sx={{ px: 2, py: 1, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', minWidth: 40 }}>Row {e.row}</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, minWidth: 80 }}>{e.employee_id}</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#ef4444' }}>{e.error}</Typography>
+                      </Box>
+                    ))}
+                  </Paper>
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setBulkOpen(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>
+            {bulkResults ? 'Close' : 'Cancel'}
+          </Button>
+          {!bulkResults && bulkRows.length > 0 && (
+            <Button variant="contained" onClick={handleBulkUpload} disabled={bulkUploading || bulkRows.every(r => r._error)}
+              startIcon={bulkUploading ? <CircularProgress size={14} color="inherit" /> : <UploadFileIcon />}
+              sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>
+              {bulkUploading ? 'Uploading…' : `Upload ${bulkRows.filter(r => !r._error).length} Employee${bulkRows.filter(r => !r._error).length !== 1 ? 's' : ''}`}
+            </Button>
+          )}
+          {bulkResults && (
+            <Button variant="outlined" startIcon={<UploadFileIcon />}
+              onClick={() => { setBulkRows([]); setBulkHeaders([]); setBulkResults(null); bulkFileRef.current?.click(); }}
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981' }}>
+              Upload Another File
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

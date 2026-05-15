@@ -13,9 +13,9 @@ const portalController = require('../controllers/portal.controller');
 const verificationController = require('../controllers/verification.controller');
 const adminController = require('../controllers/admin.controller');
 
-const requireSuperAdmin   = requireRole('super_admin');
-const requireAdminOrAbove = requireRole('super_admin', 'admin');
-const requireHROrAbove    = requireRole('super_admin', 'admin', 'hr');
+const requireSuperAdmin      = requireRole('super_admin');
+const requireHROrAbove       = requireRole('super_admin', 'hr');
+const requirePayrollOrAbove  = requireRole('super_admin', 'hr', 'payroll_officer');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -24,6 +24,9 @@ const fs = require('fs');
 const rejectionUploadDir = path.join(__dirname, '../../uploads/rejections');
 if (!fs.existsSync(rejectionUploadDir)) fs.mkdirSync(rejectionUploadDir, { recursive: true });
 const upload = multer({ dest: rejectionUploadDir, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Multer for CSV bulk uploads (memory storage — no temp file needed)
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Middleware: only users with an employee_id link can access portal routes
 function requireEmployee(req, res, next) {
@@ -115,22 +118,22 @@ router.get('/timesheet/periods', timesheetController.getPeriods.bind(timesheetCo
  * @route POST /api/timesheet/periods
  * @desc Create a new period
  */
-router.post('/timesheet/periods', requireAdminOrAbove, timesheetController.createPeriod.bind(timesheetController));
+router.post('/timesheet/periods', requirePayrollOrAbove, timesheetController.createPeriod.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/monthly
  * @desc Create periods for a month
  */
-router.post('/timesheet/periods/monthly', requireAdminOrAbove, timesheetController.createMonthlyPeriods.bind(timesheetController));
-router.post('/timesheet/periods/foreign-monthly', requireAdminOrAbove, timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
+router.post('/timesheet/periods/monthly', requirePayrollOrAbove, timesheetController.createMonthlyPeriods.bind(timesheetController));
+router.post('/timesheet/periods/foreign-monthly', requirePayrollOrAbove, timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id
  * @desc Get period by ID
  */
 router.get('/timesheet/periods/:id', timesheetController.getPeriod.bind(timesheetController));
-router.put('/timesheet/periods/:id', requireAdminOrAbove, timesheetController.updatePeriod.bind(timesheetController));
-router.delete('/timesheet/periods/:id', requireAdminOrAbove, timesheetController.deletePeriod.bind(timesheetController));
+router.put('/timesheet/periods/:id', requirePayrollOrAbove, timesheetController.updatePeriod.bind(timesheetController));
+router.delete('/timesheet/periods/:id', requirePayrollOrAbove, timesheetController.deletePeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id/summaries
@@ -249,7 +252,8 @@ router.get('/employees', employeeController.getAll.bind(employeeController));
  * @route POST /api/employees
  * @desc Create new employee
  */
-router.post('/employees', requireAdminOrAbove, employeeController.create.bind(employeeController));
+router.post('/employees/bulk', requireHROrAbove, csvUpload.single('file'), employeeController.bulkUpload.bind(employeeController));
+router.post('/employees', requireHROrAbove, employeeController.create.bind(employeeController));
 
 /**
  * @route GET /api/employees/:id
@@ -261,13 +265,13 @@ router.get('/employees/:id', employeeController.getById.bind(employeeController)
  * @route PUT /api/employees/:id
  * @desc Update employee
  */
-router.put('/employees/:id', requireAdminOrAbove, employeeController.update.bind(employeeController));
+router.put('/employees/:id', requireHROrAbove, employeeController.update.bind(employeeController));
 
 /**
  * @route DELETE /api/employees/:id
  * @desc Delete employee
  */
-router.delete('/employees/:id', requireAdminOrAbove, employeeController.delete.bind(employeeController));
+router.delete('/employees/:id', requireHROrAbove, employeeController.delete.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/deactivate
@@ -395,12 +399,12 @@ router.post('/verifications/bulk',             verificationController.bulk.bind(
 // ADMIN — USER MANAGEMENT ROUTES (super_admin only)
 // ============================================
 
-router.get('/admin/users',                    requireSuperAdmin, adminController.listUsers.bind(adminController));
-router.post('/admin/users',                   requireSuperAdmin, adminController.createUser.bind(adminController));
-router.put('/admin/users/:id',                requireSuperAdmin, adminController.updateUser.bind(adminController));
-router.post('/admin/users/:id/reset-password', requireSuperAdmin, adminController.resetPassword.bind(adminController));
-router.post('/admin/users/:id/deactivate',    requireSuperAdmin, adminController.deactivateUser.bind(adminController));
-router.post('/admin/users/:id/activate',      requireSuperAdmin, adminController.activateUser.bind(adminController));
+router.get('/admin/users',                     requireHROrAbove, adminController.listUsers.bind(adminController));
+router.post('/admin/users',                    requireHROrAbove, adminController.createUser.bind(adminController));
+router.put('/admin/users/:id',                 requireHROrAbove, adminController.updateUser.bind(adminController));
+router.post('/admin/users/:id/reset-password', requireHROrAbove, adminController.resetPassword.bind(adminController));
+router.post('/admin/users/:id/deactivate',     requireHROrAbove, adminController.deactivateUser.bind(adminController));
+router.post('/admin/users/:id/activate',       requireHROrAbove, adminController.activateUser.bind(adminController));
 
 // ============================================
 // EMPLOYEE PORTAL ROUTES

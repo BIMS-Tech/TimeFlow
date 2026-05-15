@@ -16,6 +16,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -42,13 +43,13 @@ const DRAWER_WIDTH = 268;
 
 const NAV_ITEMS = [
   { label: 'Dashboard',           icon: <DashboardIcon />,               path: '/',                  end: true },
-  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees',         roles: ['super_admin', 'admin'] },
-  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods',           roles: ['super_admin', 'admin'] },
-  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify',  roles: ['super_admin', 'admin', 'hr'] },
-  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'admin', 'hr'] },
-  { label: 'Payslips',            icon: <ReceiptIcon />,                 path: '/payslips',          roles: ['super_admin', 'admin', 'hr'] },
-  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'admin', 'hr'] },
-  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin'] },
+  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees',         roles: ['super_admin', 'hr'] },
+  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods',           roles: ['super_admin', 'hr', 'payroll_officer'] },
+  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify',  roles: ['super_admin', 'hr', 'payroll_officer'] },
+  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'hr', 'payroll_officer'] },
+  { label: 'Payslips',            icon: <ReceiptIcon />,                 path: '/payslips',          roles: ['super_admin', 'hr', 'payroll_officer'] },
+  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'hr', 'payroll_officer'] },
+  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin', 'hr'] },
 ];
 
 function ProtectedRoute({ children }) {
@@ -141,6 +142,31 @@ function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout }) {
           Main Menu
         </Typography>
         <SidebarNav onNavigate={onNavigate} />
+      </Box>
+
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
+
+      {/* Request / Suggestions */}
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Box
+          component="a"
+          href="https://www.wrike.com/workspace.htm#/forms?formid=2817821"
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.1,
+            borderRadius: '12px', textDecoration: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
+            border: '1px solid rgba(16,185,129,0.25)',
+            transition: 'all 0.2s',
+            '&:hover': { background: 'linear-gradient(135deg, rgba(16,185,129,0.28) 0%, rgba(5,150,105,0.22) 100%)', borderColor: 'rgba(16,185,129,0.5)' },
+          }}
+        >
+          <OpenInNewIcon sx={{ fontSize: 16, color: '#10b981' }} />
+          <Typography sx={{ color: '#10b981', fontSize: '0.82rem', fontWeight: 700, flex: 1 }}>
+            File a Request
+          </Typography>
+        </Box>
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
@@ -243,6 +269,12 @@ function AppLayout() {
                 Timeflow
               </Typography>
             </Box>
+            <Tooltip title="File a Request" arrow>
+              <IconButton component="a" href="https://www.wrike.com/workspace.htm#/forms?formid=2817821" target="_blank" rel="noopener noreferrer"
+                size="small" sx={{ color: '#10b981' }}>
+                <OpenInNewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
               <IconButton onClick={toggleTheme} size="small" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                 {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
@@ -310,7 +342,7 @@ function AppLayout() {
           <Route path="/timesheet-verify"   element={<GenerateTimesheet />} />
           <Route path="/generate"           element={<TimesheetGenerator />} />
           <Route path="/wrike"              element={<WrikeTimesheets />} />
-          <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
+          <Route path="/users"              element={<RequireRole roles={['super_admin', 'hr']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
