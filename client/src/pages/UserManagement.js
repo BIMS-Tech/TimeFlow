@@ -95,7 +95,7 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const res = await usersAPI.getAll();
-      setUsers(res.data.data || []);
+      setUsers(res.data || []);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to load users');
     } finally {
