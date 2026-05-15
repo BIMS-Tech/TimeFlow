@@ -61,13 +61,16 @@ function ProtectedRoute({ children }) {
 
 function RequireRole({ roles, children }) {
   const { user } = useAuth();
-  if (!user || !roles.includes(user.role)) return <Navigate to="/" replace />;
+  const effectiveRole = user?.role === 'admin' ? 'super_admin' : user?.role;
+  if (!user || !roles.includes(effectiveRole)) return <Navigate to="/" replace />;
   return children;
 }
 
 function SidebarNav({ onNavigate }) {
   const { user } = useAuth();
-  const visibleItems = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(user?.role));
+  // Legacy 'admin' role (pre-migration tokens) maps to super_admin for nav purposes
+  const effectiveRole = user?.role === 'admin' ? 'super_admin' : user?.role;
+  const visibleItems = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(effectiveRole));
   return (
     <List sx={{ px: 1.5 }}>
       {visibleItems.map((item) => (
