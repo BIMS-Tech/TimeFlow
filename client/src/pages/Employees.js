@@ -142,7 +142,6 @@ export default function Employees() {
   // Bulk upload
   const [bulkOpen,    setBulkOpen]    = useState(false);
   const [bulkRows,    setBulkRows]    = useState([]);   // parsed preview rows
-  const [bulkHeaders, setBulkHeaders] = useState([]);
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResults, setBulkResults] = useState(null); // { created, skipped, errors }
   const bulkFileRef = useRef();
@@ -289,7 +288,7 @@ export default function Employees() {
   };
 
   const openBulk = () => {
-    setBulkRows([]); setBulkHeaders([]); setBulkResults(null);
+    setBulkRows([]); setBulkResults(null);
     setBulkOpen(true);
     setTimeout(() => bulkFileRef.current?.click(), 100);
   };
@@ -301,11 +300,11 @@ export default function Employees() {
     reader.onload = (ev) => {
       const parsed = parseCSVClient(ev.target.result);
       if (parsed.length < 2) { toast.error('CSV must have a header row and at least one data row'); return; }
-      setBulkHeaders(parsed[0]);
+      const headers = parsed[0];
       const dataRows = parsed.slice(1).filter(r => r.some(c => c));
       setBulkRows(dataRows.map(r => {
         const obj = {};
-        parsed[0].forEach((h, i) => { obj[h.toLowerCase().trim()] = r[i] || ''; });
+        headers.forEach((h, i) => { obj[h.toLowerCase().trim()] = r[i] || ''; });
         const missing = ['employee_id','name','email'].filter(f => !obj[f]);
         return { ...obj, _raw: r, _error: missing.length ? `Missing: ${missing.join(', ')}` : null };
       }));
@@ -316,9 +315,6 @@ export default function Employees() {
   };
 
   const handleBulkUpload = async () => {
-    const file = bulkFileRef.current?.files?.[0];
-    // Re-read from state rows (already parsed) — re-submit original file isn't easy; use a stored file ref
-    // Instead, reconstruct CSV from parsed rows to send
     const validRows = bulkRows.filter(r => !r._error);
     if (!validRows.length) { toast.error('No valid rows to upload'); return; }
 
@@ -892,7 +888,7 @@ export default function Employees() {
           )}
           {bulkResults && (
             <Button variant="outlined" startIcon={<UploadFileIcon />}
-              onClick={() => { setBulkRows([]); setBulkHeaders([]); setBulkResults(null); bulkFileRef.current?.click(); }}
+              onClick={() => { setBulkRows([]); setBulkResults(null); bulkFileRef.current?.click(); }}
               sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981' }}>
               Upload Another File
             </Button>
