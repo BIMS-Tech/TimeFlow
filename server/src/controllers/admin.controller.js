@@ -1,7 +1,7 @@
 const db = require('../database/connection');
 const User = require('../models/User');
 
-const ALLOWED_ROLES = ['super_admin', 'hr', 'payroll_officer'];
+const ALLOWED_ROLES = ['super_admin', 'hr', 'payroll_officer', 'employee'];
 // Roles that HR is allowed to create/manage (cannot manage peers or superiors)
 const HR_MANAGEABLE_ROLES = ['payroll_officer'];
 
