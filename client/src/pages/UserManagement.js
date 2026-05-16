@@ -23,6 +23,7 @@ const ROLE_META = {
   super_admin:      { label: 'Super Admin',      bg: '#6366f115', color: '#6366f1' },
   hr:               { label: 'HR',               bg: '#10b98115', color: '#10b981' },
   payroll_officer:  { label: 'Payroll Officer',  bg: '#f59e0b15', color: '#f59e0b' },
+  employee:         { label: 'Employee',          bg: '#06b6d415', color: '#06b6d4' },
 };
 
 const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer'];
@@ -372,8 +373,9 @@ export default function UserManagement() {
           </FormControl>
           <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
             <strong>Super Admin</strong> — full access + manage all users<br />
-            <strong>HR</strong> — employee profiles, rates, timesheets; can add Payroll Officers<br />
-            <strong>Payroll Officer</strong> — pay periods, payslips, bank file generation
+            <strong>HR</strong> — employee profiles, rates, timesheets<br />
+            <strong>Payroll Officer</strong> — pay periods, payslips, bank file generation<br />
+            <strong>Employee</strong> — portal access only (auto-assigned via Employees page)
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>

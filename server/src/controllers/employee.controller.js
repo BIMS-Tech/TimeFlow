@@ -133,7 +133,7 @@ class EmployeeController {
           username: finalUsername,
           email: portalEmail,
           password: tempPassword,
-          role: 'viewer',        // uses viewer role; employee_id link identifies portal users
+          role: 'employee',
           employee_id: employee.id
         });
       } catch (userErr) {
@@ -331,7 +331,7 @@ class EmployeeController {
         username: finalUsername,
         email: portalEmail,
         password: tempPassword,
-        role: 'viewer',
+        role: 'employee',
         employee_id: employee.id
       });
 

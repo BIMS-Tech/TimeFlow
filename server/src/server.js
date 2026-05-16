@@ -194,6 +194,10 @@ async function runMigrations() {
     `UPDATE users SET role = 'payroll_officer' WHERE role IN ('accountant', 'viewer')`,
     // Step 3: contract enum to final 3-role set
     `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer') DEFAULT 'payroll_officer'`,
+
+    // Add employee role for portal-linked users
+    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer','employee') DEFAULT 'payroll_officer'`,
+    `UPDATE users SET role = 'employee' WHERE employee_id IS NOT NULL AND role != 'employee'`,
   ];
   for (const sql of migrations) {
     try {
