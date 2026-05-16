@@ -389,7 +389,7 @@ function AppLayout() {
 
 function AppRoutes() {
   const { isAuthenticated, user } = useAuth();
-  const isEmployee = !!user?.employee_id;
+  const isEmployee = user?.role === 'employee';
 
   return (
     <>

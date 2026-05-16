@@ -234,6 +234,7 @@ export const portalAPI = {
   downloadPDF: (id) => api.get(`/portal/timesheets/${id}/pdf`, { responseType: 'blob' }),
   getPayslips: () => api.get('/portal/payslips'),
   downloadPayslipPDF: (id) => api.get(`/portal/payslips/${id}/pdf`, { responseType: 'blob' }),
+  payslipPdfUrl: (id) => `${API_BASE_URL}/portal/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
   changePassword: (currentPassword, newPassword) =>
     api.post('/portal/change-password', { currentPassword, newPassword }),
 };
