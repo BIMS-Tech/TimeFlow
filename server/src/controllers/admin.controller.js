@@ -123,14 +123,29 @@ class AdminController {
   async activateUser(req, res) {
     try {
       const { id } = req.params;
-      if (req.user.role === 'hr') {
-        const target = await User.findById(id);
-        if (target && !HR_MANAGEABLE_ROLES.includes(target.role)) {
-          return res.status(403).json({ success: false, error: 'HR can only activate Payroll Officer accounts' });
-        }
-      }
       const user = await User.setActive(id, true);
       res.json({ success: true, data: user });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  async deleteUser(req, res) {
+    try {
+      const { id } = req.params;
+      if (String(req.user.id) === String(id)) {
+        return res.status(400).json({ success: false, error: 'You cannot delete your own account' });
+      }
+      const target = await User.findById(id);
+      if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (target.role === 'super_admin') {
+        const superAdmins = await db.query("SELECT id FROM users WHERE role = 'super_admin'");
+        if (superAdmins.length <= 1) {
+          return res.status(400).json({ success: false, error: 'Cannot delete the last Super Admin' });
+        }
+      }
+      await db.query('DELETE FROM users WHERE id = ?', [id]);
+      res.json({ success: true, message: 'User deleted' });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }

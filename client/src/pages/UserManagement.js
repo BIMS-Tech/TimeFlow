@@ -12,6 +12,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import PersonIcon from '@mui/icons-material/Person';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
@@ -24,8 +25,7 @@ const ROLE_META = {
   payroll_officer:  { label: 'Payroll Officer',  bg: '#f59e0b15', color: '#f59e0b' },
 };
 
-const ALL_ROLES         = ['super_admin', 'hr', 'payroll_officer'];
-const HR_ALLOWED_ROLES  = ['payroll_officer'];
+const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
@@ -69,7 +69,6 @@ const emptyAdd = { username: '', email: '', password: '', role: 'payroll_officer
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
-  const selectableRoles = currentUser?.role === 'super_admin' ? ALL_ROLES : HR_ALLOWED_ROLES;
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -90,6 +89,10 @@ export default function UserManagement() {
   const [resetPwd,  setResetPwd]  = useState('');
   const [resetErr,  setResetErr]  = useState('');
   const [resetSaving, setResetSaving] = useState(false);
+
+  // Delete dialog
+  const [deleteUser,   setDeleteUser]   = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -175,6 +178,21 @@ export default function UserManagement() {
       toast.error(err.response?.data?.error || 'Failed to reset password');
     } finally {
       setResetSaving(false);
+    }
+  };
+
+  // ── Delete user ───────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await usersAPI.delete(deleteUser.id);
+      toast.success(`"${deleteUser.username}" deleted`);
+      setDeleteUser(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete user');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -305,6 +323,14 @@ export default function UserManagement() {
                             </IconButton>
                           </Tooltip>
                         )}
+                        <Tooltip title={isSelf ? 'Cannot delete yourself' : 'Delete user'}>
+                          <span>
+                            <IconButton size="small" disabled={isSelf} onClick={() => setDeleteUser(u)}
+                              sx={{ color: '#dc2626', '&:hover': { bgcolor: '#dc262610' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
@@ -339,7 +365,7 @@ export default function UserManagement() {
           <FormControl size="small" fullWidth error={!!addErr.role}>
             <InputLabel>Role</InputLabel>
             <Select label="Role" value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}>
-              {selectableRoles.map(r => (
+              {ALL_ROLES.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>
@@ -383,7 +409,7 @@ export default function UserManagement() {
               onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
               disabled={editUser && String(editUser.id) === String(currentUser?.id)}
             >
-              {selectableRoles.map(r => (
+              {ALL_ROLES.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>
@@ -398,6 +424,25 @@ export default function UserManagement() {
             startIcon={editSaving ? <CircularProgress size={14} color="inherit" /> : null}
             sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
             {editSaving ? 'Saving…' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete Confirm Dialog ─────────────────────────────────────────── */}
+      <Dialog open={!!deleteUser} onClose={() => setDeleteUser(null)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Delete User</DialogTitle>
+        <DialogContent sx={{ pt: '8px !important' }}>
+          <Typography sx={{ fontSize: '0.9rem', color: 'text.secondary' }}>
+            Permanently delete <strong>{deleteUser?.username}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteUser(null)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleDelete} disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon fontSize="small" />}
+            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}>
+            {deleteLoading ? 'Deleting…' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

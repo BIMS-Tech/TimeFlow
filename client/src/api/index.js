@@ -245,6 +245,7 @@ export const usersAPI = {
   resetPassword: (id, pwd)  => api.post(`/admin/users/${id}/reset-password`, { password: pwd }),
   deactivate:    (id)       => api.post(`/admin/users/${id}/deactivate`),
   activate:      (id)       => api.post(`/admin/users/${id}/activate`),
+  delete:        (id)       => api.delete(`/admin/users/${id}`),
 };
 
 export default api;

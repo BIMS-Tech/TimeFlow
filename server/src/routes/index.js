@@ -399,12 +399,13 @@ router.post('/verifications/bulk',             verificationController.bulk.bind(
 // ADMIN — USER MANAGEMENT ROUTES (super_admin only)
 // ============================================
 
-router.get('/admin/users',                     requireHROrAbove, adminController.listUsers.bind(adminController));
-router.post('/admin/users',                    requireHROrAbove, adminController.createUser.bind(adminController));
-router.put('/admin/users/:id',                 requireHROrAbove, adminController.updateUser.bind(adminController));
-router.post('/admin/users/:id/reset-password', requireHROrAbove, adminController.resetPassword.bind(adminController));
-router.post('/admin/users/:id/deactivate',     requireHROrAbove, adminController.deactivateUser.bind(adminController));
-router.post('/admin/users/:id/activate',       requireHROrAbove, adminController.activateUser.bind(adminController));
+router.get('/admin/users',                     requireSuperAdmin, adminController.listUsers.bind(adminController));
+router.post('/admin/users',                    requireSuperAdmin, adminController.createUser.bind(adminController));
+router.put('/admin/users/:id',                 requireSuperAdmin, adminController.updateUser.bind(adminController));
+router.post('/admin/users/:id/reset-password', requireSuperAdmin, adminController.resetPassword.bind(adminController));
+router.post('/admin/users/:id/deactivate',     requireSuperAdmin, adminController.deactivateUser.bind(adminController));
+router.post('/admin/users/:id/activate',       requireSuperAdmin, adminController.activateUser.bind(adminController));
+router.delete('/admin/users/:id',              requireSuperAdmin, adminController.deleteUser.bind(adminController));
 
 // ============================================
 // EMPLOYEE PORTAL ROUTES

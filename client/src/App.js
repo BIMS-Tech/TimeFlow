@@ -51,7 +51,7 @@ const NAV_ITEMS = [
   { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'hr', 'payroll_officer'] },
   { label: 'Payslips',            icon: <ReceiptIcon />,                 path: '/payslips',          roles: ['super_admin', 'hr', 'payroll_officer'] },
   { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin', 'hr'] },
+  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin'] },
 ];
 
 function ProtectedRoute({ children }) {
@@ -377,7 +377,7 @@ function AppLayout() {
           <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
           <Route path="/generate"           element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
           <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><WrikeTimesheets /></RequireRole>} />
-          <Route path="/users"              element={<RequireRole roles={['super_admin', 'hr']}><UserManagement /></RequireRole>} />
+          <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
