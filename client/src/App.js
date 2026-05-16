@@ -371,12 +371,12 @@ function AppLayout() {
       >
         <Routes>
           <Route path="/"                   element={<Dashboard />} />
-          <Route path="/employees"          element={<Employees />} />
-          <Route path="/periods"            element={<Periods />} />
-          <Route path="/payslips"           element={<Payslips />} />
-          <Route path="/timesheet-verify"   element={<GenerateTimesheet />} />
-          <Route path="/generate"           element={<TimesheetGenerator />} />
-          <Route path="/wrike"              element={<WrikeTimesheets />} />
+          <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
+          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><Periods /></RequireRole>} />
+          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><Payslips /></RequireRole>} />
+          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
+          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
+          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><WrikeTimesheets /></RequireRole>} />
           <Route path="/users"              element={<RequireRole roles={['super_admin', 'hr']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
