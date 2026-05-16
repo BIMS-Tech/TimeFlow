@@ -30,7 +30,7 @@ const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 
 
 // Middleware: only users with an employee_id link can access portal routes
 function requireEmployee(req, res, next) {
-  if (!req.user || !req.user.employee_id) {
+  if (!req.user || (req.user.role !== 'employee' && !req.user.employee_id)) {
     return res.status(403).json({ success: false, error: 'Employee portal access only' });
   }
   next();

@@ -557,7 +557,10 @@ export default function EmployeePortal() {
       setEmployee(empRes.data);
       setTimesheets(tsRes.data || []);
       setPayslips(psRes.data || []);
-    } catch { toast.error('Failed to load portal data'); }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status !== 403 && status !== 404) toast.error('Failed to load portal data');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -733,6 +736,21 @@ export default function EmployeePortal() {
             <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
               <CircularProgress sx={{ color: '#6366f1' }} />
             </Box>
+          ) : !employee && section !== 'settings' ? (
+            <Paper elevation={0} sx={{ p: 6, borderRadius: '16px', border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+              <WarningAmberIcon sx={{ fontSize: 48, color: '#f59e0b', mb: 2 }} />
+              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 1 }}>Account Not Linked</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 3 }}>
+                Your account hasn't been linked to an employee profile yet.<br />
+                Please contact your administrator to link your account.
+              </Typography>
+              {section === 'settings' ? null : (
+                <Button variant="outlined" onClick={() => setSection('settings')}
+                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
+                  Go to Change Password
+                </Button>
+              )}
+            </Paper>
           ) : (
             <>
               {section === 'dashboard' && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
