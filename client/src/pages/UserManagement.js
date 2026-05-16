@@ -26,7 +26,7 @@ const ROLE_META = {
   employee:         { label: 'Employee',          bg: '#06b6d415', color: '#06b6d4' },
 };
 
-const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer'];
+const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer', 'employee'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
