@@ -3,6 +3,17 @@ const Employee = require('../models/Employee');
 const TimeEntry = require('../models/TimeEntry');
 const db = require('../database/connection');
 
+function toDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).substring(0, 10);
+}
+
 /**
  * Returns Monday of the week containing `date`
  */
@@ -311,8 +322,8 @@ class WrikeController {
       const period = await db.getOne('SELECT * FROM pay_periods WHERE id = ?', [periodId]);
       if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
 
-      const startDate = String(period.start_date).substring(0, 10);
-      const endDate   = String(period.end_date).substring(0, 10);
+      const startDate = toDateStr(period.start_date);
+      const endDate   = toDateStr(period.end_date);
 
       const allEmployees    = await Employee.findAll(false);
       const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
