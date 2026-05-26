@@ -298,6 +298,89 @@ class WrikeController {
     }
   }
 
+  /**
+   * POST /api/wrike/import-period
+   * Body: { periodId }
+   * Imports all APPROVED Wrike timelogs for a pay period's date range into time_entries.
+   */
+  async importPeriodTimelogs(req, res) {
+    try {
+      const { periodId } = req.body;
+      if (!periodId) return res.status(400).json({ success: false, error: 'periodId is required' });
+
+      const period = await db.getOne('SELECT * FROM pay_periods WHERE id = ?', [periodId]);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+
+      const startDate = String(period.start_date).substring(0, 10);
+      const endDate   = String(period.end_date).substring(0, 10);
+
+      const allEmployees    = await Employee.findAll(false);
+      const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
+      const wrikeIds        = linkedEmployees.map(e => e.wrike_user_id);
+
+      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+      timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+
+      const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
+      const [taskTitles, categoryMap] = await Promise.all([
+        wrikeService.getTaskTitles(allTaskIds),
+        wrikeService.getTimelogCategories()
+      ]);
+
+      const byUser = wrikeService.groupTimeLogsByUser(timelogs);
+
+      const empByWrikeId = {};
+      for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
+
+      let imported = 0;
+      let skipped  = 0;
+
+      for (const [wrikeUserId, logs] of Object.entries(byUser)) {
+        const emp = empByWrikeId[wrikeUserId];
+        if (!emp) { skipped += logs.length; continue; }
+
+        for (const log of logs) {
+          if (!log.hours || log.hours <= 0) continue;
+
+          const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
+
+          const existing = await TimeEntry.findDuplicate(emp.id, log.date, log.logId);
+          if (existing) {
+            if (categoryName && !existing.category) {
+              await TimeEntry.update(existing.id, { category: categoryName });
+            }
+            skipped++;
+            continue;
+          }
+
+          const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
+          await TimeEntry.create({
+            employee_id:      emp.id,
+            entry_date:       log.date,
+            hours_worked:     log.hours,
+            task_description: description,
+            project_name:     taskTitles[log.taskId] || null,
+            wrike_task_id:    log.taskId || null,
+            category:         categoryName,
+            source:           'wrike'
+          });
+          imported++;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Imported ${imported} entries, skipped ${skipped} duplicates`,
+        imported,
+        skipped,
+        startDate,
+        endDate
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
   async getFolders(req, res) {
     try {
       const folders = await wrikeService.getFolders();

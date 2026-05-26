@@ -182,6 +182,7 @@ export const wrikeAPI = {
     api.get(`/wrike/timelogs/monthly?month=${month}${approvedOnly ? '&approvedOnly=true' : ''}`),
   importWeek: (date, approvedOnly = false) => api.post('/wrike/import', { date, approvedOnly }),
   backfillCategories: () => api.post('/wrike/backfill-categories'),
+  importPeriod: (periodId) => api.post('/wrike/import-period', { periodId }),
   getContacts: () => api.get('/wrike/contacts'),
 };
 

@@ -13,7 +13,8 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import VerifiedIcon from '@mui/icons-material/VerifiedUser';
 import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
-import { timesheetAPI, verificationsAPI } from '../api';
+import SyncIcon from '@mui/icons-material/Sync';
+import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -123,6 +124,7 @@ export default function GenerateTimesheet() {
 
   const [editingId, setEditingId] = useState(null);
   const [bulking,   setBulking]   = useState(false);
+  const [syncing,   setSyncing]   = useState(false);
 
   useEffect(() => {
     timesheetAPI.getPeriods(100, 0)
@@ -146,6 +148,20 @@ export default function GenerateTimesheet() {
   }, []);
 
   useEffect(() => { fetchVerifications(selectedPeriod); }, [selectedPeriod, fetchVerifications]);
+
+  const handleSyncWrike = async () => {
+    setSyncing(true);
+    try {
+      const res = await wrikeAPI.importPeriod(selectedPeriod);
+      const { imported, skipped } = res.data || res;
+      toast.success(`Synced from Wrike: ${imported} new entries imported, ${skipped} already up to date`);
+      fetchVerifications(selectedPeriod);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Wrike sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleBulkVerify = async () => {
     const eligible = data.filter(r => r.actual_hours > 0 && r.status !== 'verified');
@@ -180,9 +196,15 @@ export default function GenerateTimesheet() {
             Verify employee hours before generating payslips
           </Typography>
         </Box>
-        {selectedPeriod && data.length > 0 && (
+        {selectedPeriod && (
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking}
+            <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
+              startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
+              sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#6366f1', color: '#6366f1',
+                '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+              {syncing ? 'Syncing…' : 'Sync from Wrike'}
+            </Button>
+            <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking || !data.length}
               startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
               sx={{ textTransform: 'none', borderRadius: '10px', borderColor: '#10b981', color: '#10b981',
                 '&:hover': { borderColor: '#059669', bgcolor: '#10b98110' } }}>

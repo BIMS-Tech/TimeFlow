@@ -350,6 +350,7 @@ router.get('/wrike/contacts', wrikeController.getContacts.bind(wrikeController))
  * @desc List all Wrike folders (to find the correct WRIKE_FOLDER_ID)
  */
 router.get('/wrike/folders', wrikeController.getFolders.bind(wrikeController));
+router.post('/wrike/import-period', wrikeController.importPeriodTimelogs.bind(wrikeController));
 router.post('/wrike/backfill-categories', wrikeController.backfillCategories.bind(wrikeController));
 
 // ============================================
