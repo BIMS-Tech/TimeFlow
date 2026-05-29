@@ -10,6 +10,7 @@ const { computeDeductions } = require('./payroll-deductions.service');
 const db = require('../database/connection');
 const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
+const XLSX = require('xlsx');
 require('dotenv').config();
 
 function toLocalDateStr(val) {
@@ -916,10 +917,6 @@ class TimesheetService {
     }
 
     if (type === 'foreign') {
-      // ── DFT pipe-delimited format ─────────────────────────────────────────
-      // D row: transaction data (one per employee)
-      // C row: tax period / payee-payor info (one per employee)
-      // W row: withholding tax data (one per employee)
       const transactionDate = toLocalDateStr(new Date());
       const sourceAccount = process.env.BANK_SOURCE_ACCOUNT || '';
       const payorName = process.env.PAYOR_NAME || '';
@@ -927,17 +924,28 @@ class TimesheetService {
       const payorAddress = process.env.PAYOR_ADDRESS || '';
       const payorZip = process.env.PAYOR_ZIP_CODE || '';
 
-      const lines = [];
+      const sheetData = [
+        [
+          'Row Type', 'Remittance Type', 'Currency', 'Amount', 'Source Account',
+          'Account Number', 'Beneficiary Code', 'Account Name',
+          'First Name', 'Middle Name', 'Last Name', 'Beneficiary Address',
+          'Bank Name', 'Bank Address', 'SWIFT Code', 'Reference',
+          'Purpose/Nature', 'Country of Destination',
+          'Intermediary Bank', 'Intermediary Bank Address', 'Intermediary SWIFT',
+          'Tax Period Start', 'Tax Period End', 'Payee TIN',
+          'Payee ZIP', 'Payee Foreign Address', 'Payee Foreign ZIP',
+          'Payor Name', 'Payor TIN', 'Payor Address', 'Payor ZIP',
+          'Tax Code', 'Gross Amount', 'Tax Deductions',
+        ],
+      ];
       rows.forEach(({ payslip: p, emp }) => {
-        // D row – remittance transaction
-        lines.push([
+        sheetData.push([
           'D',
           emp.remittance_type || '',
           emp.currency || '',
           Number(p.net_amount).toFixed(2),
           sourceAccount,
           emp.bank_account_number || '',
-          '0',
           emp.beneficiary_code || emp.employee_id || '',
           emp.bank_account_name || emp.name || '',
           emp.first_name || '',
@@ -950,20 +958,12 @@ class TimesheetService {
           `DFT ${transactionDate}`,
           emp.purpose_nature || '',
           emp.country_of_destination || '',
-          '0',
           emp.intermediary_bank_name || '',
           emp.intermediary_bank_address || '',
           emp.intermediary_bank_swift || '',
-        ].join('|'));
-
-        // C row – tax period / payee-payor
-        lines.push([
-          'C',
           toLocalDateStr(period.start_date),
           toLocalDateStr(period.end_date),
-          emp.bank_account_name || emp.name || '',
           emp.payee_tin || '',
-          emp.beneficiary_address || '',
           emp.payee_zip_code || '',
           emp.payee_foreign_address || '',
           emp.payee_foreign_zip_code || '',
@@ -971,46 +971,46 @@ class TimesheetService {
           payorTin,
           payorAddress,
           payorZip,
-        ].join('|'));
-
-        // W row – withholding tax
-        lines.push([
-          'W',
           emp.tax_code || '',
-          '',
-          '',
-          '',
           Number(p.gross_amount || 0).toFixed(2),
           Number(p.tax_deductions || 0).toFixed(2),
-        ].join('|'));
+        ]);
       });
 
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Foreign Transfer');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       return {
-        content: lines.join('\r\n'),
-        filename: `bank_transfer_dft_${periodId}.txt`,
-        contentType: 'text/plain',
-        skipped
+        content: buffer,
+        filename: `bank_transfer_dft_${periodId}.xlsx`,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        skipped,
       };
     }
 
     // ── XCS format for local bank transfers ───────────────────────────────────
-    // Fields: Last Name, First Name, Middle Name, Account Number, Amount
-    const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
-    const csvLines = ['Last Name,First Name,Middle Name,Account Number,Amount'];
+    const sheetData = [
+      ['Last Name', 'First Name', 'Middle Name', 'Account Number', 'Amount'],
+    ];
     rows.forEach(({ payslip: p, emp }) => {
-      csvLines.push([
-        escape(emp.last_name || ''),
-        escape(emp.first_name || ''),
-        escape(emp.middle_name || ''),
-        escape(emp.bank_account_number || ''),
+      sheetData.push([
+        emp.last_name || '',
+        emp.first_name || '',
+        emp.middle_name || '',
+        emp.bank_account_number || '',
         Number(p.net_amount || 0).toFixed(2),
-      ].join(','));
+      ]);
     });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Local Transfer');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return {
-      content: csvLines.join('\r\n'),
-      filename: `bank_transfer_xcs_${periodId}.csv`,
-      contentType: 'text/csv',
-      skipped
+      content: buffer,
+      filename: `bank_transfer_xcs_${periodId}.xlsx`,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      skipped,
     };
   }
 

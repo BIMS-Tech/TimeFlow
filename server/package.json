@@ -27,7 +27,8 @@
     "mysql2": "^3.6.5",
     "pdfkit": "^0.14.0",
     "uuid": "^9.0.1",
-    "wrike-api": "^1.0.0"
+    "wrike-api": "^1.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

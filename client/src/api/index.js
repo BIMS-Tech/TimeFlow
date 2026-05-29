@@ -146,7 +146,7 @@ export const payslipsAPI = {
     }
     const disposition = res.headers.get('Content-Disposition') || '';
     const match = disposition.match(/filename="?([^"]+)"?/);
-    const filename = match ? match[1] : `bank_transfer_${type}_${periodId}.txt`;
+    const filename = match ? match[1] : `bank_transfer_${type}_${periodId}.xlsx`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
