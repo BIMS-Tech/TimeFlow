@@ -163,6 +163,10 @@ async function runMigrations() {
     `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL`,
     // Add Independent Contractor to employee_type enum
     `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC') DEFAULT NULL`,
+    // Split IC into IC-LCL (local) and IC-INTL (international); migrate existing 'IC' rows to IC-LCL
+    `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC','IC-LCL','IC-INTL') DEFAULT NULL`,
+    `UPDATE employees SET employee_type = 'IC-LCL' WHERE employee_type = 'IC'`,
+    `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC-LCL','IC-INTL') DEFAULT NULL`,
     // Cash advance deduction column for summaries and payslips
     `ALTER TABLE time_entries_summary ADD COLUMN cash_advance DECIMAL(12,2) DEFAULT 0`,
     `ALTER TABLE payslips ADD COLUMN cash_advance DECIMAL(12,2) DEFAULT 0`,

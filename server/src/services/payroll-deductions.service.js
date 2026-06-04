@@ -84,7 +84,7 @@ const NO_DEDUCTION_TYPES   = ['FTE-INTL', 'PTE-INTL', 'PB-INTL', 'PB-LCL'];
 // Derive local/foreign from employee_type for bank file routing
 function getHireCategory(employeeType) {
   if (!employeeType) return 'local';
-  if (['FTE-INTL', 'PTE-INTL', 'PB-INTL'].includes(employeeType)) return 'foreign';
+  if (['FTE-INTL', 'PTE-INTL', 'PB-INTL', 'IC-INTL'].includes(employeeType)) return 'foreign';
   return 'local';
 }
 

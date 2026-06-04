@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS employees (
     position VARCHAR(100),
     hourly_rate DECIMAL(10, 2) DEFAULT 500.00,
     currency VARCHAR(10) DEFAULT 'USD',
-    employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL') DEFAULT NULL,
+    employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC-LCL','IC-INTL') DEFAULT NULL,
     employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',
     hire_category ENUM('local','foreign') NOT NULL DEFAULT 'local',
     -- Government ID numbers (PH)

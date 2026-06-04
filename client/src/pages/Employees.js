@@ -4,7 +4,7 @@ import {
   Box, Paper, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Grid, MenuItem, Select, FormControl, InputLabel, CircularProgress, Avatar,
+  Grid, MenuItem, Select, FormControl, InputLabel, FormHelperText, CircularProgress, Avatar,
   Autocomplete,
 } from '@mui/material';
 import { loadBankCodes, searchSwift, searchLocal } from '../utils/bankCodes';
@@ -30,14 +30,15 @@ const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', text
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
 
 const EMPLOYEE_TYPES = [
-  { value: 'FTE-LCL',  label: 'FTE-LCL — Full-Time Employee (Local)',           category: 'local'   },
-  { value: 'FTE-INTL', label: 'FTE-INTL — Full-Time Employee (International)',   category: 'foreign' },
-  { value: 'PTE-WB',   label: 'PTE-WB — Part-Time with Benefits',               category: 'local'   },
-  { value: 'PTE-WOB',  label: 'PTE-WOB — Part-Time without Benefits',           category: 'local'   },
-  { value: 'PTE-INTL', label: 'PTE-INTL — Part-Time (International)',           category: 'foreign' },
-  { value: 'PB-LCL',   label: 'PB-LCL — Project-Based (Local)',                 category: 'local'   },
-  { value: 'PB-INTL',  label: 'PB-INTL — Project-Based (International)',        category: 'foreign' },
-  { value: 'IC',        label: 'IC — Independent Contractor',                    category: 'local'   },
+  { value: 'FTE-LCL',  label: 'FTE-LCL — Full-Time Employee (Local)',           category: 'local',   description: 'Local full-time employee — PH government IDs (SSS, PhilHealth, Pag-IBIG) required' },
+  { value: 'FTE-INTL', label: 'FTE-INTL — Full-Time Employee (International)',   category: 'foreign', description: 'International full-time employee — no PH government IDs required' },
+  { value: 'PTE-WB',   label: 'PTE-WB — Part-Time with Benefits',               category: 'local',   description: 'Local part-time employee with statutory government benefits' },
+  { value: 'PTE-WOB',  label: 'PTE-WOB — Part-Time without Benefits',           category: 'local',   description: 'Local part-time employee without statutory benefits' },
+  { value: 'PTE-INTL', label: 'PTE-INTL — Part-Time (International)',           category: 'foreign', description: 'International part-time employee — no PH government IDs required' },
+  { value: 'PB-LCL',   label: 'PB-LCL — Project-Based (Local)',                 category: 'local',   description: 'Local project-based employee — PH government IDs required' },
+  { value: 'PB-INTL',  label: 'PB-INTL — Project-Based (International)',        category: 'foreign', description: 'International project-based contractor — no PH government IDs required' },
+  { value: 'IC-LCL',   label: 'IC-LCL — Independent Contractor (Local)',        category: 'local',   description: 'Local independent contractor — treated as local employee; PH government IDs required' },
+  { value: 'IC-INTL',  label: 'IC-INTL — Independent Contractor (International)', category: 'foreign', description: 'International independent contractor — no PH government IDs required' },
 ];
 
 function deriveHireCategory(employeeType) {
@@ -549,6 +550,11 @@ export default function Employees() {
                     <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
                   ))}
                 </Select>
+                {form.employee_type && (
+                  <FormHelperText>
+                    {EMPLOYEE_TYPES.find(t => t.value === form.employee_type)?.description}
+                  </FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
