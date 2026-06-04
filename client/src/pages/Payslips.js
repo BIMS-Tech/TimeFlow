@@ -12,6 +12,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -21,6 +22,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PeopleIcon from '@mui/icons-material/People';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 import { getMissingBankFields } from '../utils/employeeProfile';
 
 function pollJob(jobId, onProgress) {
@@ -50,6 +52,9 @@ function InfoRow({ label, value }) {
 }
 
 export default function Payslips() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const [periods, setPeriods]               = useState([]);
   const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState(null);
@@ -65,6 +70,9 @@ export default function Payslips() {
   const [generating, setGenerating]               = useState(false);
   const [genProgress, setGenProgress]             = useState(null);
   const [bulkResult, setBulkResult]               = useState(null);
+
+  const [deleteTarget, setDeleteTarget]     = useState(null);
+  const [deleting, setDeleting]             = useState(false);
 
   const [bankDlOpen, setBankDlOpen]         = useState(false);
   const [bankDlType, setBankDlType]         = useState('local');
@@ -137,6 +145,21 @@ export default function Payslips() {
       }
     } catch (e) { toast.error(e.response?.data?.error || e.message || 'Generation failed'); }
     finally { setGenerating(false); setGenProgress(null); }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await payslipsAPI.delete(deleteTarget.id);
+      toast.success('Payslip deleted');
+      setDeleteTarget(null);
+      if (selectedPeriod) fetchPayslips(selectedPeriod.id);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const openBankDl = (type) => {
@@ -420,6 +443,14 @@ export default function Payslips() {
                                 </IconButton>
                               </Tooltip>
                             )}
+                            {isSuperAdmin && (
+                              <Tooltip title="Delete Payslip" arrow>
+                                <IconButton size="small" onClick={() => setDeleteTarget(p)}
+                                  sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}>
+                                  <DeleteIcon sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -467,6 +498,27 @@ export default function Payslips() {
           )}
           <Box sx={{ flex: 1 }} />
           <Button onClick={() => setSelected(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ────────────────────────────────────── */}
+      <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Delete Payslip?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+            This will permanently delete payslip <strong>{deleteTarget?.payslip_number}</strong> for <strong>{deleteTarget?.employee_name}</strong> and remove its PDF file. This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}
+            sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleDeleteConfirm} disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <DeleteIcon />}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' }, boxShadow: 'none' }}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
         </DialogActions>
       </Dialog>
 

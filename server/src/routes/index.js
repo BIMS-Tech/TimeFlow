@@ -220,6 +220,12 @@ router.get('/timesheet/payslips/:id', timesheetController.getPayslip.bind(timesh
 router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF.bind(timesheetController));
 
 /**
+ * @route DELETE /api/timesheet/payslips/:id
+ * @desc Delete a payslip (super_admin only)
+ */
+router.delete('/timesheet/payslips/:id', requireSuperAdmin, timesheetController.deletePayslip.bind(timesheetController));
+
+/**
  * @route POST /api/timesheet/bulk-generate-payslips
  * @desc Bulk approve & generate payslips for a period (all or selected employees)
  */

@@ -494,6 +494,31 @@ class TimesheetController {
   }
 
   /**
+   * Delete a payslip (super_admin only)
+   * DELETE /api/timesheet/payslips/:id
+   */
+  async deletePayslip(req, res) {
+    const fs   = require('fs');
+    const path = require('path');
+    try {
+      const payslip = await Payslip.findById(req.params.id);
+      if (!payslip) return res.status(404).json({ success: false, error: 'Payslip not found' });
+
+      if (payslip.pdf_path) {
+        const filePath = path.isAbsolute(payslip.pdf_path)
+          ? payslip.pdf_path
+          : path.join(__dirname, '../../', payslip.pdf_path);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+
+      await Payslip.delete(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Create a new period
    * POST /api/timesheet/periods
    */
