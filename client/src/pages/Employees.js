@@ -535,31 +535,37 @@ export default function Employees() {
             </Grid>
             <Grid item xs={7}>
               <FormControl fullWidth size="small">
-                <InputLabel>Employee Type</InputLabel>
+                <InputLabel shrink>Employee Type</InputLabel>
                 <Select
                   label="Employee Type"
+                  displayEmpty
+                  notched
                   value={form.employee_type}
                   onChange={e => {
                     const et = e.target.value;
                     setForm(f => ({ ...f, employee_type: et, hire_category: deriveHireCategory(et) }));
                   }}
                   sx={{ borderRadius: '10px' }}
+                  renderValue={val => {
+                    if (!val) return <em style={{ color: '#94a3b8', fontStyle: 'normal' }}>— Select type —</em>;
+                    return EMPLOYEE_TYPES.find(t => t.value === val)?.label ?? val;
+                  }}
                 >
                   <MenuItem value=""><em>— Select type —</em></MenuItem>
                   {EMPLOYEE_TYPES.map(t => (
                     <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
                   ))}
                 </Select>
-                {form.employee_type && (
-                  <FormHelperText>
-                    {EMPLOYEE_TYPES.find(t => t.value === form.employee_type)?.description}
-                  </FormHelperText>
-                )}
+                <FormHelperText>
+                  {form.employee_type
+                    ? EMPLOYEE_TYPES.find(t => t.value === form.employee_type)?.description
+                    : 'Select an employee type to configure the form fields below'}
+                </FormHelperText>
               </FormControl>
             </Grid>
 
-            {/* Government IDs — shown for local types */}
-            {form.hire_category === 'local' && (
+            {/* Government IDs — shown for local types only after a type is selected */}
+            {form.employee_type && form.hire_category === 'local' && (
               <Grid item xs={12}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
                   <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Government IDs</Typography>
@@ -671,7 +677,7 @@ export default function Employees() {
             </Grid>
 
             {/* Address Details — local employees only */}
-            {form.hire_category === 'local' && (
+            {form.employee_type && form.hire_category === 'local' && (
               <Grid item xs={12}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
                   <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Address Details</Typography>
@@ -696,7 +702,7 @@ export default function Employees() {
             )}
 
             {/* DFT International Transfer Fields (foreign only) */}
-            {form.hire_category === 'foreign' && (<>
+            {form.employee_type && form.hire_category === 'foreign' && (<>
               <Grid item xs={12}>
                 <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
                   <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>DFT Transfer Details</Typography>
