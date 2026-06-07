@@ -37,12 +37,13 @@ import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import Periods from './pages/Periods';
 import Payslips from './pages/Payslips';
-import WrikeTimesheets from './pages/WrikeTimesheets';
+
 import TimesheetGenerator from './pages/TimesheetGenerator';
 import GenerateTimesheet from './pages/GenerateTimesheet';
 import UserManagement from './pages/UserManagement';
 import EmployeePortal from './pages/EmployeePortal';
 import GenerateBankUpload from './pages/GenerateBankUpload';
+import GenerateTimesheets from './pages/GenerateTimesheets';
 
 const DRAWER_WIDTH = 268;
 
@@ -377,7 +378,7 @@ function AppLayout() {
           <Route path="/"                   element={<Dashboard />} />
           <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
           <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer']}><Periods /></RequireRole>} />
-          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer']}><WrikeTimesheets /></RequireRole>} />
+          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer']}><GenerateTimesheets /></RequireRole>} />
           <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
           <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
           <Route path="/bank-upload"        element={<RequireRole roles={['super_admin', 'accounting_manager']}><GenerateBankUpload /></RequireRole>} />
