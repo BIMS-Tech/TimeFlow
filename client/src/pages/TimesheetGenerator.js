@@ -22,6 +22,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import SearchIcon from '@mui/icons-material/Search';
 import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI, verificationsAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function pollJob(jobId, onProgress) {
   return new Promise((resolve, reject) => {
@@ -105,6 +106,9 @@ function SummaryCard({ icon, label, value, color }) {
 }
 
 export default function TimesheetGenerator() {
+  const { user } = useAuth();
+  const showHourlyRate = user?.role === 'super_admin' || user?.role === 'hr';
+
   const [employees, setEmployees]           = useState([]);
   const [empLoading, setEmpLoading]         = useState(true);
   const [empSearch, setEmpSearch]           = useState('');
@@ -371,7 +375,7 @@ export default function TimesheetGenerator() {
                                 )}
                               </Box>
                               <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled' }}>
-                                {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''} · {emp.currency || 'USD'} {emp.hourly_rate}/hr
+                                {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''}{showHourlyRate ? ` · ${emp.currency || 'USD'} ${emp.hourly_rate}/hr` : ''}
                               </Typography>
                             </Box>
                           </Box>
@@ -542,25 +546,29 @@ export default function TimesheetGenerator() {
                 {/* Rate breakdown */}
                 <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid', borderColor: 'divider' }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}>
+                    <Grid item xs={showHourlyRate ? 4 : 6}>
                       <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Period</Typography>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmtDate(startDate)} – {fmtDate(endDate)}</Typography>
                     </Grid>
-                    <Grid item xs={4}>
-                      <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Hourly Rate</Typography>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
-                    </Grid>
-                    <Grid item xs={4}>
+                    {showHourlyRate && (
+                      <Grid item xs={4}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Hourly Rate</Typography>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
+                      </Grid>
+                    )}
+                    <Grid item xs={showHourlyRate ? 4 : 6}>
                       <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Regular Pay</Typography>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
                     </Grid>
                   </Grid>
                   {preview.overtimeHours > 0 && (
                     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 3 }}>
-                      <Box>
-                        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Rate</Typography>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate * 1.5, currency)}/hr</Typography>
-                      </Box>
+                      {showHourlyRate && (
+                        <Box>
+                          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Rate</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate * 1.5, currency)}/hr</Typography>
+                        </Box>
+                      )}
                       <Box>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Pay</Typography>
                         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#f59e0b' }}>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</Typography>
