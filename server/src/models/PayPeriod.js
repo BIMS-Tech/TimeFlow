@@ -188,6 +188,17 @@ class PayPeriod {
   }
 
   /**
+   * Mark a period as bank-uploaded by an admin user
+   */
+  static async markBankUploaded(id, userId) {
+    await db.query(
+      'UPDATE pay_periods SET bank_uploaded_at = NOW(), bank_uploaded_by = ? WHERE id = ?',
+      [userId, id]
+    );
+    return this.findById(id);
+  }
+
+  /**
    * Get or create current period
    */
   static async getOrCreateCurrentPeriod() {

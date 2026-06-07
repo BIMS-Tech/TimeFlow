@@ -17,6 +17,8 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PublishIcon from '@mui/icons-material/Publish';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
@@ -40,18 +42,20 @@ import TimesheetGenerator from './pages/TimesheetGenerator';
 import GenerateTimesheet from './pages/GenerateTimesheet';
 import UserManagement from './pages/UserManagement';
 import EmployeePortal from './pages/EmployeePortal';
+import GenerateBankUpload from './pages/GenerateBankUpload';
 
 const DRAWER_WIDTH = 268;
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',           icon: <DashboardIcon />,               path: '/',                  end: true },
-  { label: 'Employees',           icon: <PeopleIcon />,                  path: '/employees',         roles: ['super_admin', 'hr'] },
-  { label: 'Pay Periods',         icon: <CalendarMonthIcon />,           path: '/periods',           roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Generate Timesheet',  icon: <VerifiedUserIcon />,            path: '/timesheet-verify',  roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Generate Payslips',   icon: <AddchartIcon />,                path: '/generate',          roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Payslips',            icon: <ReceiptIcon />,                 path: '/payslips',          roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Work Timesheets',     icon: <IntegrationInstructionsIcon />, path: '/wrike',             roles: ['super_admin', 'hr', 'payroll_officer'] },
-  { label: 'Users',               icon: <ManageAccountsIcon />,          path: '/users',             roles: ['super_admin'] },
+  { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
+  { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      roles: ['super_admin', 'hr'] },
+  { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Generate Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike',          roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/timesheet-verify', roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Generate Bank Upload',  icon: <AccountBalanceIcon />,          path: '/bank-upload',    roles: ['super_admin', 'accounting_manager'] },
+  { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Users',                 icon: <ManageAccountsIcon />,          path: '/users',          roles: ['super_admin'] },
 ];
 
 function ProtectedRoute({ children }) {
@@ -372,11 +376,12 @@ function AppLayout() {
         <Routes>
           <Route path="/"                   element={<Dashboard />} />
           <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
-          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><Periods /></RequireRole>} />
-          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><Payslips /></RequireRole>} />
-          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
-          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
-          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'hr', 'payroll_officer']}><WrikeTimesheets /></RequireRole>} />
+          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer']}><Periods /></RequireRole>} />
+          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer']}><WrikeTimesheets /></RequireRole>} />
+          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
+          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
+          <Route path="/bank-upload"        element={<RequireRole roles={['super_admin', 'accounting_manager']}><GenerateBankUpload /></RequireRole>} />
+          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'payroll_officer']}><Payslips /></RequireRole>} />
           <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>

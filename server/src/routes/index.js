@@ -13,9 +13,11 @@ const portalController = require('../controllers/portal.controller');
 const verificationController = require('../controllers/verification.controller');
 const adminController = require('../controllers/admin.controller');
 
-const requireSuperAdmin      = requireRole('super_admin');
-const requireHROrAbove       = requireRole('super_admin', 'hr');
-const requirePayrollOrAbove  = requireRole('super_admin', 'hr', 'payroll_officer');
+const requireSuperAdmin         = requireRole('super_admin');
+const requireHROrAbove          = requireRole('super_admin', 'hr');
+const requirePayrollOrAbove     = requireRole('super_admin', 'hr', 'payroll_officer');
+const requireAccountingOrAbove  = requireRole('super_admin', 'accounting_manager');
+const requirePayrollOrSuperAdmin = requireRole('super_admin', 'payroll_officer');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -224,6 +226,18 @@ router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF
  * @desc Delete a payslip (super_admin only)
  */
 router.delete('/timesheet/payslips/:id', requireSuperAdmin, timesheetController.deletePayslip.bind(timesheetController));
+
+/**
+ * @route POST /api/timesheet/periods/:id/release-payslips
+ * @desc Release all generated payslips for a period (payroll_officer, super_admin)
+ */
+router.post('/timesheet/periods/:id/release-payslips', requirePayrollOrSuperAdmin, timesheetController.releasePayslips.bind(timesheetController));
+
+/**
+ * @route POST /api/timesheet/periods/:id/mark-bank-uploaded
+ * @desc Mark a period's bank file as uploaded (accounting_manager, super_admin)
+ */
+router.post('/timesheet/periods/:id/mark-bank-uploaded', requireAccountingOrAbove, timesheetController.markBankUploaded.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/bulk-generate-payslips

@@ -20,13 +20,14 @@ import { usersAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_META = {
-  super_admin:      { label: 'Super Admin',      bg: '#6366f115', color: '#6366f1' },
-  hr:               { label: 'HR',               bg: '#10b98115', color: '#10b981' },
-  payroll_officer:  { label: 'Payroll Officer',  bg: '#f59e0b15', color: '#f59e0b' },
-  employee:         { label: 'Employee',          bg: '#06b6d415', color: '#06b6d4' },
+  super_admin:        { label: 'Super Admin',        bg: '#6366f115', color: '#6366f1' },
+  hr:                 { label: 'HR',                 bg: '#10b98115', color: '#10b981' },
+  payroll_officer:    { label: 'Payroll Officer',    bg: '#f59e0b15', color: '#f59e0b' },
+  accounting_manager: { label: 'Accounting Manager', bg: '#8b5cf615', color: '#8b5cf6' },
+  employee:           { label: 'Employee',            bg: '#06b6d415', color: '#06b6d4' },
 };
 
-const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer', 'employee'];
+const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager', 'employee'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };

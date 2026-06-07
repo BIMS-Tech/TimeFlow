@@ -66,6 +66,29 @@ async function runMigrations() {
         sql: `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL AFTER middle_name`
       },
       {
+        name: 'users_role_to_varchar_with_accounting_manager',
+        check: `SELECT IF(DATA_TYPE = 'varchar', 1, 0) AS cnt
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'`,
+        sql: `ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'payroll_officer'`
+      },
+      {
+        name: 'add_released_status_and_released_at_to_payslips',
+        check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payslips' AND COLUMN_NAME = 'released_at'`,
+        sql: `ALTER TABLE payslips
+              ADD COLUMN released_at DATETIME NULL DEFAULT NULL,
+              MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'generated'`
+      },
+      {
+        name: 'add_bank_upload_tracking_to_pay_periods',
+        check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pay_periods' AND COLUMN_NAME = 'bank_uploaded_at'`,
+        sql: `ALTER TABLE pay_periods
+              ADD COLUMN bank_uploaded_at DATETIME NULL DEFAULT NULL,
+              ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`
+      },
+      {
         name: 'add_dft_fields_country_purpose_to_employees',
         check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'country_of_destination'`,

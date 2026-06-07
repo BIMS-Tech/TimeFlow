@@ -47,18 +47,20 @@ class Payslip {
   }
 
   /**
-   * Get payslips by employee
+   * Get payslips by employee. Pass statusFilter='released' for employee portal.
    */
-  static async findByEmployee(employeeId, limit = 20) {
-    const sql = `
+  static async findByEmployee(employeeId, limit = 20, statusFilter = null) {
+    let sql = `
       SELECT p.*, pp.period_name, pp.start_date, pp.end_date
       FROM payslips p
       JOIN pay_periods pp ON p.period_id = pp.id
       WHERE p.employee_id = ?
-      ORDER BY p.generated_at DESC
-      LIMIT ?
     `;
-    return db.query(sql, [employeeId, limit]);
+    const params = [employeeId];
+    if (statusFilter) { sql += ' AND p.status = ?'; params.push(statusFilter); }
+    sql += ' ORDER BY p.generated_at DESC LIMIT ?';
+    params.push(limit);
+    return db.query(sql, params);
   }
 
   /**
@@ -249,6 +251,21 @@ class Payslip {
     }
     if (Object.keys(fields).length) await db.update('payslips', fields, 'id = ?', [id]);
     return this.findById(id);
+  }
+
+  /**
+   * Release all generated payslips for a period (makes them visible to employees)
+   */
+  static async releaseForPeriod(periodId) {
+    await db.query(
+      `UPDATE payslips SET status = 'released', released_at = NOW()
+       WHERE period_id = ? AND status = 'generated'`,
+      [periodId]
+    );
+    return db.getOne(
+      `SELECT COUNT(*) AS released FROM payslips WHERE period_id = ? AND status = 'released'`,
+      [periodId]
+    );
   }
 
   /**

@@ -494,6 +494,35 @@ class TimesheetController {
   }
 
   /**
+   * Release all generated payslips for a period (makes them visible to employees)
+   * POST /api/timesheet/periods/:id/release-payslips
+   */
+  async releasePayslips(req, res) {
+    try {
+      const period = await PayPeriod.findById(req.params.id);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+      const result = await Payslip.releaseForPeriod(req.params.id);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Mark a period's bank file as uploaded
+   * POST /api/timesheet/periods/:id/mark-bank-uploaded
+   */
+  async markBankUploaded(req, res) {
+    try {
+      const period = await PayPeriod.markBankUploaded(req.params.id, req.user.id);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+      res.json({ success: true, data: period });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Delete a payslip (super_admin only)
    * DELETE /api/timesheet/payslips/:id
    */

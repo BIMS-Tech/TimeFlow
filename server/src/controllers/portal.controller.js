@@ -135,7 +135,7 @@ class PortalController {
    */
   async getMyPayslips(req, res) {
     try {
-      const payslips = await Payslip.findByEmployee(req.user.employee_id);
+      const payslips = await Payslip.findByEmployee(req.user.employee_id, 20, 'released');
       res.json({ success: true, data: payslips });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
