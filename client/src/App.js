@@ -13,7 +13,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddchartIcon from '@mui/icons-material/Addchart';
-import ReceiptIcon from '@mui/icons-material/Receipt';
+
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
