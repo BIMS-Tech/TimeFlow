@@ -523,6 +523,23 @@ class TimesheetController {
   }
 
   /**
+   * Record a bank file download for a period
+   * POST /api/timesheet/periods/:id/mark-bank-downloaded?type=local|foreign
+   */
+  async markBankDownloaded(req, res) {
+    try {
+      const { type } = req.query;
+      if (!type || !['local', 'foreign'].includes(type)) {
+        return res.status(400).json({ success: false, error: 'type must be local or foreign' });
+      }
+      const period = await PayPeriod.markBankDownloaded(req.params.id, type);
+      res.json({ success: true, data: period });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Mark a period's bank file as uploaded
    * POST /api/timesheet/periods/:id/mark-bank-uploaded
    */

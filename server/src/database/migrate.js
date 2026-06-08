@@ -2,15 +2,20 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const mysql = require('mysql2/promise');
 
-async function runMigrations() {
+/**
+ * Apply all pending migrations. Safe to call on every startup — each migration
+ * is idempotent (checks before applying). Can be imported and awaited by server.js.
+ */
+async function applyMigrations() {
+  const dbHost = process.env.DB_HOST || 'localhost';
+  const isSocket = dbHost.startsWith('/');
   let connection;
   try {
     connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
+      ...(isSocket ? { socketPath: dbHost } : { host: dbHost, port: parseInt(process.env.DB_PORT) || 3306 }),
+      user:     process.env.DB_USER     || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'timesheet_db'
+      database: process.env.DB_NAME     || 'timesheet_db',
     });
 
     console.log('🔗 Connected to database...');
@@ -116,14 +121,20 @@ async function runMigrations() {
       }
     }
 
-    console.log('\n🎉 All migrations complete!');
-    process.exit(0);
+    console.log('🎉 All migrations complete!');
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
-    process.exit(1);
+    throw error;
   } finally {
     if (connection) await connection.end();
   }
 }
 
-runMigrations();
+module.exports = { applyMigrations };
+
+// Allow running directly: node migrate.js
+if (require.main === module) {
+  applyMigrations()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}

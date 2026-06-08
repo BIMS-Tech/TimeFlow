@@ -188,6 +188,15 @@ class PayPeriod {
   }
 
   /**
+   * Record when a bank file type was downloaded for a period
+   */
+  static async markBankDownloaded(id, type) {
+    const col = type === 'foreign' ? 'foreign_bank_downloaded_at' : 'local_bank_downloaded_at';
+    await db.query(`UPDATE pay_periods SET ${col} = NOW() WHERE id = ?`, [id]);
+    return this.findById(id);
+  }
+
+  /**
    * Mark a period as bank-uploaded by an admin user
    */
   static async markBankUploaded(id, userId) {

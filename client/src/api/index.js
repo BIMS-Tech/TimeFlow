@@ -107,6 +107,7 @@ export const timesheetAPI = {
   updatePeriod: (id, data) => api.put(`/timesheet/periods/${id}`, data),
   deletePeriod: (id) => api.delete(`/timesheet/periods/${id}`),
   releasePayslips: (periodId) => api.post(`/timesheet/periods/${periodId}/release-payslips`),
+  markBankDownloaded: (periodId, type) => api.post(`/timesheet/periods/${periodId}/mark-bank-downloaded?type=${type}`),
   markBankUploaded: (periodId) => api.post(`/timesheet/periods/${periodId}/mark-bank-uploaded`),
   createMonthlyPeriods: (year, month) => api.post('/timesheet/periods/monthly', { year, month }),
   createForeignMonthlyPeriod: (year, month) => api.post('/timesheet/periods/foreign-monthly', { year, month }),

@@ -202,6 +202,19 @@ async function runMigrations() {
     // Add employee role for portal-linked users
     `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer','employee') DEFAULT 'payroll_officer'`,
     `UPDATE users SET role = 'employee' WHERE employee_id IS NOT NULL AND role != 'employee'`,
+
+    // Convert role column from ENUM to VARCHAR to support accounting_manager and future roles
+    `ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'payroll_officer'`,
+
+    // Payslip release flow: released_at timestamp + widen status to VARCHAR
+    `ALTER TABLE payslips ADD COLUMN released_at DATETIME NULL DEFAULT NULL`,
+    `ALTER TABLE payslips MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'generated'`,
+
+    // Bank upload tracking per period
+    `ALTER TABLE pay_periods ADD COLUMN bank_uploaded_at DATETIME NULL DEFAULT NULL`,
+    `ALTER TABLE pay_periods ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`,
+    `ALTER TABLE pay_periods ADD COLUMN local_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
+    `ALTER TABLE pay_periods ADD COLUMN foreign_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
   ];
   for (const sql of migrations) {
     try {

@@ -240,6 +240,12 @@ router.post('/timesheet/payslips/:id/release', requirePayrollOrSuperAdmin, times
 router.post('/timesheet/periods/:id/release-payslips', requirePayrollOrSuperAdmin, timesheetController.releasePayslips.bind(timesheetController));
 
 /**
+ * @route POST /api/timesheet/periods/:id/mark-bank-downloaded
+ * @desc Record bank file download timestamp (accounting_manager, super_admin)
+ */
+router.post('/timesheet/periods/:id/mark-bank-downloaded', requireAccountingOrAbove, timesheetController.markBankDownloaded.bind(timesheetController));
+
+/**
  * @route POST /api/timesheet/periods/:id/mark-bank-uploaded
  * @desc Mark a period's bank file as uploaded (accounting_manager, super_admin)
  */
