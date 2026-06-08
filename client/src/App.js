@@ -44,6 +44,7 @@ import UserManagement from './pages/UserManagement';
 import EmployeePortal from './pages/EmployeePortal';
 import GenerateBankUpload from './pages/GenerateBankUpload';
 import GenerateTimesheets from './pages/GenerateTimesheets';
+import WrikeTimesheets from './pages/WrikeTimesheets';
 
 const DRAWER_WIDTH = 268;
 
@@ -51,6 +52,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
   { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      roles: ['super_admin', 'hr'] },
   { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
+  { label: 'Work Timesheets',        icon: <IntegrationInstructionsIcon />, path: '/wrike-raw',      roles: ['super_admin', 'hr'] },
   { label: 'Generate Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike',          roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/timesheet-verify', roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
@@ -378,6 +380,7 @@ function AppLayout() {
           <Route path="/"                   element={<Dashboard />} />
           <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
           <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Periods /></RequireRole>} />
+          <Route path="/wrike-raw"          element={<RequireRole roles={['super_admin', 'hr']}><WrikeTimesheets /></RequireRole>} />
           <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheets /></RequireRole>} />
           <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheet /></RequireRole>} />
           <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><TimesheetGenerator /></RequireRole>} />
