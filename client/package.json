@@ -16,10 +16,12 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.20.1",
     "react-scripts": "5.0.1",
-    "recharts": "^2.10.3"
+    "recharts": "^2.10.3",
+    "serve": "^14.2.1"
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "serve -s build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
