@@ -107,8 +107,9 @@ function SummaryCard({ icon, label, value, color }) {
 
 export default function TimesheetGenerator() {
   const { user } = useAuth();
-  const showHourlyRate = user?.role === 'super_admin' || user?.role === 'hr';
-  const isReadOnly     = user?.role === 'accounting_manager';
+  const showRates  = user?.role === 'super_admin' || user?.role === 'hr';
+  const showHourlyRate = showRates;
+  const isReadOnly = user?.role === 'accounting_manager';
 
   const [employees, setEmployees]           = useState([]);
   const [empLoading, setEmpLoading]         = useState(true);
@@ -535,15 +536,17 @@ export default function TimesheetGenerator() {
 
                 {/* Summary cards */}
                 <Grid container spacing={1.5}>
-                  <Grid item xs={4}>
+                  <Grid item xs={showRates ? 4 : 6}>
                     <SummaryCard icon={<AccessTimeIcon />}   label="Total Hours" value={`${preview.totalHours}h`}                    color="#6366f1" />
                   </Grid>
-                  <Grid item xs={4}>
+                  <Grid item xs={showRates ? 4 : 6}>
                     <SummaryCard icon={<TrendingUpIcon />}   label="Regular / OT" value={`${preview.regularHours}h / ${preview.overtimeHours}h`} color="#f59e0b" />
                   </Grid>
-                  <Grid item xs={4}>
-                    <SummaryCard icon={<ReceiptLongIcon />}  label="Gross Pay"   value={fmt(preview.grossAmount, currency)}          color="#10b981" />
-                  </Grid>
+                  {showRates && (
+                    <Grid item xs={4}>
+                      <SummaryCard icon={<ReceiptLongIcon />}  label="Gross Pay"   value={fmt(preview.grossAmount, currency)}          color="#10b981" />
+                    </Grid>
+                  )}
                 </Grid>
 
                 {/* Rate breakdown */}
@@ -559,12 +562,14 @@ export default function TimesheetGenerator() {
                         <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
                       </Grid>
                     )}
-                    <Grid item xs={showHourlyRate ? 4 : 6}>
-                      <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Regular Pay</Typography>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
-                    </Grid>
+                    {showRates && (
+                      <Grid item xs={showHourlyRate ? 4 : 6}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Regular Pay</Typography>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
+                      </Grid>
+                    )}
                   </Grid>
-                  {preview.overtimeHours > 0 && (
+                  {showRates && preview.overtimeHours > 0 && (
                     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 3 }}>
                       {showHourlyRate && (
                         <Box>
@@ -595,7 +600,7 @@ export default function TimesheetGenerator() {
                             <TableRow>
                               <TableCell sx={TH}>Date</TableCell>
                               <TableCell sx={{ ...TH, textAlign: 'right' }}>Hours</TableCell>
-                              <TableCell sx={{ ...TH, textAlign: 'right' }}>Pay</TableCell>
+                              {showRates && <TableCell sx={{ ...TH, textAlign: 'right' }}>Pay</TableCell>}
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -603,13 +608,13 @@ export default function TimesheetGenerator() {
                               <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <TableCell sx={TD}>{fmtDay(date)}</TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{hours.toFixed(2)}h</TableCell>
-                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>
+                                {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>}
                               </TableRow>
                             ))}
                             <TableRow sx={{ bgcolor: 'action.hover' }}>
                               <TableCell sx={{ ...TD, fontWeight: 800 }}>Total</TableCell>
                               <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800 }}>{preview.totalHours}h</TableCell>
-                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>
+                              {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>}
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -728,7 +733,7 @@ export default function TimesheetGenerator() {
                 <Table size="small">
                   <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>
-                      {['Employee', 'Department', 'Hours', 'Gross', 'Status'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
+                      {['Employee', 'Department', 'Hours', ...(showRates ? ['Gross'] : []), 'Status'].map(h => <TableCell key={h} sx={TH}>{h}</TableCell>)}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -748,7 +753,7 @@ export default function TimesheetGenerator() {
                           </TableCell>
                           <TableCell sx={{ ...TD, color: 'text.secondary' }}>{r.emp.department || '—'}</TableCell>
                           <TableCell sx={TD}>{r.hours ? `${r.hours}h` : '—'}</TableCell>
-                          <TableCell sx={TD}>{r.gross ? fmt(r.gross, r.emp.currency || 'USD') : '—'}</TableCell>
+                          {showRates && <TableCell sx={TD}>{r.gross ? fmt(r.gross, r.emp.currency || 'USD') : '—'}</TableCell>}
                           <TableCell sx={TD}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: s.color }}>
                               {s.icon}
