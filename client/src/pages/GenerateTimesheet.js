@@ -45,6 +45,7 @@ function StatusChip({ status }) {
 }
 
 function EditRow({ row, periodId, onSaved }) {
+  const sym = CURRENCY_SYMBOLS[row.employee?.currency] || row.employee?.currency || '₱';
   const [hours, setHours]   = useState(row.verification?.verified_hours ?? row.actual_hours ?? '');
   const [cash,  setCash]    = useState(row.verification?.cash_advance ?? 0);
   const [notes, setNotes]   = useState(row.verification?.notes ?? '');
@@ -87,7 +88,7 @@ function EditRow({ row, periodId, onSaved }) {
         size="small"
         value={cash}
         onChange={e => setCash(e.target.value)}
-        InputProps={{ startAdornment: <InputAdornment position="start">₱</InputAdornment> }}
+        InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
         inputProps={{ step: 100, min: 0 }}
         sx={{ width: 150 }}
       />

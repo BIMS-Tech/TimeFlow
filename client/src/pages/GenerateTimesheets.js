@@ -20,6 +20,8 @@ import { useAuth } from '../context/AuthContext';
 
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
+const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
+function currSym(currency) { return CURRENCY_SYMBOLS[currency] || currency || '₱'; }
 
 function fmtDate(d) {
   if (!d) return '';
@@ -40,6 +42,7 @@ function StatusChip({ status }) {
 }
 
 function EditRow({ row, periodId, onSaved }) {
+  const sym = currSym(row.employee?.currency);
   const [hours, setHours] = useState(row.verification?.verified_hours ?? row.actual_hours ?? '');
   const [cash,  setCash]  = useState(row.verification?.cash_advance ?? 0);
   const [notes, setNotes] = useState(row.verification?.notes ?? '');
@@ -72,7 +75,7 @@ function EditRow({ row, periodId, onSaved }) {
         inputProps={{ step: 0.5, min: 0 }} sx={{ width: 95 }} />
       <TextField label="Cash Advance" type="number" size="small" value={cash}
         onChange={e => setCash(e.target.value)}
-        InputProps={{ startAdornment: <InputAdornment position="start">₱</InputAdornment> }}
+        InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
         inputProps={{ step: 100, min: 0 }} sx={{ width: 145 }} />
       <TextField label="Notes" size="small" value={notes}
         onChange={e => setNotes(e.target.value)} sx={{ width: 180 }} />
@@ -378,7 +381,7 @@ export default function GenerateTimesheets() {
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                     {ver?.cash_advance > 0 ? (
                                       <Typography sx={{ fontWeight: 700, color: '#ef4444', fontSize: '0.875rem' }}>
-                                        ₱{Number(ver.cash_advance).toLocaleString()}
+                                        {currSym(row.employee?.currency)}{Number(ver.cash_advance).toLocaleString()}
                                       </Typography>
                                     ) : (
                                       <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>—</Typography>
