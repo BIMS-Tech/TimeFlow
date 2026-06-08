@@ -254,6 +254,17 @@ class Payslip {
   }
 
   /**
+   * Release a single payslip by ID
+   */
+  static async releaseOne(id) {
+    await db.query(
+      `UPDATE payslips SET status = 'released', released_at = NOW() WHERE id = ? AND status = 'generated'`,
+      [id]
+    );
+    return this.findById(id);
+  }
+
+  /**
    * Release all generated payslips for a period (makes them visible to employees)
    */
   static async releaseForPeriod(periodId) {

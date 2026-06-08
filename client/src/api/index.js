@@ -136,6 +136,7 @@ export const payslipsAPI = {
     `${API_BASE_URL}/timesheet/payslips/${id}/pdf?token=${localStorage.getItem('token')}`,
   downloadPDF: (id) => api.get(`/timesheet/payslips/${id}/pdf`, { responseType: 'blob' }),
   delete: (id) => api.delete(`/timesheet/payslips/${id}`),
+  releaseOne: (id) => api.post(`/timesheet/payslips/${id}/release`),
   downloadBankFile: async (periodId, type, employeeIds = null) => {
     const params = new URLSearchParams({ periodId, type });
     if (employeeIds && employeeIds.length) params.set('employeeIds', employeeIds.join(','));

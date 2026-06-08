@@ -494,6 +494,20 @@ class TimesheetController {
   }
 
   /**
+   * Release a single payslip to the employee
+   * POST /api/timesheet/payslips/:id/release
+   */
+  async releasePayslip(req, res) {
+    try {
+      const payslip = await Payslip.releaseOne(req.params.id);
+      if (!payslip) return res.status(404).json({ success: false, error: 'Payslip not found' });
+      res.json({ success: true, data: payslip });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Release all generated payslips for a period (makes them visible to employees)
    * POST /api/timesheet/periods/:id/release-payslips
    */

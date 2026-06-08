@@ -228,6 +228,12 @@ router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF
 router.delete('/timesheet/payslips/:id', requireSuperAdmin, timesheetController.deletePayslip.bind(timesheetController));
 
 /**
+ * @route POST /api/timesheet/payslips/:id/release
+ * @desc Release a single payslip to the employee (payroll_officer, super_admin)
+ */
+router.post('/timesheet/payslips/:id/release', requirePayrollOrSuperAdmin, timesheetController.releasePayslip.bind(timesheetController));
+
+/**
  * @route POST /api/timesheet/periods/:id/release-payslips
  * @desc Release all generated payslips for a period (payroll_officer, super_admin)
  */

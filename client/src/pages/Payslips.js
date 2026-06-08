@@ -72,6 +72,7 @@ export default function Payslips() {
   const [deleting, setDeleting]             = useState(false);
 
   const [releasing, setReleasing]           = useState(false);
+  const [releasingId, setReleasingId]       = useState(null);
 
   useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -168,6 +169,19 @@ export default function Payslips() {
     }
   };
 
+  const handleReleaseOne = async (payslip) => {
+    setReleasingId(payslip.id);
+    try {
+      await payslipsAPI.releaseOne(payslip.id);
+      toast.success(`${payslip.employee_name}'s payslip released`);
+      fetchPayslips(selectedPeriod.id);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Release failed');
+    } finally {
+      setReleasingId(null);
+    }
+  };
+
   const filtered = payslips.filter(p =>
     p.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
     p.payslip_number?.toLowerCase().includes(search.toLowerCase())
@@ -178,8 +192,11 @@ export default function Payslips() {
     (periodTypeFilter === 'local'   ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign')
   );
 
-  const totalNet   = filtered.reduce((s, p) => s + (parseFloat(p.net_amount) || 0), 0);
-  const totalHours = filtered.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
+  const totalNet        = filtered.reduce((s, p) => s + (parseFloat(p.net_amount) || 0), 0);
+  const totalHours      = filtered.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
+  const unreleased      = payslips.filter(p => p.status === 'generated').length;
+  const releasedCount   = payslips.filter(p => p.status === 'released').length;
+  const allReleased     = payslips.length > 0 && unreleased === 0;
 
   return (
     <Box>
@@ -205,10 +222,11 @@ export default function Payslips() {
           </Button>
           <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
             onClick={handleRelease}
-            disabled={releasing || !selectedPeriod || payslips.length === 0}
+            disabled={releasing || !selectedPeriod || unreleased === 0}
             sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-              background: 'linear-gradient(135deg, #10b981, #34d399)', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
-            {releasing ? 'Releasing…' : 'Release to Employees'}
+              background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
+              boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: allReleased ? 0.7 : 1 }}>
+            {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
           </Button>
         </Box>
       </Box>
@@ -427,6 +445,18 @@ export default function Payslips() {
                                 <IconButton size="small" component="a" href={p.drive_file_url} target="_blank" rel="noopener noreferrer"
                                   sx={{ color: '#0ea5e9', '&:hover': { bgcolor: '#0ea5e915' } }}>
                                   <OpenInNewIcon sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {p.status === 'generated' && (
+                              <Tooltip title="Release to employee" arrow>
+                                <IconButton size="small"
+                                  onClick={() => handleReleaseOne(p)}
+                                  disabled={releasingId === p.id}
+                                  sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
+                                  {releasingId === p.id
+                                    ? <CircularProgress size={13} sx={{ color: '#10b981' }} />
+                                    : <PublishIcon sx={{ fontSize: 15 }} />}
                                 </IconButton>
                               </Tooltip>
                             )}
