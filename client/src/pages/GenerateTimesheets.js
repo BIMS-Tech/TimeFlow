@@ -16,6 +16,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -96,6 +97,8 @@ const TYPE_TABS = [
 ];
 
 export default function GenerateTimesheets() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'accounting_manager';
   const [tab,           setTab]           = useState('local');
   const [periods,       setPeriods]       = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -192,7 +195,7 @@ export default function GenerateTimesheets() {
             <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Review and confirm employee hours per pay period before processing payroll</Typography>
           </Box>
         </Box>
-        {selectedPeriod && (
+        {selectedPeriod && !isReadOnly && (
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
               startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
@@ -326,7 +329,7 @@ export default function GenerateTimesheets() {
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 110 }}>Verified Hours</TableCell>
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 120 }}>Deductions</TableCell>
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 100 }}>Status</TableCell>
-                            <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>
+                            {!isReadOnly && <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>}
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -384,45 +387,47 @@ export default function GenerateTimesheets() {
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                     <StatusChip status={row.status} />
                                   </TableCell>
-                                  <TableCell sx={TD}>
-                                    {isEdit ? (
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <EditRow row={row} periodId={selectedPeriod.id}
-                                          onSaved={() => { setEditingId(null); fetchData(selectedPeriod.id); }} />
-                                        <Tooltip title="Cancel">
-                                          <IconButton size="small" onClick={() => setEditingId(null)}>
-                                            <CloseIcon sx={{ fontSize: 16 }} />
-                                          </IconButton>
-                                        </Tooltip>
-                                      </Box>
-                                    ) : (
-                                      <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-                                        <Tooltip title={hasHours ? 'Edit & Verify' : 'No imported hours for this period'}>
-                                          <span>
-                                            <Button size="small" variant="outlined" disabled={!hasHours}
-                                              startIcon={<EditIcon sx={{ fontSize: 14 }} />}
-                                              onClick={() => setEditingId(emp.id)}
-                                              sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
-                                                borderColor: '#6366f1', color: '#6366f1', '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
-                                              Edit & Verify
+                                  {!isReadOnly && (
+                                    <TableCell sx={TD}>
+                                      {isEdit ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <EditRow row={row} periodId={selectedPeriod.id}
+                                            onSaved={() => { setEditingId(null); fetchData(selectedPeriod.id); }} />
+                                          <Tooltip title="Cancel">
+                                            <IconButton size="small" onClick={() => setEditingId(null)}>
+                                              <CloseIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </Box>
+                                      ) : (
+                                        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+                                          <Tooltip title={hasHours ? 'Edit & Verify' : 'No imported hours for this period'}>
+                                            <span>
+                                              <Button size="small" variant="outlined" disabled={!hasHours}
+                                                startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                                                onClick={() => setEditingId(emp.id)}
+                                                sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
+                                                  borderColor: '#6366f1', color: '#6366f1', '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+                                                Edit & Verify
+                                              </Button>
+                                            </span>
+                                          </Tooltip>
+                                          {row.status === 'verified' && (
+                                            <Button size="small" variant="text"
+                                              onClick={async () => {
+                                                try {
+                                                  await verificationsAPI.upsert({ employee_id: emp.id, period_id: selectedPeriod.id, status: 'pending' });
+                                                  fetchData(selectedPeriod.id);
+                                                } catch { toast.error('Failed to reset'); }
+                                              }}
+                                              sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#f59e0b' } }}>
+                                              Reset
                                             </Button>
-                                          </span>
-                                        </Tooltip>
-                                        {row.status === 'verified' && (
-                                          <Button size="small" variant="text"
-                                            onClick={async () => {
-                                              try {
-                                                await verificationsAPI.upsert({ employee_id: emp.id, period_id: selectedPeriod.id, status: 'pending' });
-                                                fetchData(selectedPeriod.id);
-                                              } catch { toast.error('Failed to reset'); }
-                                            }}
-                                            sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#f59e0b' } }}>
-                                            Reset
-                                          </Button>
-                                        )}
-                                      </Box>
-                                    )}
-                                  </TableCell>
+                                          )}
+                                        </Box>
+                                      )}
+                                    </TableCell>
+                                  )}
                                 </TableRow>
                               </React.Fragment>
                             );

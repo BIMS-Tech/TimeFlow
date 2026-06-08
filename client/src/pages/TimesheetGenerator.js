@@ -108,6 +108,7 @@ function SummaryCard({ icon, label, value, color }) {
 export default function TimesheetGenerator() {
   const { user } = useAuth();
   const showHourlyRate = user?.role === 'super_admin' || user?.role === 'hr';
+  const isReadOnly     = user?.role === 'accounting_manager';
 
   const [employees, setEmployees]           = useState([]);
   const [empLoading, setEmpLoading]         = useState(true);
@@ -286,8 +287,8 @@ export default function TimesheetGenerator() {
             <ReceiptIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Generate Payslips</Typography>
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Select employees and a pay period to generate payslips</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Process Payroll</Typography>
+            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Select employees and a pay period to process payroll</Typography>
           </Box>
         </Box>
         {hasSelection && (
@@ -474,18 +475,20 @@ export default function TimesheetGenerator() {
                     <Link to="/timesheet-verify" style={{ color: 'inherit', fontWeight: 700 }}>Verify first</Link>
                   </Alert>
                 )}
-                <Button variant="contained" fullWidth size="large"
-                  startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
-                  onClick={handleGenerate}
-                  disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign) || hasUnverified}
-                  sx={{ py: 1.4, borderRadius: '12px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700,
-                    background: 'linear-gradient(135deg, #10b981, #34d399)',
-                    boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
-                    '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
-                  {generating
-                    ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)
-                    : `Generate Payslip${selectedIds.size !== 1 ? 's' : ''}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
-                </Button>
+                {!isReadOnly && (
+                  <Button variant="contained" fullWidth size="large"
+                    startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
+                    onClick={handleGenerate}
+                    disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign) || hasUnverified}
+                    sx={{ py: 1.4, borderRadius: '12px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700,
+                      background: 'linear-gradient(135deg, #10b981, #34d399)',
+                      boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+                      '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
+                    {generating
+                      ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)
+                      : `Generate Payslip${selectedIds.size !== 1 ? 's' : ''}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                  </Button>
+                )}
 
                 {/* Bulk progress */}
                 {generating && !isSingle && progress.total > 0 && (

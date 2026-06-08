@@ -15,6 +15,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import SyncIcon from '@mui/icons-material/Sync';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -115,6 +116,9 @@ function EditRow({ row, periodId, onSaved }) {
 }
 
 export default function GenerateTimesheet() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'accounting_manager';
+
   const [periods,       setPeriods]       = useState([]);
   const [periodsLoading, setPeriodsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('');
@@ -196,7 +200,7 @@ export default function GenerateTimesheet() {
             Verify employee hours before generating payslips
           </Typography>
         </Box>
-        {selectedPeriod && (
+        {selectedPeriod && !isReadOnly && (
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
               startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
@@ -284,7 +288,7 @@ export default function GenerateTimesheet() {
                     <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 110 }}>Verified Hours</TableCell>
                     <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 120 }}>Cash Advance</TableCell>
                     <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 100 }}>Status</TableCell>
-                    <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>
+                    {!isReadOnly && <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -336,7 +340,7 @@ export default function GenerateTimesheet() {
                           <TableCell sx={{ ...TD, textAlign: 'center' }}>
                             <StatusChip status={row.status} />
                           </TableCell>
-                          <TableCell sx={TD}>
+                          {!isReadOnly && <TableCell sx={TD}>
                             {isEdit ? (
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <EditRow
@@ -379,7 +383,7 @@ export default function GenerateTimesheet() {
                                 )}
                               </Box>
                             )}
-                          </TableCell>
+                          </TableCell>}
                         </TableRow>
                       </React.Fragment>
                     );

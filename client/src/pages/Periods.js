@@ -19,6 +19,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { timesheetAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_COLORS = {
   open:       { color: '#6366f1', bg: '#6366f115' },
@@ -58,7 +59,7 @@ function StatCard({ icon, label, value, color, bg }) {
   );
 }
 
-function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor }) {
+function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor, isReadOnly }) {
   return (
     <Box onClick={() => onSelect(p)}
       sx={{
@@ -83,14 +84,18 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor }) {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
             <StatusChip status={p.status} />
-            <IconButton size="small" onClick={e => { e.stopPropagation(); onEdit(p); }}
-              sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: accentColor, bgcolor: `${accentColor}10` } }}>
-              <EditIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-            <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(p); }}
-              sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: '#ef4444', bgcolor: '#ef444410' } }}>
-              <DeleteOutlineIcon sx={{ fontSize: 12 }} />
-            </IconButton>
+            {!isReadOnly && (
+              <>
+                <IconButton size="small" onClick={e => { e.stopPropagation(); onEdit(p); }}
+                  sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: accentColor, bgcolor: `${accentColor}10` } }}>
+                  <EditIcon sx={{ fontSize: 12 }} />
+                </IconButton>
+                <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(p); }}
+                  sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: '#ef4444', bgcolor: '#ef444410' } }}>
+                  <DeleteOutlineIcon sx={{ fontSize: 12 }} />
+                </IconButton>
+              </>
+            )}
           </Box>
         </Box>
       </Box>
@@ -102,6 +107,9 @@ const EMPTY_FORM = { period_name: '', start_date: '', end_date: '', status: 'ope
 const now = new Date();
 
 export default function Periods() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'accounting_manager';
+
   const [allPeriods, setAllPeriods]       = useState([]);
   const [loading, setLoading]             = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
@@ -283,19 +291,21 @@ export default function Periods() {
               </Tabs>
             </Box>
 
-            {/* Action bar */}
-            <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', gap: 0.75 }}>
-              <Button size="small" startIcon={<AutoAwesomeIcon sx={{ fontSize: '13px !important' }} />}
-                onClick={() => openQuick(tab === 0 ? 'local' : 'foreign')}
-                sx={{ flex: 1, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: accentColor, borderRadius: '8px', py: 0.5, border: '1px solid', borderColor: `${accentColor}30`, bgcolor: `${accentColor}05`, '&:hover': { bgcolor: `${accentColor}10` } }}>
-                Quick Month
-              </Button>
-              <Button size="small" startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
-                onClick={() => openCreate(tab === 0 ? 'local' : 'foreign')}
-                sx={{ flex: 1, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', borderRadius: '8px', py: 0.5, border: '1px solid', borderColor: 'divider', '&:hover': { borderColor: accentColor, color: accentColor } }}>
-                Custom
-              </Button>
-            </Box>
+            {/* Action bar — hidden for read-only roles */}
+            {!isReadOnly && (
+              <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', gap: 0.75 }}>
+                <Button size="small" startIcon={<AutoAwesomeIcon sx={{ fontSize: '13px !important' }} />}
+                  onClick={() => openQuick(tab === 0 ? 'local' : 'foreign')}
+                  sx={{ flex: 1, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: accentColor, borderRadius: '8px', py: 0.5, border: '1px solid', borderColor: `${accentColor}30`, bgcolor: `${accentColor}05`, '&:hover': { bgcolor: `${accentColor}10` } }}>
+                  Quick Month
+                </Button>
+                <Button size="small" startIcon={<AddIcon sx={{ fontSize: '14px !important' }} />}
+                  onClick={() => openCreate(tab === 0 ? 'local' : 'foreign')}
+                  sx={{ flex: 1, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', borderRadius: '8px', py: 0.5, border: '1px solid', borderColor: 'divider', '&:hover': { borderColor: accentColor, color: accentColor } }}>
+                  Custom
+                </Button>
+              </Box>
+            )}
 
             {/* List */}
             <Box sx={{ flex: 1, overflowY: 'auto', py: 1 }}>
@@ -312,7 +322,7 @@ export default function Periods() {
               ) : activePeriods.map(p => (
                 <PeriodCard key={p.id} p={p} selected={selectedPeriod?.id === p.id}
                   onSelect={handleSelectPeriod} onEdit={openEdit} onDelete={setDeleteTarget}
-                  accentColor={accentColor} />
+                  accentColor={accentColor} isReadOnly={isReadOnly} />
               ))}
             </Box>
           </Paper>
@@ -354,16 +364,18 @@ export default function Periods() {
                         {new Date(selectedPeriod.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })} – {new Date(selectedPeriod.end_date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button size="small" variant="outlined" startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />} onClick={() => openEdit(selectedPeriod)}
-                        sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-                        Edit
-                      </Button>
-                      <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={() => handleProcess(selectedPeriod.id)}
-                        sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
-                        Process
-                      </Button>
-                    </Box>
+                    {!isReadOnly && (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button size="small" variant="outlined" startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />} onClick={() => openEdit(selectedPeriod)}
+                          sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                          Edit
+                        </Button>
+                        <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={() => handleProcess(selectedPeriod.id)}
+                          sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                          Process
+                        </Button>
+                      </Box>
+                    )}
                   </Box>
 
                   {/* Mini stats */}

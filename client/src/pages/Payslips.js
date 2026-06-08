@@ -51,6 +51,7 @@ function InfoRow({ label, value }) {
 export default function Payslips() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
+  const isReadOnly   = user?.role === 'accounting_manager';
 
   const [periods, setPeriods]               = useState([]);
   const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
@@ -211,28 +212,30 @@ export default function Payslips() {
             <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Release generated payslips to employees</Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
-            onClick={() => setShowBulkPanel(v => !v)}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-              borderColor: showBulkPanel ? '#6366f1' : 'divider',
-              color: showBulkPanel ? '#6366f1' : 'text.secondary',
-              bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
-            Generate Payslips
-          </Button>
-          <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
-            onClick={handleRelease}
-            disabled={releasing || !selectedPeriod || unreleased === 0}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-              background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: allReleased ? 0.7 : 1 }}>
-            {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
-          </Button>
-        </Box>
+        {!isReadOnly && (
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
+              onClick={() => setShowBulkPanel(v => !v)}
+              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                borderColor: showBulkPanel ? '#6366f1' : 'divider',
+                color: showBulkPanel ? '#6366f1' : 'text.secondary',
+                bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
+              Generate Payslips
+            </Button>
+            <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
+              onClick={handleRelease}
+              disabled={releasing || !selectedPeriod || unreleased === 0}
+              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
+                boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: allReleased ? 0.7 : 1 }}>
+              {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
+            </Button>
+          </Box>
+        )}
       </Box>
 
       {/* Bulk Generate Panel */}
-      {showBulkPanel && (
+      {!isReadOnly && showBulkPanel && (
         <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '16px', border: '1px solid', borderColor: '#6366f130', overflow: 'hidden' }}>
           <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(99,102,241,0.03)' }}>
             <AutoAwesomeIcon sx={{ color: '#6366f1', fontSize: 17 }} />
@@ -448,7 +451,7 @@ export default function Payslips() {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {p.status === 'generated' && (
+                            {!isReadOnly && p.status === 'generated' && (
                               <Tooltip title="Release to employee" arrow>
                                 <IconButton size="small"
                                   onClick={() => handleReleaseOne(p)}

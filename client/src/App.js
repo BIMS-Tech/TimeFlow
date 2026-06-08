@@ -50,12 +50,12 @@ const DRAWER_WIDTH = 268;
 const NAV_ITEMS = [
   { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
   { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      roles: ['super_admin', 'hr'] },
-  { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer'] },
-  { label: 'Generate Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike',          roles: ['super_admin', 'payroll_officer'] },
-  { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/timesheet-verify', roles: ['super_admin', 'payroll_officer'] },
-  { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
+  { label: 'Generate Timesheets',   icon: <IntegrationInstructionsIcon />, path: '/wrike',          roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
+  { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/timesheet-verify', roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
+  { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Generate Bank Upload',  icon: <AccountBalanceIcon />,          path: '/bank-upload',    roles: ['super_admin', 'accounting_manager'] },
-  { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       roles: ['super_admin', 'payroll_officer'] },
+  { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Users',                 icon: <ManageAccountsIcon />,          path: '/users',          roles: ['super_admin'] },
 ];
 
@@ -377,12 +377,12 @@ function AppLayout() {
         <Routes>
           <Route path="/"                   element={<Dashboard />} />
           <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
-          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer']}><Periods /></RequireRole>} />
-          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer']}><GenerateTimesheets /></RequireRole>} />
-          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer']}><GenerateTimesheet /></RequireRole>} />
-          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer']}><TimesheetGenerator /></RequireRole>} />
+          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Periods /></RequireRole>} />
+          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheets /></RequireRole>} />
+          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheet /></RequireRole>} />
+          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><TimesheetGenerator /></RequireRole>} />
           <Route path="/bank-upload"        element={<RequireRole roles={['super_admin', 'accounting_manager']}><GenerateBankUpload /></RequireRole>} />
-          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'payroll_officer']}><Payslips /></RequireRole>} />
+          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Payslips /></RequireRole>} />
           <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
