@@ -198,6 +198,8 @@ export default function Payslips() {
   const unreleased      = payslips.filter(p => p.status === 'generated').length;
   const releasedCount   = payslips.filter(p => p.status === 'released').length;
   const allReleased     = payslips.length > 0 && unreleased === 0;
+  const bankUploaded    = !!selectedPeriod?.bank_uploaded_at;
+  const canRelease      = bankUploaded && !isReadOnly;
 
   return (
     <Box>
@@ -222,14 +224,18 @@ export default function Payslips() {
                 bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
               Generate Payslips
             </Button>
-            <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={handleRelease}
-              disabled={releasing || !selectedPeriod || unreleased === 0}
-              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
-                boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: allReleased ? 0.7 : 1 }}>
-              {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
-            </Button>
+            <Tooltip title={!bankUploaded ? 'Bank upload must be confirmed first (Generate Bank Upload page)' : ''} arrow>
+              <span>
+                <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
+                  onClick={handleRelease}
+                  disabled={releasing || !selectedPeriod || unreleased === 0 || !bankUploaded}
+                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                    background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
+                    boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: (allReleased || !bankUploaded) ? 0.6 : 1 }}>
+                  {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         )}
       </Box>
@@ -330,6 +336,9 @@ export default function Payslips() {
                       sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
                         bgcolor: p.period_type === 'foreign' ? '#0ea5e918' : '#6366f118',
                         color:   p.period_type === 'foreign' ? '#0ea5e9'   : '#6366f1' }} />
+                    {p.bank_uploaded_at
+                      ? <Tooltip title="Bank uploaded — ready to release" arrow><Box component="span" sx={{ fontSize: 12, color: '#10b981' }}>✓</Box></Tooltip>
+                      : <Tooltip title="Bank not yet uploaded" arrow><Box component="span" sx={{ fontSize: 12, color: '#f59e0b' }}>⚠</Box></Tooltip>}
                   </Box>
                   <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', textTransform: 'capitalize' }}>{p.status}</Typography>
                 </Box>
@@ -357,6 +366,24 @@ export default function Payslips() {
                 sx={{ width: 240, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
                 slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.disabled', fontSize: 17 }} /></InputAdornment> } }} />
             </Box>
+
+            {/* Bank upload gate warning */}
+            {selectedPeriod && !bankUploaded && !isReadOnly && payslips.length > 0 && (
+              <Box sx={{ px: 2.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#f59e0b0d', borderBottom: '1px solid #f59e0b30' }}>
+                <Box sx={{ fontSize: 15, color: '#f59e0b' }}>⚠</Box>
+                <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>
+                  Bank upload not yet confirmed for this period. Go to <strong>Generate Bank Upload</strong> → confirm upload before releasing payslips to employees.
+                </Typography>
+              </Box>
+            )}
+            {selectedPeriod && bankUploaded && !allReleased && !isReadOnly && payslips.length > 0 && (
+              <Box sx={{ px: 2.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#10b9810a', borderBottom: '1px solid #10b98125' }}>
+                <Box sx={{ fontSize: 14, color: '#10b981' }}>✓</Box>
+                <Typography sx={{ fontSize: '0.78rem', color: '#059669' }}>
+                  Bank upload confirmed — you can now release payslips to employees.
+                </Typography>
+              </Box>
+            )}
 
             {/* Summary stats strip */}
             {filtered.length > 0 && (
@@ -452,15 +479,17 @@ export default function Payslips() {
                               </Tooltip>
                             )}
                             {!isReadOnly && p.status === 'generated' && (
-                              <Tooltip title="Release to employee" arrow>
-                                <IconButton size="small"
-                                  onClick={() => handleReleaseOne(p)}
-                                  disabled={releasingId === p.id}
-                                  sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
-                                  {releasingId === p.id
-                                    ? <CircularProgress size={13} sx={{ color: '#10b981' }} />
-                                    : <PublishIcon sx={{ fontSize: 15 }} />}
-                                </IconButton>
+                              <Tooltip title={canRelease ? 'Release to employee' : 'Bank upload must be confirmed first'} arrow>
+                                <span>
+                                  <IconButton size="small"
+                                    onClick={() => handleReleaseOne(p)}
+                                    disabled={releasingId === p.id || !canRelease}
+                                    sx={{ color: canRelease ? '#10b981' : 'text.disabled', '&:hover': { bgcolor: canRelease ? '#10b98115' : 'transparent' } }}>
+                                    {releasingId === p.id
+                                      ? <CircularProgress size={13} sx={{ color: '#10b981' }} />
+                                      : <PublishIcon sx={{ fontSize: 15 }} />}
+                                  </IconButton>
+                                </span>
                               </Tooltip>
                             )}
                             {isSuperAdmin && (
