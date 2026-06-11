@@ -379,7 +379,7 @@ function AppLayout() {
           <Route path="/"                   element={<Dashboard />} />
           <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
           <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Periods /></RequireRole>} />
-          <Route path="/wrike-raw"          element={<RequireRole roles={['super_admin', 'hr']}><WrikeTimesheets /></RequireRole>} />
+          <Route path="/wrike-raw"          element={<RequireRole roles={['super_admin']}><WrikeTimesheets /></RequireRole>} />
           <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheets /></RequireRole>} />
           <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheet /></RequireRole>} />
           <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><TimesheetGenerator /></RequireRole>} />

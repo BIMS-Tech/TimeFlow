@@ -55,6 +55,7 @@ export default function Payslips() {
 
   const [periods, setPeriods]               = useState([]);
   const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
+  const [periodSearch, setPeriodSearch]     = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [payslips, setPayslips]             = useState([]);
   const [loading, setLoading]               = useState(true);
@@ -205,10 +206,12 @@ export default function Payslips() {
     p.payslip_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredPeriods = periods.filter(p =>
-    periodTypeFilter === 'all' ||
-    (periodTypeFilter === 'local'   ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign')
-  );
+  const filteredPeriods = periods.filter(p => {
+    const typeMatch = periodTypeFilter === 'all' ||
+      (periodTypeFilter === 'local' ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign');
+    const searchMatch = !periodSearch || p.period_name.toLowerCase().includes(periodSearch.toLowerCase());
+    return typeMatch && searchMatch;
+  });
 
   const existingPayslipEmpIds = new Set(payslips.map(p => p.employee_id));
   const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
@@ -349,11 +352,21 @@ export default function Payslips() {
                 ))}
               </Box>
             </Box>
+            {/* Period search */}
+            <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+              <TextField fullWidth size="small" placeholder="Search periods…" value={periodSearch}
+                onChange={e => setPeriodSearch(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.82rem' } }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 15, color: 'text.disabled' }} /></InputAdornment> } }} />
+            </Box>
+
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {loading ? (
                 <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#6366f1' }} /></Box>
               ) : filteredPeriods.length === 0 ? (
-                <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled', fontSize: '0.8rem' }}>No periods</Box>
+                <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled', fontSize: '0.8rem' }}>
+                  {periodSearch ? 'No periods match your search' : 'No periods'}
+                </Box>
               ) : filteredPeriods.map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
                   sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer',
