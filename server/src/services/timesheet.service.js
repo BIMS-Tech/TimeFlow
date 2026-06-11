@@ -87,9 +87,11 @@ class TimesheetService {
       // Update period status
       await PayPeriod.updateStatus(period.id, 'processing');
 
-      // Get all active employees
-      const employees = await Employee.findAll(true);
-      console.log(`👥 Found ${employees.length} active employees`);
+      // Get active employees matching this period's type (local vs foreign)
+      const allEmployees = await Employee.findAll(true);
+      const periodCategory = period.period_type === 'foreign' ? 'foreign' : 'local';
+      const employees = allEmployees.filter(e => (e.hire_category || 'local') === periodCategory);
+      console.log(`👥 Found ${employees.length} active ${periodCategory} employees for ${period.period_type} period`);
 
       const results = {
         period: period,
