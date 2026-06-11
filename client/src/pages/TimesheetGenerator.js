@@ -19,8 +19,8 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AddIcon from '@mui/icons-material/Add';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import SearchIcon from '@mui/icons-material/Search';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -52,7 +52,9 @@ function fmtDay(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-const STATUS_COLORS = { open: '#6366f1', processing: '#f59e0b', pending_approval: '#f59e0b', approved: '#10b981', rejected: '#ef4444', paid: '#10b981' };
+const PERIOD_STATUS_LABEL = { open: 'Open', pending_approval: 'Pending Approval', approved: 'Approved', completed: 'Completed', paid: 'Paid' };
+const PERIOD_STATUS_COLOR = { open: '#6366f1', pending_approval: '#f59e0b', approved: '#10b981', completed: '#10b981', paid: '#10b981' };
+
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
@@ -107,9 +109,9 @@ function SummaryCard({ icon, label, value, color }) {
 
 export default function TimesheetGenerator() {
   const { user } = useAuth();
-  const showRates  = user?.role === 'super_admin' || user?.role === 'hr';
+  const showRates      = user?.role === 'super_admin' || user?.role === 'hr';
   const showHourlyRate = showRates;
-  const isReadOnly = user?.role === 'accounting_manager';
+  const isReadOnly     = user?.role === 'accounting_manager';
 
   const [employees, setEmployees]           = useState([]);
   const [empLoading, setEmpLoading]         = useState(true);
@@ -119,6 +121,8 @@ export default function TimesheetGenerator() {
   const [periods, setPeriods]               = useState([]);
   const [periodsLoading, setPeriodsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [verificationStatus, setVerificationStatus] = useState({});
+  const [verLoading, setVerLoading]         = useState(false);
 
   const [generating, setGenerating]         = useState(false);
   const [progress, setProgress]             = useState({ done: 0, total: 0 });
@@ -152,33 +156,24 @@ export default function TimesheetGenerator() {
     window.addEventListener('mouseup', onUp);
   };
 
-  const [bulkResults, setBulkResults]             = useState(null);
-  const [verificationStatus, setVerificationStatus] = useState({});
+  const [bulkResults, setBulkResults] = useState(null);
 
+  // Employees filtered by period type AND verified status
   const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
-  const employeesByPeriod = selectedPeriod
-    ? employees.filter(e => (e.hire_category || 'local') === periodCategory)
-    : employees;
+  const eligibleEmployees = selectedPeriod
+    ? employees.filter(e =>
+        (e.hire_category || 'local') === periodCategory &&
+        verificationStatus[e.id]?.status === 'verified'
+      )
+    : [];
 
   const hasSelection = selectedIds.size > 0;
-  const allSelected  = employeesByPeriod.length > 0 && selectedIds.size === employeesByPeriod.length;
+  const allSelected  = eligibleEmployees.length > 0 && selectedIds.size === eligibleEmployees.length;
   const isSingle     = selectedIds.size === 1;
   const isDone       = isSingle ? !!submitted : !!bulkResults;
-  const step         = isDone ? 2 : (hasSelection && selectedPeriod) ? 1 : 0;
 
-  const unverifiedSelected = selectedPeriod
-    ? [...selectedIds].filter(id => verificationStatus[id]?.status !== 'verified')
-    : [];
-  const hasUnverified = unverifiedSelected.length > 0;
-
-  const selectedEmps     = employees.filter(e => selectedIds.has(e.id));
-  const hasLocal         = selectedEmps.some(e => !e.hire_category || e.hire_category === 'local');
-  const hasForeign       = selectedEmps.some(e => e.hire_category === 'foreign');
-  const requiredPeriodType = hasLocal && hasForeign ? 'all' : hasForeign ? 'foreign' : 'local';
-  const filteredPeriods  = hasSelection
-    ? (requiredPeriodType === 'all' ? periods : periods.filter(p =>
-        requiredPeriodType === 'foreign' ? p.period_type === 'foreign' : (!p.period_type || p.period_type === 'local')))
-    : periods;
+  // Step: 0=Select Period, 1=Select Employees, 2=Generate
+  const step = isDone ? 2 : (hasSelection && selectedPeriod) ? 2 : selectedPeriod ? 1 : 0;
 
   const startDate = selectedPeriod?.start_date ? String(selectedPeriod.start_date).substring(0, 10) : '';
   const endDate   = selectedPeriod?.end_date   ? String(selectedPeriod.end_date).substring(0, 10)   : '';
@@ -188,18 +183,23 @@ export default function TimesheetGenerator() {
       .then(res => setEmployees(res.data || []))
       .catch(() => toast.error('Failed to load employees'))
       .finally(() => setEmpLoading(false));
-    timesheetAPI.getPeriods(50, 0)
+    timesheetAPI.getPeriods(100, 0)
       .then(res => setPeriods(res.data || []))
       .catch(() => toast.error('Failed to load periods'))
       .finally(() => setPeriodsLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!selectedPeriod) { setVerificationStatus({}); return; }
-    verificationsAPI.getStatus(selectedPeriod.id)
+  const handleSelectPeriod = (p) => {
+    setSelectedPeriod(p);
+    setSelectedIds(new Set());
+    setPreview(null); setSubmitted(null); setBulkResults(null);
+    setVerificationStatus({});
+    setVerLoading(true);
+    verificationsAPI.getStatus(p.id)
       .then(res => setVerificationStatus(res.data || {}))
-      .catch(() => setVerificationStatus({}));
-  }, [selectedPeriod]);
+      .catch(() => setVerificationStatus({}))
+      .finally(() => setVerLoading(false));
+  };
 
   const toggleEmployee = (id) => {
     setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -207,7 +207,7 @@ export default function TimesheetGenerator() {
   };
 
   const toggleAll = () => {
-    setSelectedIds(allSelected ? new Set() : new Set(employeesByPeriod.map(e => e.id)));
+    setSelectedIds(allSelected ? new Set() : new Set(eligibleEmployees.map(e => e.id)));
     setPreview(null); setSubmitted(null); setBulkResults(null);
   };
 
@@ -224,7 +224,7 @@ export default function TimesheetGenerator() {
         setPreview(previewRes.data);
         if (previewRes.data.wrikeError) toast(`Wrike fetch failed: ${previewRes.data.wrikeError}`, { icon: '⚠️', duration: 6000 });
         if (previewRes.data.totalHours === 0) {
-          if (previewRes.data.noApprovedHours) toast('No Wrike-approved hours found. Approve timelogs in Wrike first.', { icon: '⚠️', duration: 8000 });
+          if (previewRes.data.noApprovedHours) toast('No Wrike-approved hours found.', { icon: '⚠️', duration: 8000 });
           else toast('No hours found for this period.', { icon: '⚠️' });
           return;
         }
@@ -272,6 +272,7 @@ export default function TimesheetGenerator() {
   const handleReset = () => {
     setSelectedIds(new Set()); setSelectedPeriod(null);
     setPreview(null); setSubmitted(null); setBulkResults(null);
+    setVerificationStatus({});
   };
 
   const singleEmp    = isSingle ? employees.find(e => selectedIds.has(e.id)) : null;
@@ -281,8 +282,8 @@ export default function TimesheetGenerator() {
   const showRight    = (isSingle && preview) || (!isSingle && bulkResults);
 
   const visibleEmployees = empSearch
-    ? employeesByPeriod.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()))
-    : employeesByPeriod;
+    ? eligibleEmployees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()))
+    : eligibleEmployees;
 
   return (
     <Box>
@@ -294,10 +295,10 @@ export default function TimesheetGenerator() {
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Process Payroll</Typography>
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Select employees and a pay period to process payroll</Typography>
+            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Select a pay period — then choose from verified employees</Typography>
           </Box>
         </Box>
-        {hasSelection && (
+        {(selectedPeriod || hasSelection) && (
           <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={handleReset}
             sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#ef4444', color: '#ef4444' } }}>
             Start Over
@@ -305,31 +306,117 @@ export default function TimesheetGenerator() {
         )}
       </Box>
 
-      <StepIndicator steps={['Select Employees', 'Select Period', 'Generate']} current={step} />
+      <StepIndicator steps={['Select Period', 'Select Employees', 'Generate']} current={step} />
 
       <Grid container spacing={2} sx={{ alignItems: 'start' }}>
         {/* ── Left panel ─────────────────────────────────────────────────── */}
         <Grid item xs={12} md={showRight ? 4 : 5}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-            {/* Employee select */}
-            <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
-              {/* Card header */}
+            {/* ── Step 1: Period select (always active) ── */}
+            <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: selectedPeriod ? '#6366f140' : 'divider', overflow: 'hidden' }}>
               <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <PeopleIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                    <CalendarMonthIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                  </Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Pay Period</Typography>
+                </Box>
+                <Button size="small" component={Link} to="/periods" startIcon={<AddIcon sx={{ fontSize: '13px !important' }} />}
+                  sx={{ textTransform: 'none', fontSize: '0.72rem', fontWeight: 600, color: '#6366f1', borderRadius: '8px', py: 0.4, px: 1, bgcolor: '#6366f110', '&:hover': { bgcolor: '#6366f120' } }}>
+                  New
+                </Button>
+              </Box>
+
+              {periodsLoading ? (
+                <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
+              ) : periods.length === 0 ? (
+                <Box sx={{ py: 4, textAlign: 'center', px: 2 }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mb: 1.5 }}>No pay periods yet.</Typography>
+                  <Button variant="outlined" size="small" component={Link} to="/periods" startIcon={<AddIcon />}
+                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
+                    Create a Period
+                  </Button>
+                </Box>
+              ) : (
+                <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
+                  {periods.map((p, idx) => {
+                    const sel       = selectedPeriod?.id === p.id;
+                    const typeColor = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
+                    const statusLabel = PERIOD_STATUS_LABEL[p.status] || p.status;
+                    const statusColor = PERIOD_STATUS_COLOR[p.status] || '#6366f1';
+                    return (
+                      <Box key={p.id}
+                        onClick={() => handleSelectPeriod(p)}
+                        sx={{ px: 2, py: 1.25, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          bgcolor: sel ? `${typeColor}08` : 'transparent',
+                          borderLeft: sel ? `3px solid ${typeColor}` : '3px solid transparent',
+                          borderBottom: idx < periods.length - 1 ? '1px solid' : 'none',
+                          borderBottomColor: 'divider', transition: 'all 0.15s',
+                          '&:hover': { bgcolor: sel ? `${typeColor}10` : 'action.hover' } }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: sel ? 700 : 500, fontSize: '0.82rem', color: sel ? typeColor : 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.period_name}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', mt: 0.15 }}>
+                            {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 1 }}>
+                          <Chip label={p.period_type === 'foreign' ? 'Intl' : 'Local'} size="small"
+                            sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, bgcolor: `${typeColor}18`, color: typeColor }} />
+                          <Chip label={statusLabel} size="small"
+                            sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600,
+                              bgcolor: `${statusColor}18`, color: statusColor }} />
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+            </Paper>
+
+            {/* ── Step 2: Employee select (active after period is chosen) ── */}
+            <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden',
+              opacity: selectedPeriod ? 1 : 0.45, pointerEvents: selectedPeriod ? 'auto' : 'none' }}>
+              <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#10b98115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PeopleIcon sx={{ fontSize: 14, color: '#10b981' }} />
                   </Box>
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Employees</Typography>
+                  {selectedPeriod && (
+                    <Chip label={selectedPeriod.period_type === 'foreign' ? 'International' : 'Local'} size="small"
+                      sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700,
+                        bgcolor: selectedPeriod.period_type === 'foreign' ? '#0ea5e918' : '#10b98118',
+                        color:   selectedPeriod.period_type === 'foreign' ? '#0ea5e9'   : '#10b981' }} />
+                  )}
                 </Box>
                 {selectedIds.size > 0 && (
                   <Chip label={`${selectedIds.size} selected`} size="small"
-                    sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+                    sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
                 )}
               </Box>
 
-              {empLoading ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#6366f1' }} /></Box>
+              {!selectedPeriod ? (
+                <Box sx={{ py: 6, textAlign: 'center', color: 'text.disabled' }}>
+                  <CalendarMonthIcon sx={{ fontSize: 30, opacity: 0.2, mb: 1 }} />
+                  <Typography sx={{ fontSize: '0.82rem' }}>Select a pay period first</Typography>
+                </Box>
+              ) : verLoading || empLoading ? (
+                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#10b981' }} /></Box>
+              ) : eligibleEmployees.length === 0 ? (
+                <Box sx={{ py: 6, textAlign: 'center', px: 2 }}>
+                  <VerifiedUserIcon sx={{ fontSize: 30, opacity: 0.2, color: 'text.disabled', mb: 1 }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.secondary', mb: 0.5 }}>No Verified Employees</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 1.5 }}>
+                    No {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employees are verified for this period yet.
+                  </Typography>
+                  <Button size="small" component={Link} to="/wrike" variant="outlined"
+                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
+                    Go to Verify Timesheet
+                  </Button>
+                </Box>
               ) : (
                 <>
                   {/* Search */}
@@ -341,12 +428,12 @@ export default function TimesheetGenerator() {
 
                   {/* Select All */}
                   <Box onClick={toggleAll}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, cursor: 'pointer', bgcolor: 'rgba(99,102,241,0.03)', borderBottom: '1px solid', borderBottomColor: 'divider', '&:hover': { bgcolor: 'rgba(99,102,241,0.06)' } }}>
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, cursor: 'pointer', bgcolor: 'rgba(16,185,129,0.03)', borderBottom: '1px solid', borderBottomColor: 'divider', '&:hover': { bgcolor: 'rgba(16,185,129,0.06)' } }}>
                     <Checkbox size="small" checked={allSelected} indeterminate={selectedIds.size > 0 && !allSelected}
                       onChange={toggleAll} onClick={e => e.stopPropagation()}
-                      sx={{ p: 0, color: '#6366f1', '&.Mui-checked': { color: '#6366f1' }, '&.MuiCheckbox-indeterminate': { color: '#6366f1' } }} />
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#6366f1' }}>
-                      {allSelected ? 'Deselect All' : 'Select All'} ({employeesByPeriod.length})
+                      sx={{ p: 0, color: '#10b981', '&.Mui-checked': { color: '#10b981' }, '&.MuiCheckbox-indeterminate': { color: '#10b981' } }} />
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#10b981' }}>
+                      {allSelected ? 'Deselect All' : 'Select All'} ({eligibleEmployees.length} verified)
                     </Typography>
                   </Box>
 
@@ -354,32 +441,23 @@ export default function TimesheetGenerator() {
                   <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
                     {visibleEmployees.map((emp, idx) => {
                       const checked = selectedIds.has(emp.id);
-                      const vs = selectedPeriod ? verificationStatus[emp.id] : null;
-                      const verMap = {
-                        verified: { label: 'Verified', bg: '#10b98115', color: '#10b981' },
-                        rejected: { label: 'Rejected', bg: '#ef444415', color: '#ef4444' },
-                        pending:  { label: 'Pending',  bg: '#f59e0b15', color: '#f59e0b' },
-                      };
-                      const verStyle = vs ? (verMap[vs.status] || verMap.pending) : null;
                       return (
                         <Box key={emp.id}>
                           <Box onClick={() => toggleEmployee(emp.id)}
                             sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.1, cursor: 'pointer',
-                              bgcolor: checked ? '#6366f108' : 'transparent',
-                              borderLeft: checked ? '3px solid #6366f1' : '3px solid transparent',
+                              bgcolor: checked ? '#10b98108' : 'transparent',
+                              borderLeft: checked ? '3px solid #10b981' : '3px solid transparent',
                               transition: 'all 0.15s',
-                              '&:hover': { bgcolor: checked ? '#6366f110' : 'action.hover' } }}>
+                              '&:hover': { bgcolor: checked ? '#10b98110' : 'action.hover' } }}>
                             <Checkbox size="small" checked={checked} onChange={() => toggleEmployee(emp.id)} onClick={e => e.stopPropagation()}
-                              sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#6366f1' } }} />
+                              sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#10b981' } }} />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                                 <Typography sx={{ fontWeight: checked ? 700 : 500, fontSize: '0.85rem', color: 'text.primary', lineHeight: 1.3 }}>
                                   {emp.name}
                                 </Typography>
-                                {verStyle && (
-                                  <Chip label={verStyle.label} size="small"
-                                    sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, bgcolor: verStyle.bg, color: verStyle.color }} />
-                                )}
+                                <Chip label="Verified" size="small"
+                                  sx={{ height: 14, fontSize: '0.55rem', fontWeight: 700, bgcolor: '#10b98115', color: '#10b981' }} />
                               </Box>
                               <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled' }}>
                                 {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''}{showHourlyRate ? ` · ${emp.currency || 'USD'} ${emp.hourly_rate}/hr` : ''}
@@ -395,106 +473,21 @@ export default function TimesheetGenerator() {
               )}
             </Paper>
 
-            {/* Period select */}
-            <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', opacity: hasSelection ? 1 : 0.5, pointerEvents: hasSelection ? 'auto' : 'none' }}>
-              <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CalendarMonthIcon sx={{ fontSize: 14, color: '#6366f1' }} />
-                  </Box>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Pay Period</Typography>
-                  {hasSelection && requiredPeriodType !== 'all' && (
-                    <Chip label={requiredPeriodType === 'foreign' ? 'Intl only' : 'Local only'} size="small"
-                      sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700,
-                        bgcolor: requiredPeriodType === 'foreign' ? '#0ea5e918' : '#6366f118',
-                        color:  requiredPeriodType === 'foreign' ? '#0ea5e9'   : '#6366f1' }} />
-                  )}
-                </Box>
-                <Button size="small" component={Link} to="/periods" startIcon={<AddIcon sx={{ fontSize: '13px !important' }} />}
-                  sx={{ textTransform: 'none', fontSize: '0.72rem', fontWeight: 600, color: '#6366f1', borderRadius: '8px', py: 0.4, px: 1, bgcolor: '#6366f110', '&:hover': { bgcolor: '#6366f120' } }}>
-                  New
-                </Button>
-              </Box>
-
-              {periodsLoading ? (
-                <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
-              ) : filteredPeriods.length === 0 ? (
-                <Box sx={{ py: 4, textAlign: 'center', px: 2 }}>
-                  <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mb: 1.5 }}>
-                    {hasSelection && requiredPeriodType !== 'all' ? `No ${requiredPeriodType === 'foreign' ? 'international' : 'local'} periods found.` : 'No pay periods yet.'}
-                  </Typography>
-                  <Button variant="outlined" size="small" component={Link} to="/periods" startIcon={<AddIcon />}
-                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
-                    Create a Period
-                  </Button>
-                </Box>
-              ) : (
-                <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
-                  {filteredPeriods.map((p, idx) => {
-                    const sel       = selectedPeriod?.id === p.id;
-                    const typeColor = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
-                    return (
-                      <Box key={p.id}
-                        onClick={() => { setSelectedPeriod(p); setPreview(null); setSubmitted(null); setBulkResults(null); setVerificationStatus({}); }}
-                        sx={{ px: 2, py: 1.25, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          bgcolor: sel ? `${typeColor}08` : 'transparent',
-                          borderLeft: sel ? `3px solid ${typeColor}` : '3px solid transparent',
-                          borderBottom: idx < filteredPeriods.length - 1 ? '1px solid' : 'none',
-                          borderBottomColor: 'divider', transition: 'all 0.15s',
-                          '&:hover': { bgcolor: sel ? `${typeColor}10` : 'action.hover' } }}>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: sel ? 700 : 500, fontSize: '0.82rem', color: sel ? typeColor : 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {p.period_name}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', mt: 0.15 }}>
-                            {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 1 }}>
-                          <Chip label={p.period_type === 'foreign' ? 'Intl' : 'Local'} size="small"
-                            sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, bgcolor: `${typeColor}18`, color: typeColor }} />
-                          <Chip label={p.status} size="small"
-                            sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, textTransform: 'capitalize',
-                              bgcolor: `${STATUS_COLORS[p.status] || '#6366f1'}18`,
-                              color: STATUS_COLORS[p.status] || '#6366f1' }} />
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              )}
-            </Paper>
-
-            {/* Mixed-type warning */}
-            {hasLocal && hasForeign && (
-              <Alert severity="warning" icon={<ErrorOutlineIcon fontSize="small" />} sx={{ borderRadius: '12px', fontSize: '0.8rem' }}>
-                <strong>Mixed employee types.</strong> Local and international employees must be generated separately using different pay periods.
-              </Alert>
-            )}
-
-            {/* Verification warning + Generate button */}
-            {!isDone && (
+            {/* Generate button */}
+            {!isDone && !isReadOnly && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {hasUnverified && hasSelection && selectedPeriod && (
-                  <Alert severity="warning" icon={<VerifiedUserIcon fontSize="small" />} sx={{ borderRadius: '12px', fontSize: '0.8rem', py: 0.75 }}>
-                    <strong>{unverifiedSelected.length} employee{unverifiedSelected.length > 1 ? 's' : ''} not verified.</strong>{' '}
-                    <Link to="/timesheet-verify" style={{ color: 'inherit', fontWeight: 700 }}>Verify first</Link>
-                  </Alert>
-                )}
-                {!isReadOnly && (
-                  <Button variant="contained" fullWidth size="large"
-                    startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
-                    onClick={handleGenerate}
-                    disabled={!hasSelection || !selectedPeriod || generating || (hasLocal && hasForeign) || hasUnverified}
-                    sx={{ py: 1.4, borderRadius: '12px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700,
-                      background: 'linear-gradient(135deg, #10b981, #34d399)',
-                      boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
-                      '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
-                    {generating
-                      ? (isSingle ? 'Processing…' : `Processing ${progress.done} / ${progress.total}…`)
-                      : `Process Payroll${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
-                  </Button>
-                )}
+                <Button variant="contained" fullWidth size="large"
+                  startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
+                  onClick={handleGenerate}
+                  disabled={!hasSelection || !selectedPeriod || generating}
+                  sx={{ py: 1.4, borderRadius: '12px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700,
+                    background: 'linear-gradient(135deg, #10b981, #34d399)',
+                    boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+                    '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
+                  {generating
+                    ? (isSingle ? 'Processing…' : `Processing ${progress.done} / ${progress.total}…`)
+                    : `Process Payroll${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                </Button>
 
                 {/* Bulk progress */}
                 {generating && !isSingle && progress.total > 0 && (
@@ -517,7 +510,7 @@ export default function TimesheetGenerator() {
           </Box>
         </Grid>
 
-        {/* ── Right panel — single employee ──────────────────────────────── */}
+        {/* ── Right panel — single employee preview ──────────────────────── */}
         {isSingle && preview && (
           <Grid item xs={12} md={8}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
@@ -542,14 +535,14 @@ export default function TimesheetGenerator() {
                 {/* Summary cards */}
                 <Grid container spacing={1.5}>
                   <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<AccessTimeIcon />}   label="Total Hours" value={`${preview.totalHours}h`}                    color="#6366f1" />
+                    <SummaryCard icon={<AccessTimeIcon />}  label="Total Hours"   value={`${preview.totalHours}h`}                              color="#6366f1" />
                   </Grid>
                   <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<TrendingUpIcon />}   label="Regular / OT" value={`${preview.regularHours}h / ${preview.overtimeHours}h`} color="#f59e0b" />
+                    <SummaryCard icon={<TrendingUpIcon />}  label="Regular / OT"  value={`${preview.regularHours}h / ${preview.overtimeHours}h`} color="#f59e0b" />
                   </Grid>
                   {showRates && (
                     <Grid item xs={4}>
-                      <SummaryCard icon={<ReceiptLongIcon />}  label="Gross Pay"   value={fmt(preview.grossAmount, currency)}          color="#10b981" />
+                      <SummaryCard icon={<ReceiptLongIcon />} label="Gross Pay"   value={fmt(preview.grossAmount, currency)}                     color="#10b981" />
                     </Grid>
                   )}
                 </Grid>
@@ -630,16 +623,14 @@ export default function TimesheetGenerator() {
 
                 {preview.totalHours === 0 && (
                   <Paper elevation={0} sx={{ p: 5, borderRadius: '14px', border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-                    <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-                      <AccessTimeIcon sx={{ fontSize: 26, color: 'text.disabled' }} />
-                    </Box>
+                    <AccessTimeIcon sx={{ fontSize: 26, color: 'text.disabled', mb: 1 }} />
                     <Typography sx={{ fontWeight: 700, mb: 0.75, color: 'text.secondary' }}>
                       {preview.noApprovedHours ? 'No Approved Hours in Wrike' : 'No Hours Found'}
                     </Typography>
                     <Typography sx={{ fontSize: '0.875rem', color: 'text.disabled' }}>
                       {preview.noApprovedHours
-                        ? <>Timelogs exist for <strong>{preview.employee?.name}</strong> but none are approved yet.</>
-                        : <>No time logged for <strong>{preview.employee?.name}</strong> between {fmtDate(startDate)} and {fmtDate(endDate)}.</>}
+                        ? <>Timelogs exist but none are approved yet.</>
+                        : <>No time logged between {fmtDate(startDate)} and {fmtDate(endDate)}.</>}
                     </Typography>
                   </Paper>
                 )}
@@ -724,10 +715,10 @@ export default function TimesheetGenerator() {
                 <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Generation Results</Typography>
                 <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Generated', count: bulkResults.filter(r => r.status === 'generated').length, color: '#10b981' },
-                    { label: 'Already Exist', count: bulkResults.filter(r => r.status === 'exists').length, color: '#6366f1' },
-                    { label: 'No Hours', count: bulkResults.filter(r => r.status === 'no_hours').length, color: '#f59e0b' },
-                    { label: 'Errors', count: bulkResults.filter(r => r.status === 'error').length, color: '#ef4444' },
+                    { label: 'Generated',     count: bulkResults.filter(r => r.status === 'generated').length, color: '#10b981' },
+                    { label: 'Already Exist', count: bulkResults.filter(r => r.status === 'exists').length,    color: '#6366f1' },
+                    { label: 'No Hours',      count: bulkResults.filter(r => r.status === 'no_hours').length,  color: '#f59e0b' },
+                    { label: 'Errors',        count: bulkResults.filter(r => r.status === 'error').length,     color: '#ef4444' },
                   ].filter(s => s.count > 0).map(s => (
                     <Chip key={s.label} label={`${s.count} ${s.label}`} size="small"
                       sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 700, fontSize: '0.72rem' }} />
@@ -744,10 +735,10 @@ export default function TimesheetGenerator() {
                   <TableBody>
                     {bulkResults.map((r, i) => {
                       const statusMap = {
-                        generated: { label: 'Generated',    color: '#10b981', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
-                        exists:    { label: 'Already Exists', color: '#6366f1', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        generated: { label: 'Generated',              color: '#10b981', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        exists:    { label: 'Already Exists',          color: '#6366f1', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
                         no_hours:  { label: r.noApprovedHours ? 'Not Approved in Wrike' : 'No Hours', color: '#f59e0b', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
-                        error:     { label: 'Error',        color: '#ef4444', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
+                        error:     { label: 'Error',                   color: '#ef4444', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
                       };
                       const s = statusMap[r.status];
                       return (

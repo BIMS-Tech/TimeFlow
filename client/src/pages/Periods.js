@@ -23,13 +23,15 @@ import SearchIcon from '@mui/icons-material/Search';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
-const STATUS_COLORS = {
-  open:       { color: '#6366f1', bg: '#6366f115' },
-  processing: { color: '#f59e0b', bg: '#f59e0b15' },
-  approved:   { color: '#10b981', bg: '#10b98115' },
-  paid:       { color: '#10b981', bg: '#10b98115' },
+const STATUS_META = {
+  open:             { label: 'Open',             color: '#6366f1', bg: '#6366f115' },
+  processing:       { label: 'Processing',        color: '#f59e0b', bg: '#f59e0b15' },
+  pending_approval: { label: 'Pending Approval',  color: '#f59e0b', bg: '#f59e0b15' },
+  approved:         { label: 'Approved',           color: '#10b981', bg: '#10b98115' },
+  completed:        { label: 'Completed',          color: '#10b981', bg: '#10b98115' },
+  paid:             { label: 'Paid',               color: '#10b981', bg: '#10b98115' },
 };
-const STATUS_OPTIONS = ['open', 'processing', 'approved', 'paid'];
+const STATUS_OPTIONS = ['open', 'processing', 'pending_approval', 'approved', 'paid'];
 const PAYSLIP_CHIP = {
   approved: { label: 'Generated',     color: '#10b981', bg: '#10b98118' },
   pending:  { label: 'Not Generated', color: '#94a3b8', bg: '#94a3b818' },
@@ -40,10 +42,10 @@ const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textT
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function StatusChip({ status }) {
-  const s = STATUS_COLORS[status] || STATUS_COLORS.open;
+  const s = STATUS_META[status] || STATUS_META.open;
   return (
-    <Chip label={status} size="small"
-      sx={{ bgcolor: s.bg, color: s.color, fontWeight: 700, fontSize: '0.68rem', textTransform: 'capitalize', height: 20 }} />
+    <Chip label={s.label} size="small"
+      sx={{ bgcolor: s.bg, color: s.color, fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
   );
 }
 
