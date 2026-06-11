@@ -122,7 +122,8 @@ export default function TimesheetGenerator() {
   const [periodsLoading, setPeriodsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState({});
-  const [verLoading, setVerLoading]         = useState(false);
+  const [verLoading,         setVerLoading]         = useState(false);
+  const [payslipEmpIds,      setPayslipEmpIds]      = useState(new Set());
 
   const [generating, setGenerating]         = useState(false);
   const [progress, setProgress]             = useState({ done: 0, total: 0 });
@@ -164,8 +165,9 @@ export default function TimesheetGenerator() {
     ? employees.filter(e => (e.hire_category || 'local') === periodCategory)
     : [];
   const eligibleEmployees = allPeriodEmployees.filter(
-    e => verificationStatus[e.id]?.status === 'verified'
+    e => verificationStatus[e.id]?.status === 'verified' && !payslipEmpIds.has(e.id)
   );
+  const doneEmployees = allPeriodEmployees.filter(e => payslipEmpIds.has(e.id));
   const rejectedEmployees = allPeriodEmployees.filter(
     e => verificationStatus[e.id]?.status === 'rejected'
   );
@@ -200,10 +202,17 @@ export default function TimesheetGenerator() {
     setSelectedIds(new Set());
     setPreview(null); setSubmitted(null); setBulkResults(null);
     setVerificationStatus({});
+    setPayslipEmpIds(new Set());
     setVerLoading(true);
-    verificationsAPI.getStatus(p.id)
-      .then(res => setVerificationStatus(res.data || {}))
-      .catch(() => setVerificationStatus({}))
+    Promise.all([
+      verificationsAPI.getStatus(p.id),
+      timesheetAPI.getPeriodPayslips(p.id),
+    ])
+      .then(([verRes, payRes]) => {
+        setVerificationStatus(verRes.data || {});
+        setPayslipEmpIds(new Set((payRes.data || []).map(ps => ps.employee_id)));
+      })
+      .catch(() => { setVerificationStatus({}); setPayslipEmpIds(new Set()); })
       .finally(() => setVerLoading(false));
   };
 
@@ -278,7 +287,7 @@ export default function TimesheetGenerator() {
   const handleReset = () => {
     setSelectedIds(new Set()); setSelectedPeriod(null);
     setPreview(null); setSubmitted(null); setBulkResults(null);
-    setVerificationStatus({});
+    setVerificationStatus({}); setPayslipEmpIds(new Set());
   };
 
   const singleEmp    = isSingle ? employees.find(e => selectedIds.has(e.id)) : null;
@@ -411,6 +420,20 @@ export default function TimesheetGenerator() {
                 </Box>
               ) : verLoading || empLoading ? (
                 <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#10b981' }} /></Box>
+              ) : doneEmployees.length === allPeriodEmployees.length && allPeriodEmployees.length > 0 ? (
+                // All employees already have payslips
+                <Box sx={{ py: 5, px: 2.5, textAlign: 'center' }}>
+                  <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: '#10b98115', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
+                    <CheckCircleIcon sx={{ fontSize: 22, color: '#10b981' }} />
+                  </Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#065f46', mb: 0.5 }}>All Payslips Generated</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2 }}>
+                    All {doneEmployees.length} {periodCategory} employees already have payslips for this period.
+                    To regenerate, delete the existing payslips first from the Payslips page.
+                  </Typography>
+                  <Chip label={`${doneEmployees.length} payslips exist`} size="small" icon={<CheckCircleIcon sx={{ fontSize: '13px !important' }} />}
+                    sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, '& .MuiChip-icon': { color: '#10b981' } }} />
+                </Box>
               ) : allPeriodEmployees.length === 0 ? (
                 <Box sx={{ py: 6, textAlign: 'center', px: 2 }}>
                   <PeopleIcon sx={{ fontSize: 30, opacity: 0.2, color: 'text.disabled', mb: 1 }} />
@@ -476,6 +499,16 @@ export default function TimesheetGenerator() {
                 </Box>
               ) : (
                 <>
+                  {/* Partial payslip banner */}
+                  {doneEmployees.length > 0 && doneEmployees.length < allPeriodEmployees.length && (
+                    <Box sx={{ px: 2, py: 1, bgcolor: '#10b9810a', borderBottom: '1px solid #10b98125', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981', flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.72rem', color: '#065f46' }}>
+                        <strong>{doneEmployees.length}</strong> of {allPeriodEmployees.length} employees already have payslips — showing only the remaining {eligibleEmployees.length}.
+                      </Typography>
+                    </Box>
+                  )}
+
                   {/* Partial verification banner */}
                   {(pendingEmployees.length > 0 || rejectedEmployees.length > 0) && (
                     <Box sx={{ px: 2, py: 1, bgcolor: '#f59e0b0a', borderBottom: '1px solid #f59e0b25', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>

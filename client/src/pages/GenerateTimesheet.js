@@ -111,7 +111,8 @@ export default function GenerateTimesheet() {
   const [editingId, setEditingId] = useState(null);
   const [bulking,   setBulking]   = useState(false);
   const [syncing,   setSyncing]   = useState(false);
-  const [empSearch, setEmpSearch] = useState('');
+  const [empSearch,     setEmpSearch]     = useState('');
+  const [payslipEmpIds, setPayslipEmpIds] = useState(new Set());
 
   useEffect(() => {
     timesheetAPI.getPeriods(200, 0)
@@ -125,8 +126,13 @@ export default function GenerateTimesheet() {
     setLoading(true);
     setEditingId(null);
     try {
-      const res = await verificationsAPI.getForPeriod(periodId);
-      setData(res.data || []);
+      const [verRes, payRes] = await Promise.all([
+        verificationsAPI.getForPeriod(periodId),
+        timesheetAPI.getPeriodPayslips(periodId),
+      ]);
+      setData(verRes.data || []);
+      const ids = new Set((payRes.data || []).map(p => p.employee_id));
+      setPayslipEmpIds(ids);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to load verification data');
     } finally {
@@ -210,12 +216,17 @@ export default function GenerateTimesheet() {
                 '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
               {syncing ? 'Syncing…' : 'Sync Wrike'}
             </Button>
-            <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking || !data.length}
-              startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
-              sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981',
-                '&:hover': { borderColor: '#059669', bgcolor: '#10b98110' } }}>
-              {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
-            </Button>
+            <Tooltip title={payslipEmpIds.size === data.length && data.length > 0 ? 'All payslips already generated — nothing to verify' : ''} arrow>
+              <span>
+                <Button variant="outlined" onClick={handleBulkVerify}
+                  disabled={bulking || !data.length || (payslipEmpIds.size === data.length && data.length > 0)}
+                  startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
+                  sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981',
+                    '&:hover': { borderColor: '#059669', bgcolor: '#10b98110' } }}>
+                  {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         )}
       </Box>
@@ -337,6 +348,21 @@ export default function GenerateTimesheet() {
                 )}
               </Box>
 
+              {/* Payslip lock banner */}
+              {payslipEmpIds.size > 0 && (
+                <Box sx={{ px: 2.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5,
+                  bgcolor: payslipEmpIds.size === data.length ? '#10b9810a' : '#6366f10a',
+                  borderBottom: '1px solid', borderBottomColor: payslipEmpIds.size === data.length ? '#10b98125' : '#6366f125' }}>
+                  <CheckCircleIcon sx={{ fontSize: 16, color: payslipEmpIds.size === data.length ? '#10b981' : '#6366f1', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.8rem', color: payslipEmpIds.size === data.length ? '#065f46' : '#3730a3', flex: 1 }}>
+                    {payslipEmpIds.size === data.length
+                      ? <><strong>All payslips generated</strong> for this period. Editing is locked to protect generated payslips.</>
+                      : <><strong>{payslipEmpIds.size} of {data.length} employees</strong> already have payslips — those rows are locked. Remaining employees can still be verified.</>
+                    }
+                  </Typography>
+                </Box>
+              )}
+
               {data.length === 0 ? (
                 <Box sx={{ py: 10, textAlign: 'center', color: 'text.disabled' }}>
                   <VerifiedIcon sx={{ fontSize: 36, opacity: 0.2, mb: 1.5 }} />
@@ -412,7 +438,17 @@ export default function GenerateTimesheet() {
                                 </TableCell>
                                 {!isReadOnly && (
                                   <TableCell sx={TD}>
-                                    {isEdit ? (
+                                    {payslipEmpIds.has(emp.id) ? (
+                                      // Payslip already generated — lock this row
+                                      <Tooltip title="Payslip already generated for this employee. Delete the payslip first to make changes." arrow>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981' }} />
+                                          <Typography sx={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
+                                            Payslip Generated
+                                          </Typography>
+                                        </Box>
+                                      </Tooltip>
+                                    ) : isEdit ? (
                                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <EditRow row={row} periodId={selectedPeriod.id}
                                           onSaved={() => { setEditingId(null); fetchVerifications(selectedPeriod.id); }} />
@@ -424,7 +460,7 @@ export default function GenerateTimesheet() {
                                       </Box>
                                     ) : (
                                       <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-                                        <Tooltip title={hasHours ? 'Edit / Verify' : 'No imported hours for this period'}>
+                                        <Tooltip title={hasHours ? 'Edit / Verify' : 'No imported hours — sync from Wrike first'}>
                                           <span>
                                             <Button size="small" variant="outlined" disabled={!hasHours}
                                               startIcon={<EditIcon sx={{ fontSize: 14 }} />}
