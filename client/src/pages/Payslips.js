@@ -80,7 +80,7 @@ export default function Payslips() {
   const fetchPeriods = async () => {
     try {
       setLoading(true);
-      const res = await timesheetAPI.getPeriods();
+      const res = await timesheetAPI.getPeriods(200, 0);
       if (res.success) {
         setPeriods(res.data);
         if (res.data.length > 0) handleSelectPeriod(res.data[0]);
@@ -104,6 +104,15 @@ export default function Payslips() {
   };
 
   const handleSelectPeriod = (p) => { setSelectedPeriod(p); fetchPayslips(p.id); setBulkResult(null); };
+
+  const handleFilterChange = (value) => {
+    setPeriodTypeFilter(value);
+    const list = periods.filter(p =>
+      value === 'all' ||
+      (value === 'local' ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign')
+    );
+    if (list.length > 0) handleSelectPeriod(list[0]);
+  };
 
   const handleViewPayslip = async (id) => {
     try {
@@ -308,7 +317,7 @@ export default function Payslips() {
               <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'text.primary', mb: 1 }}>Pay Periods</Typography>
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 {[{ label: 'All', value: 'all' }, { label: 'Local', value: 'local' }, { label: 'Intl', value: 'foreign' }].map(opt => (
-                  <Chip key={opt.value} label={opt.label} size="small" onClick={() => setPeriodTypeFilter(opt.value)}
+                  <Chip key={opt.value} label={opt.label} size="small" onClick={() => handleFilterChange(opt.value)}
                     sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
                       bgcolor: periodTypeFilter === opt.value ? '#6366f1' : 'action.hover',
                       color:   periodTypeFilter === opt.value ? 'white' : 'text.secondary',

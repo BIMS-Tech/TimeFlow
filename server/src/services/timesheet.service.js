@@ -164,6 +164,10 @@ class TimesheetService {
         console.log(`⏭️  ${employee.name} already has a pending timesheet with payslip`);
         return { success: true, summary, alreadyPending: true };
       }
+      if (parseFloat(summary.total_hours) === 0) {
+        console.log(`⏭️  ${employee.name} has a 0-hour pending summary — skipping`);
+        return { success: false, reason: 'no_hours' };
+      }
       console.log(`🔁  ${employee.name} has pending summary without payslip — completing now`);
       const approvalResult = await this.processApproval(summary, 'auto');
       return { success: true, summary: approvalResult.summary, payslip: approvalResult.payslip };
@@ -768,9 +772,11 @@ class TimesheetService {
     if (!period) throw new Error('Period not found');
 
     const allEmployees = await Employee.findAll(true);
+    const periodCategory = period.period_type === 'foreign' ? 'foreign' : 'local';
+    const eligible = allEmployees.filter(e => (e.hire_category || 'local') === periodCategory);
     const targets = (employeeIds?.length
-      ? allEmployees.filter(e => employeeIds.includes(e.id))
-      : allEmployees
+      ? eligible.filter(e => employeeIds.includes(e.id))
+      : eligible
     );
 
     // ── Batch-fetch Wrike timelogs for all employees in parallel ──────────────
@@ -857,7 +863,9 @@ class TimesheetService {
     // Process all summaries in parallel — PDF concurrency is capped by pdfLimiter inside generatePayslip
     await Promise.allSettled(targets.map(async (s) => {
       try {
-        if (s.approval_status === 'pending') {
+        if (parseFloat(s.total_hours) === 0) {
+          results.skipped++;
+        } else if (s.approval_status === 'pending') {
           await this.processApproval(s, 'admin:bulk');
           results.generated++;
         } else if (s.approval_status === 'approved') {

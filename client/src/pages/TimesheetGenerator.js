@@ -486,8 +486,8 @@ export default function TimesheetGenerator() {
                       boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
                       '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
                     {generating
-                      ? (isSingle ? 'Generating…' : `Generating ${progress.done} / ${progress.total}…`)
-                      : `Generate Payslip${selectedIds.size !== 1 ? 's' : ''}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                      ? (isSingle ? 'Processing…' : `Processing ${progress.done} / ${progress.total}…`)
+                      : `Process Payroll${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
                   </Button>
                 )}
 
