@@ -155,8 +155,13 @@ export default function TimesheetGenerator() {
   const [bulkResults, setBulkResults]             = useState(null);
   const [verificationStatus, setVerificationStatus] = useState({});
 
+  const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
+  const employeesByPeriod = selectedPeriod
+    ? employees.filter(e => (e.hire_category || 'local') === periodCategory)
+    : employees;
+
   const hasSelection = selectedIds.size > 0;
-  const allSelected  = employees.length > 0 && selectedIds.size === employees.length;
+  const allSelected  = employeesByPeriod.length > 0 && selectedIds.size === employeesByPeriod.length;
   const isSingle     = selectedIds.size === 1;
   const isDone       = isSingle ? !!submitted : !!bulkResults;
   const step         = isDone ? 2 : (hasSelection && selectedPeriod) ? 1 : 0;
@@ -202,7 +207,7 @@ export default function TimesheetGenerator() {
   };
 
   const toggleAll = () => {
-    setSelectedIds(allSelected ? new Set() : new Set(employees.map(e => e.id)));
+    setSelectedIds(allSelected ? new Set() : new Set(employeesByPeriod.map(e => e.id)));
     setPreview(null); setSubmitted(null); setBulkResults(null);
   };
 
@@ -276,8 +281,8 @@ export default function TimesheetGenerator() {
   const showRight    = (isSingle && preview) || (!isSingle && bulkResults);
 
   const visibleEmployees = empSearch
-    ? employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()))
-    : employees;
+    ? employeesByPeriod.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()))
+    : employeesByPeriod;
 
   return (
     <Box>
@@ -341,7 +346,7 @@ export default function TimesheetGenerator() {
                       onChange={toggleAll} onClick={e => e.stopPropagation()}
                       sx={{ p: 0, color: '#6366f1', '&.Mui-checked': { color: '#6366f1' }, '&.MuiCheckbox-indeterminate': { color: '#6366f1' } }} />
                     <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#6366f1' }}>
-                      {allSelected ? 'Deselect All' : 'Select All'} ({employees.length})
+                      {allSelected ? 'Deselect All' : 'Select All'} ({employeesByPeriod.length})
                     </Typography>
                   </Box>
 

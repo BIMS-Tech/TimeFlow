@@ -4,8 +4,9 @@ import {
   Box, Paper, Typography, Button, CircularProgress, Chip, Grid,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tooltip, Checkbox, FormControlLabel, List, ListItem, ListItemText,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import DownloadIcon from '@mui/icons-material/Download';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -53,6 +54,7 @@ function StepDot({ done, label, sublabel, color = '#6366f1' }) {
 export default function GenerateBankUpload() {
   const [periods, setPeriods]             = useState([]);
   const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
+  const [periodSearch, setPeriodSearch]   = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [payslips, setPayslips]           = useState([]);
   const [loading, setLoading]             = useState(true);
@@ -129,10 +131,12 @@ export default function GenerateBankUpload() {
     finally { setMarkingUploaded(false); }
   };
 
-  const filteredPeriods = periods.filter(p =>
-    periodTypeFilter === 'all' ||
-    (periodTypeFilter === 'local' ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign')
-  );
+  const filteredPeriods = periods.filter(p => {
+    const typeMatch = periodTypeFilter === 'all' ||
+      (periodTypeFilter === 'local' ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign');
+    const searchMatch = !periodSearch || p.period_name.toLowerCase().includes(periodSearch.toLowerCase());
+    return typeMatch && searchMatch;
+  });
 
   const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount) || 0), 0);
 
@@ -164,7 +168,7 @@ export default function GenerateBankUpload() {
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', mb: 1 }}>Pay Periods</Typography>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
                 {[{ label: 'All', value: 'all' }, { label: 'Local', value: 'local' }, { label: 'Intl', value: 'foreign' }].map(opt => (
                   <Chip key={opt.value} label={opt.label} size="small" onClick={() => setPeriodTypeFilter(opt.value)}
                     sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
@@ -172,6 +176,9 @@ export default function GenerateBankUpload() {
                       color:   periodTypeFilter === opt.value ? 'white'   : 'text.secondary' }} />
                 ))}
               </Box>
+              <TextField fullWidth size="small" placeholder="Search periods…" value={periodSearch} onChange={e => setPeriodSearch(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.82rem' } }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 15, color: 'text.disabled' }} /></InputAdornment> } }} />
             </Box>
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {loading ? (

@@ -52,11 +52,11 @@ const NAV_ITEMS = [
   { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
   { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      roles: ['super_admin', 'hr'] },
   { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
-  { label: 'Work Timesheets',        icon: <IntegrationInstructionsIcon />, path: '/wrike-raw',      roles: ['super_admin', 'hr'] },
   { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/wrike',          roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
   { label: 'Generate Bank Upload',  icon: <AccountBalanceIcon />,          path: '/bank-upload',    roles: ['super_admin', 'accounting_manager'] },
   { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
+  { label: 'Work Timesheets',       icon: <IntegrationInstructionsIcon />, path: '/wrike-raw',      roles: ['super_admin'] },
   { label: 'Users',                 icon: <ManageAccountsIcon />,          path: '/users',          roles: ['super_admin'] },
 ];
 

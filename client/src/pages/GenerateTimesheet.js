@@ -14,6 +14,7 @@ import VerifiedIcon from '@mui/icons-material/VerifiedUser';
 import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import SyncIcon from '@mui/icons-material/Sync';
+import SearchIcon from '@mui/icons-material/Search';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -183,11 +184,15 @@ export default function GenerateTimesheet() {
     }
   };
 
+  const [empSearch, setEmpSearch] = useState('');
   const verifiedCount  = data.filter(r => r.status === 'verified').length;
   const pendingCount   = data.filter(r => r.status === 'pending').length;
   const rejectedCount  = data.filter(r => r.status === 'rejected').length;
   const withHours      = data.filter(r => r.actual_hours > 0).length;
   const selectedPeriodObj = periods.find(p => String(p.id) === String(selectedPeriod));
+  const visibleData = empSearch
+    ? data.filter(r => r.employee?.name?.toLowerCase().includes(empSearch.toLowerCase()))
+    : data;
 
   return (
     <Box>
@@ -280,6 +285,11 @@ export default function GenerateTimesheet() {
           </Alert>
 
           <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <TextField fullWidth size="small" placeholder="Search employees…" value={empSearch} onChange={e => setEmpSearch(e.target.value)}
+                sx={{ maxWidth: 320, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.82rem' } }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment> }} />
+            </Box>
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: 'action.hover' }}>
@@ -293,7 +303,7 @@ export default function GenerateTimesheet() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {data.map(row => {
+                  {visibleData.map(row => {
                     const emp    = row.employee;
                     const ver    = row.verification;
                     const isEdit = editingId === emp.id;

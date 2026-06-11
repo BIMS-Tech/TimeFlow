@@ -14,6 +14,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PeopleIcon from '@mui/icons-material/People';
 import { wrikeAPI, employeesAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import DateRangeIcon from '@mui/icons-material/DateRange';
@@ -53,6 +54,8 @@ function getMonthOf(dateStr) {
 }
 
 export default function WrikeTimesheets() {
+  const { user } = useAuth();
+  const showPay = user?.role === 'super_admin';
   const [viewMode,  setViewMode]  = useState('weekly'); // 'weekly' | 'monthly'
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date().toISOString().split('T')[0]));
   const [month,     setMonth]     = useState(() => getMonthOf(new Date().toISOString()));
@@ -230,7 +233,7 @@ export default function WrikeTimesheets() {
                     </TableCell>
                   ))}
                   <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>Total</TableCell>
-                  <TableCell sx={{ ...TH, textAlign: 'right', minWidth: 120 }}>Est. Pay</TableCell>
+                  {showPay && <TableCell sx={{ ...TH, textAlign: 'right', minWidth: 120 }}>Est. Pay</TableCell>}
                   {viewMode === 'weekly' && <TableCell sx={{ ...TH, width: 36 }}></TableCell>}
                 </TableRow>
               </TableHead>
@@ -275,14 +278,16 @@ export default function WrikeTimesheets() {
                         <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
                           {row.totalHours.toFixed(1)}h
                         </TableCell>
-                        <TableCell sx={{ ...TD, textAlign: 'right' }}>
-                          <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : 'text.disabled', fontSize: '0.875rem' }}>
-                            {hasLogs ? formatCurrency(row.pay, emp.currency) : '—'}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
-                            {CURRENCY_SYMBOLS[emp.currency] || emp.currency}{emp.hourly_rate}/hr
-                          </Typography>
-                        </TableCell>
+                        {showPay && (
+                          <TableCell sx={{ ...TD, textAlign: 'right' }}>
+                            <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : 'text.disabled', fontSize: '0.875rem' }}>
+                              {hasLogs ? formatCurrency(row.pay, emp.currency) : '—'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+                              {CURRENCY_SYMBOLS[emp.currency] || emp.currency}{emp.hourly_rate}/hr
+                            </Typography>
+                          </TableCell>
+                        )}
                         {viewMode === 'weekly' && (
                           <TableCell sx={TD}>
                             {row.taskDetails?.length > 0 && (

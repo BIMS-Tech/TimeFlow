@@ -19,7 +19,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PeopleIcon from '@mui/icons-material/People';
-import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI } from '../api';
+import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 function pollJob(jobId, onProgress) {
@@ -63,6 +63,7 @@ export default function Payslips() {
 
   const [showBulkPanel, setShowBulkPanel]         = useState(false);
   const [employees, setEmployees]                 = useState([]);
+  const [verifiedEmployeeIds, setVerifiedEmployeeIds] = useState([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [selectAll, setSelectAll]                 = useState(true);
   const [generating, setGenerating]               = useState(false);
@@ -103,7 +104,14 @@ export default function Payslips() {
     } catch { toast.error('Failed to load payslips'); }
   };
 
-  const handleSelectPeriod = (p) => { setSelectedPeriod(p); fetchPayslips(p.id); setBulkResult(null); };
+  const handleSelectPeriod = async (p) => {
+    setSelectedPeriod(p); fetchPayslips(p.id); setBulkResult(null);
+    try {
+      const res = await verificationsAPI.getForPeriod(p.id);
+      const verified = (res.data || []).filter(r => r.status === 'verified').map(r => r.employee?.id).filter(Boolean);
+      setVerifiedEmployeeIds(verified);
+    } catch { setVerifiedEmployeeIds([]); }
+  };
 
   const handleFilterChange = (value) => {
     setPeriodTypeFilter(value);
@@ -202,6 +210,13 @@ export default function Payslips() {
     (periodTypeFilter === 'local'   ? (!p.period_type || p.period_type === 'local') : p.period_type === 'foreign')
   );
 
+  const existingPayslipEmpIds = new Set(payslips.map(p => p.employee_id));
+  const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
+  const bulkEmployees = employees
+    .filter(e => !selectedPeriod || (e.hire_category || 'local') === periodCategory)
+    .filter(e => !existingPayslipEmpIds.has(e.id))
+    .filter(e => verifiedEmployeeIds.length === 0 || verifiedEmployeeIds.includes(e.id));
+
   const totalNet        = filtered.reduce((s, p) => s + (parseFloat(p.net_amount) || 0), 0);
   const totalHours      = filtered.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
   const unreleased      = payslips.filter(p => p.status === 'generated').length;
@@ -258,32 +273,41 @@ export default function Payslips() {
             {selectedPeriod && <Chip label={selectedPeriod.period_name} size="small" sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 600, fontSize: '0.72rem' }} />}
           </Box>
           <Box sx={{ p: 2.5 }}>
-            <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2 }}>
-              Generates payslips from approved timelogs. Select specific employees or generate for all.
+            <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 1 }}>
+              Only verified employees without an existing payslip are shown.
+              {bulkEmployees.length === 0 && <strong> No eligible employees for this period.</strong>}
             </Typography>
-            <FormControlLabel
-              control={<Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
-              label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>All Employees</Typography>}
-            />
-            {!selectAll && (
-              <Box sx={{ maxHeight: 180, overflowY: 'auto', border: '1px solid', borderColor: 'divider', mt: 1, borderRadius: '10px', overflow: 'hidden' }}>
-                <List dense disablePadding>
-                  {employees.map(emp => (
-                    <ListItem key={emp.id} disablePadding
-                      secondaryAction={<Checkbox checked={selectedEmployeeIds.includes(emp.id)} onChange={() => handleToggleEmployee(emp.id)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />}
-                      sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
-                      <ListItemText primary={emp.name} secondary={emp.employee_id}
-                        sx={{ pl: 1.5, '& .MuiListItemText-primary': { fontSize: '0.875rem' }, '& .MuiListItemText-secondary': { fontSize: '0.72rem' } }} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
-            )}
+            <Box sx={{ maxHeight: 220, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '10px', overflow: 'hidden' }}>
+              <List dense disablePadding>
+                <ListItem disablePadding sx={{ borderBottom: '1px solid', borderBottomColor: 'divider', bgcolor: 'action.hover', px: 1 }}>
+                  <Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                  <ListItemText
+                    primary={<Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>All Employees ({bulkEmployees.length})</Typography>}
+                    secondary={selectAll ? 'Will generate for all eligible employees' : 'Select specific employees below'}
+                    sx={{ '& .MuiListItemText-secondary': { fontSize: '0.7rem' } }}
+                  />
+                </ListItem>
+                {bulkEmployees.map(emp => (
+                  <ListItem key={emp.id} disablePadding
+                    onClick={() => { if (selectAll) return; handleToggleEmployee(emp.id); }}
+                    sx={{ borderBottom: '1px solid', borderBottomColor: 'divider', cursor: selectAll ? 'default' : 'pointer',
+                      opacity: selectAll ? 0.6 : 1,
+                      bgcolor: (!selectAll && selectedEmployeeIds.includes(emp.id)) ? '#6366f108' : 'transparent',
+                      '&:hover': { bgcolor: selectAll ? 'transparent' : '#6366f108' } }}>
+                    <Checkbox checked={selectAll || selectedEmployeeIds.includes(emp.id)} disabled={selectAll}
+                      onChange={() => handleToggleEmployee(emp.id)} size="small"
+                      sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                    <ListItemText primary={emp.name} secondary={emp.employee_id || emp.id}
+                      sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem' }, '& .MuiListItemText-secondary': { fontSize: '0.72rem' } }} />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
             <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
               <Button variant="contained"
                 startIcon={generating ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
                 onClick={handleBulkGenerate}
-                disabled={generating || !selectedPeriod || (!selectAll && selectedEmployeeIds.length === 0)}
+                disabled={generating || !selectedPeriod || bulkEmployees.length === 0 || (!selectAll && selectedEmployeeIds.length === 0)}
                 sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #6366f1, #818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
                 {generating ? (genProgress?.total > 0 ? `${genProgress.done} / ${genProgress.total}…` : 'Generating…') : 'Generate Now'}
               </Button>

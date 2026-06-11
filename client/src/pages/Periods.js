@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Box, Paper, Typography, Button, Chip, Grid,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment,
   CircularProgress, IconButton, FormControl, InputLabel, Select, MenuItem, Tabs, Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -18,6 +19,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SearchIcon from '@mui/icons-material/Search';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -108,9 +110,11 @@ const now = new Date();
 
 export default function Periods() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isReadOnly = user?.role === 'accounting_manager';
 
   const [allPeriods, setAllPeriods]       = useState([]);
+  const [periodSearch, setPeriodSearch]   = useState('');
   const [loading, setLoading]             = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [summaries, setSummaries]         = useState([]);
@@ -145,8 +149,9 @@ export default function Periods() {
     finally { setLoading(false); }
   };
 
-  const localPeriods   = allPeriods.filter(p => !p.period_type || p.period_type === 'local');
-  const foreignPeriods = allPeriods.filter(p => p.period_type === 'foreign');
+  const searchLower    = periodSearch.toLowerCase();
+  const localPeriods   = allPeriods.filter(p => (!p.period_type || p.period_type === 'local') && (!searchLower || p.period_name.toLowerCase().includes(searchLower)));
+  const foreignPeriods = allPeriods.filter(p => p.period_type === 'foreign' && (!searchLower || p.period_name.toLowerCase().includes(searchLower)));
   const openCount      = allPeriods.filter(p => p.status === 'open').length;
 
   const fetchSummaries = async (periodId) => {
@@ -224,13 +229,8 @@ export default function Periods() {
     finally { setDeleteLoading(false); }
   };
 
-  const handleProcess = async (periodId) => {
-    try {
-      toast.loading('Processing…');
-      const res = await timesheetAPI.process(periodId);
-      toast.dismiss();
-      if (res.success) { toast.success(`Processed ${res.data.processed} timesheets`); if (selectedPeriod?.id === periodId) fetchSummaries(periodId); }
-    } catch { toast.dismiss(); toast.error('Failed to process period'); }
+  const handleProcess = () => {
+    navigate('/wrike');
   };
 
   const durDays = (s, e) => s && e && s <= e ? Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1 : null;
@@ -289,6 +289,13 @@ export default function Periods() {
                   </Box>
                 } />
               </Tabs>
+            </Box>
+
+            {/* Search */}
+            <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <TextField fullWidth size="small" placeholder="Search periods…" value={periodSearch} onChange={e => setPeriodSearch(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.82rem' } }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment> } }} />
             </Box>
 
             {/* Action bar — hidden for read-only roles */}
@@ -370,7 +377,7 @@ export default function Periods() {
                           sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
                           Edit
                         </Button>
-                        <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={() => handleProcess(selectedPeriod.id)}
+                        <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={handleProcess}
                           sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
                           Process
                         </Button>
