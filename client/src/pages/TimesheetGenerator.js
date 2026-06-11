@@ -160,12 +160,18 @@ export default function TimesheetGenerator() {
 
   // Employees filtered by period type AND verified status
   const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
-  const eligibleEmployees = selectedPeriod
-    ? employees.filter(e =>
-        (e.hire_category || 'local') === periodCategory &&
-        verificationStatus[e.id]?.status === 'verified'
-      )
+  const allPeriodEmployees = selectedPeriod
+    ? employees.filter(e => (e.hire_category || 'local') === periodCategory)
     : [];
+  const eligibleEmployees = allPeriodEmployees.filter(
+    e => verificationStatus[e.id]?.status === 'verified'
+  );
+  const rejectedEmployees = allPeriodEmployees.filter(
+    e => verificationStatus[e.id]?.status === 'rejected'
+  );
+  const pendingEmployees  = allPeriodEmployees.filter(
+    e => !verificationStatus[e.id] || verificationStatus[e.id]?.status === 'pending'
+  );
 
   const hasSelection = selectedIds.size > 0;
   const allSelected  = eligibleEmployees.length > 0 && selectedIds.size === eligibleEmployees.length;
@@ -405,20 +411,87 @@ export default function TimesheetGenerator() {
                 </Box>
               ) : verLoading || empLoading ? (
                 <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#10b981' }} /></Box>
-              ) : eligibleEmployees.length === 0 ? (
+              ) : allPeriodEmployees.length === 0 ? (
                 <Box sx={{ py: 6, textAlign: 'center', px: 2 }}>
-                  <VerifiedUserIcon sx={{ fontSize: 30, opacity: 0.2, color: 'text.disabled', mb: 1 }} />
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.secondary', mb: 0.5 }}>No Verified Employees</Typography>
-                  <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 1.5 }}>
-                    No {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employees are verified for this period yet.
+                  <PeopleIcon sx={{ fontSize: 30, opacity: 0.2, color: 'text.disabled', mb: 1 }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.secondary', mb: 0.5 }}>No Employees</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled' }}>
+                    No {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employees exist in the system.
                   </Typography>
-                  <Button size="small" component={Link} to="/wrike" variant="outlined"
-                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
+                </Box>
+              ) : eligibleEmployees.length === 0 ? (
+                <Box sx={{ py: 3, px: 2.5 }}>
+                  {/* Status breakdown */}
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2.5, flexWrap: 'wrap' }}>
+                    <Chip icon={<PeopleIcon sx={{ fontSize: '13px !important' }} />}
+                      label={`${allPeriodEmployees.length} total employee${allPeriodEmployees.length !== 1 ? 's' : ''}`}
+                      size="small" sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, fontSize: '0.7rem' }} />
+                    {pendingEmployees.length > 0 && (
+                      <Chip label={`${pendingEmployees.length} not verified`}
+                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem' }} />
+                    )}
+                    {rejectedEmployees.length > 0 && (
+                      <Chip label={`${rejectedEmployees.length} rejected`}
+                        size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                  {/* Guidance */}
+                  <Box sx={{ bgcolor: '#f59e0b0a', border: '1px solid #f59e0b30', borderRadius: '12px', p: 2, mb: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                      <VerifiedUserIcon sx={{ fontSize: 18, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#92400e', mb: 0.4 }}>
+                          No verified employees for this period
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#92400e', lineHeight: 1.5 }}>
+                          {allPeriodEmployees.length} {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employee{allPeriodEmployees.length !== 1 ? 's are' : ' is'} set up but {allPeriodEmployees.length !== 1 ? 'none have' : 'has not'} been verified for this pay period yet.
+                          You need to verify timesheets first before processing payroll.
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Follow these steps:
+                  </Typography>
+                  {[
+                    { step: 1, label: 'Go to Verify Timesheet', sub: 'Review and verify each employee\'s timesheet for this period', action: true },
+                    { step: 2, label: 'Mark employees as Verified', sub: 'Only verified employees will appear here for processing' },
+                    { step: 3, label: 'Come back to Process Payroll', sub: 'Select this period again and the verified list will appear' },
+                  ].map(({ step: n, label, sub, action }) => (
+                    <Box key={n} sx={{ display: 'flex', gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
+                      <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.1 }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#6366f1' }}>{n}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>{label}</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{sub}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                  <Button component={Link} to="/wrike" variant="contained" size="small" startIcon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
+                    sx={{ mt: 1, textTransform: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem',
+                      background: 'linear-gradient(135deg, #6366f1, #818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
                     Go to Verify Timesheet
                   </Button>
                 </Box>
               ) : (
                 <>
+                  {/* Partial verification banner */}
+                  {(pendingEmployees.length > 0 || rejectedEmployees.length > 0) && (
+                    <Box sx={{ px: 2, py: 1, bgcolor: '#f59e0b0a', borderBottom: '1px solid #f59e0b25', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#92400e', lineHeight: 1.4 }}>
+                        Showing <strong>{eligibleEmployees.length} verified</strong> of {allPeriodEmployees.length} employees.
+                        {pendingEmployees.length > 0 && ` ${pendingEmployees.length} still need verification.`}
+                        {rejectedEmployees.length > 0 && ` ${rejectedEmployees.length} rejected.`}
+                      </Typography>
+                      <Button component={Link} to="/wrike" size="small"
+                        sx={{ textTransform: 'none', fontSize: '0.68rem', fontWeight: 700, color: '#6366f1', flexShrink: 0, p: 0.5,
+                          '&:hover': { bgcolor: '#6366f110' } }}>
+                        Verify more →
+                      </Button>
+                    </Box>
+                  )}
+
                   {/* Search */}
                   <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                     <TextField fullWidth size="small" placeholder="Search employees…" value={empSearch} onChange={e => setEmpSearch(e.target.value)}
