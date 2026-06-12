@@ -15,6 +15,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SyncIcon from '@mui/icons-material/Sync';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
+import LockIcon from '@mui/icons-material/Lock';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -182,6 +183,7 @@ export default function GenerateTimesheets() {
   const withHours      = data.filter(r => r.actual_hours > 0).length;
   const totalHours     = data.reduce((s, r) => s + (r.actual_hours || 0), 0);
   const allVerified    = withHours > 0 && verifiedCount === withHours;
+  const periodLocked   = selectedPeriod?.status !== 'open';
 
   const tabColor = TYPE_TABS.find(t => t.value === tab)?.color || '#6366f1';
 
@@ -198,7 +200,7 @@ export default function GenerateTimesheets() {
             <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Review and confirm employee hours per pay period before processing payroll</Typography>
           </Box>
         </Box>
-        {selectedPeriod && !isReadOnly && (
+        {selectedPeriod && !isReadOnly && !periodLocked && (
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
               startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
@@ -301,9 +303,13 @@ export default function GenerateTimesheets() {
                       <Chip key={s.label} label={s.label} size="small"
                         sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 700, fontSize: '0.68rem' }} />
                     ))}
-                    {allVerified && (
+                    {allVerified && !periodLocked && (
                       <Chip icon={<CheckCircleIcon />} label="All verified — ready for payroll" size="small"
                         sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { fontSize: 13, color: '#10b981' } }} />
+                    )}
+                    {periodLocked && (
+                      <Chip icon={<LockIcon sx={{ fontSize: '13px !important' }} />} label="Period locked — payroll processed" size="small"
+                        sx={{ bgcolor: '#94a3b815', color: '#64748b', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { color: '#64748b' } }} />
                     )}
                   </>
                 )}
@@ -317,11 +323,18 @@ export default function GenerateTimesheets() {
                 </Paper>
               ) : (
                 <>
-                  <Alert severity="info" icon={false}
-                    sx={{ borderRadius: 0, fontSize: '0.78rem', border: '1px solid', borderTop: 'none', borderBottom: 'none', borderColor: 'divider',
-                      bgcolor: 'rgba(99,102,241,0.04)', color: 'text.secondary', py: 0.75, px: 2.5 }}>
-                    Review hours below. Override if needed, add cash advances/deductions, then <strong>Verify</strong> each employee. Only verified employees proceed to payroll.
-                  </Alert>
+                  {periodLocked ? (
+                    <Alert severity="warning" icon={<LockIcon fontSize="inherit" />}
+                      sx={{ borderRadius: 0, fontSize: '0.78rem', border: '1px solid', borderTop: 'none', borderBottom: 'none', borderColor: 'divider', py: 0.75, px: 2.5 }}>
+                      This period has been processed into payroll. Timesheet data is <strong>read-only</strong> and cannot be edited.
+                    </Alert>
+                  ) : (
+                    <Alert severity="info" icon={false}
+                      sx={{ borderRadius: 0, fontSize: '0.78rem', border: '1px solid', borderTop: 'none', borderBottom: 'none', borderColor: 'divider',
+                        bgcolor: 'rgba(99,102,241,0.04)', color: 'text.secondary', py: 0.75, px: 2.5 }}>
+                      Review hours below. Override if needed, add cash advances/deductions, then <strong>Verify</strong> each employee. Only verified employees proceed to payroll.
+                    </Alert>
+                  )}
                   <Paper elevation={0} sx={{ borderRadius: '0 0 16px 16px', border: '1px solid', borderColor: 'divider', borderTop: 'none', overflow: 'hidden' }}>
                     <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
@@ -332,7 +345,7 @@ export default function GenerateTimesheets() {
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 110 }}>Verified Hours</TableCell>
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 120 }}>Deductions</TableCell>
                             <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 100 }}>Status</TableCell>
-                            {!isReadOnly && <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>}
+                            {!isReadOnly && !periodLocked && <TableCell sx={{ ...TH, minWidth: 320 }}>Actions</TableCell>}
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -390,7 +403,7 @@ export default function GenerateTimesheets() {
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                     <StatusChip status={row.status} />
                                   </TableCell>
-                                  {!isReadOnly && (
+                                  {!isReadOnly && !periodLocked && (
                                     <TableCell sx={TD}>
                                       {isEdit ? (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

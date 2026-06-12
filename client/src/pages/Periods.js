@@ -20,6 +20,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SearchIcon from '@mui/icons-material/Search';
+import LockIcon from '@mui/icons-material/Lock';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,6 +39,7 @@ const PAYSLIP_CHIP = {
   rejected: { label: 'Failed',        color: '#ef4444', bg: '#ef444418' },
 };
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const isPeriodLocked = (p) => p && p.status !== 'open';
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
@@ -64,6 +66,7 @@ function StatCard({ icon, label, value, color, bg }) {
 }
 
 function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor, isReadOnly }) {
+  const locked = isPeriodLocked(p);
   return (
     <Box onClick={() => onSelect(p)}
       sx={{
@@ -88,7 +91,12 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor, isRe
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
             <StatusChip status={p.status} />
-            {!isReadOnly && (
+            {locked && (
+              <Tooltip title="Payroll processed — period is locked">
+                <LockIcon sx={{ fontSize: 11, color: '#94a3b8', ml: 0.25 }} />
+              </Tooltip>
+            )}
+            {!isReadOnly && !locked && (
               <>
                 <IconButton size="small" onClick={e => { e.stopPropagation(); onEdit(p); }}
                   sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: accentColor, bgcolor: `${accentColor}10` } }}>
@@ -374,15 +382,29 @@ export default function Periods() {
                       </Typography>
                     </Box>
                     {!isReadOnly && (
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button size="small" variant="outlined" startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />} onClick={() => openEdit(selectedPeriod)}
-                          sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-                          Edit
-                        </Button>
-                        <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={handleProcess}
-                          sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
-                          Process
-                        </Button>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        {isPeriodLocked(selectedPeriod) ? (
+                          <>
+                            <Chip icon={<LockIcon sx={{ fontSize: '12px !important' }} />} label="Locked" size="small"
+                              sx={{ bgcolor: '#94a3b815', color: '#94a3b8', fontWeight: 700, fontSize: '0.68rem' }} />
+                            <Button size="small" variant="outlined" startIcon={<ReceiptLongIcon sx={{ fontSize: '14px !important' }} />}
+                              onClick={() => navigate('/payslips')}
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
+                              View Payslips
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="small" variant="outlined" startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />} onClick={() => openEdit(selectedPeriod)}
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                              Edit
+                            </Button>
+                            <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={handleProcess}
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                              Process
+                            </Button>
+                          </>
+                        )}
                       </Box>
                     )}
                   </Box>
@@ -418,7 +440,10 @@ export default function Periods() {
                         {summaries.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} sx={{ textAlign: 'center', py: 8, color: 'text.disabled', fontSize: '0.875rem' }}>
-                              No summaries yet — click <strong>Process</strong> to generate timesheets.
+                              {isPeriodLocked(selectedPeriod)
+                                ? 'This period was processed but has no summaries.'
+                                : <>No summaries yet — click <strong>Process</strong> to generate timesheets.</>
+                              }
                             </TableCell>
                           </TableRow>
                         ) : summaries.map(s => {

@@ -229,6 +229,7 @@ export default function Payslips() {
   const allReleased     = payslips.length > 0 && unreleased === 0;
   const bankUploaded    = !!selectedPeriod?.bank_uploaded_at;
   const canRelease      = bankUploaded && !isReadOnly;
+  const payslipsLocked  = payslips.length > 0;
 
   return (
     <Box>
@@ -261,7 +262,7 @@ export default function Payslips() {
               </Button>
             </span>
           </Tooltip>
-          {!isReadOnly && (
+          {!isReadOnly && !payslipsLocked && (
           <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
               onClick={() => setShowBulkPanel(v => !v)}
               sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
@@ -288,7 +289,7 @@ export default function Payslips() {
       </Box>
 
       {/* Bulk Generate Panel */}
-      {!isReadOnly && showBulkPanel && (
+      {!isReadOnly && showBulkPanel && !payslipsLocked && (
         <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '16px', border: '1px solid', borderColor: '#6366f130', overflow: 'hidden' }}>
           <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(99,102,241,0.03)' }}>
             <AutoAwesomeIcon sx={{ color: '#6366f1', fontSize: 17 }} />
