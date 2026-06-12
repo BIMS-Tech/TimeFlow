@@ -48,7 +48,7 @@ class PDFService {
         const MARGIN   = 40;
         const CONTENT_W = PAGE_W - MARGIN * 2;
         const cur = employee.currency || process.env.CURRENCY || 'USD';
-        const companyName = process.env.COMPANY_NAME || 'Company Name';
+        const companyName = process.env.COMPANY_NAME || 'BIMS Technologies, Inc.';
 
         // Numeric fields
         const hourlyRate    = parseFloat(summary.hourly_rate)    || 0;
@@ -61,15 +61,21 @@ class PDFService {
 
         // ── Helper: draw one page header ─────────────────────────────────────
         const drawPageHeader = () => {
-          const statusColor = isDraft ? '#e74c3c' : '#27ae60';
+          const statusColor = isDraft ? '#f87171' : '#6ee7b7';
           const statusLabel = isDraft ? 'DRAFT — PENDING APPROVAL' : 'APPROVED';
 
-          // Dark header band
-          doc.rect(0, 0, PAGE_W, 72).fill('#1a1a2e');
-          doc.fontSize(18).font('Helvetica-Bold').fillColor('white')
-             .text(companyName, MARGIN, 14, { width: CONTENT_W * 0.55 });
-          doc.fontSize(9).font('Helvetica').fillColor('rgba(255,255,255,0.6)')
-             .text('TIMESHEET', MARGIN, 40);
+          // BIMS blue header band
+          doc.rect(0, 0, PAGE_W, 72).fill('#1A3A72');
+
+          // Logo or company name on the left
+          if (HAS_LOGO) {
+            doc.image(LOGO_PATH, MARGIN, 13, { height: 44, fit: [158, 44] });
+          } else {
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('white')
+               .text(companyName, MARGIN, 22, { width: CONTENT_W * 0.55 });
+          }
+          doc.fontSize(7.5).font('Helvetica').fillColor('rgba(255,255,255,0.5)')
+             .text('TIMESHEET', MARGIN, 60);
 
           // Status badge top-right
           doc.fontSize(8).font('Helvetica-Bold').fillColor(statusColor)
@@ -102,7 +108,7 @@ class PDFService {
         doc.roundedRect(MARGIN, y, CARD_W, CARD_H, 5).fill('#f8fafc');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#94a3b8')
            .text('EMPLOYEE', MARGIN + 12, y + 10);
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#1a1a2e')
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#1A3A72')
            .text(employee.name, MARGIN + 12, y + 22, { width: CARD_W - 24, ellipsis: true });
         doc.fontSize(8).font('Helvetica').fillColor('#475569');
         const empLines = [
@@ -120,7 +126,7 @@ class PDFService {
         doc.roundedRect(rx, y, CARD_W, CARD_H, 5).fill('#f8fafc');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#94a3b8')
            .text('PAY PERIOD', rx + 12, y + 10);
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#1a1a2e')
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#1A3A72')
            .text(period.period_name, rx + 12, y + 22, { width: CARD_W - 24, ellipsis: true });
         doc.fontSize(8).font('Helvetica').fillColor('#475569')
            .text(`From: ${this.formatDate(period.start_date)}`, rx + 12, y + 40)
@@ -144,7 +150,7 @@ class PDFService {
              .fillColor(isOvertimeTile ? '#b45309' : '#94a3b8')
              .text(label, tx + 10, y + 8);
           doc.fontSize(13).font('Helvetica-Bold')
-             .fillColor(isOvertimeTile ? '#92400e' : '#1a1a2e')
+             .fillColor(isOvertimeTile ? '#92400e' : '#1A3A72')
              .text(value, tx + 10, y + 22);
           if (isOvertimeTile) {
             doc.fontSize(6).font('Helvetica-Bold').fillColor('#d97706')
@@ -164,10 +170,10 @@ class PDFService {
         ];
         payTiles.forEach(([label, value], i) => {
           const tx = MARGIN + i * (tileW + 7);
-          doc.roundedRect(tx, y, tileW, 44, 5).fill(i === 2 ? '#1a1a2e' : '#f8fafc');
+          doc.roundedRect(tx, y, tileW, 44, 5).fill(i === 2 ? '#1A3A72' : '#f8fafc');
           doc.fontSize(7).font('Helvetica').fillColor(i === 2 ? 'rgba(255,255,255,0.6)' : '#94a3b8')
              .text(label, tx + 10, y + 8);
-          doc.fontSize(13).font('Helvetica-Bold').fillColor(i === 2 ? '#a5f3a0' : '#1a1a2e')
+          doc.fontSize(13).font('Helvetica-Bold').fillColor(i === 2 ? '#6ee7b7' : '#1A3A72')
              .text(value, tx + 10, y + 22);
         });
 
@@ -235,7 +241,7 @@ class PDFService {
           });
 
           // Total row
-          doc.rect(MARGIN, y, CONTENT_W, ROW_H + 2).fill('#1a1a2e');
+          doc.rect(MARGIN, y, CONTENT_W, ROW_H + 2).fill('#1A3A72');
           doc.fontSize(8).font('Helvetica-Bold').fillColor('white');
           doc.text('TOTAL', COL.date.x, y + 4, { width: 200 });
           doc.text(totalHours.toFixed(2), COL.hours.x, y + 4, { width: COL.hours.w, align: 'right' });
@@ -759,7 +765,7 @@ class PDFService {
     return new Promise((resolve, reject) => {
       try {
         const PDFDoc = require('pdfkit');
-        const companyName = process.env.COMPANY_NAME || 'Company Name';
+        const companyName = process.env.COMPANY_NAME || 'BIMS Technologies, Inc.';
         const PAGE_W = 595.28;
         const MARGIN = 36;
         const CW     = PAGE_W - MARGIN * 2;
@@ -775,12 +781,16 @@ class PDFService {
         const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
         // ── Header band ─────────────────────────────────────────────────────
-        doc.rect(0, 0, PAGE_W, 66).fill('#1a1a2e');
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('white').text(companyName, MARGIN, 12, { width: CW * 0.6 });
-        doc.fontSize(8).font('Helvetica').fillColor('rgba(255,255,255,0.6)').text('PAYSLIP SUMMARY REPORT', MARGIN, 36);
-        doc.fontSize(9).font('Helvetica').fillColor('rgba(255,255,255,0.8)')
+        doc.rect(0, 0, PAGE_W, 66).fill('#1A3A72');
+        if (HAS_LOGO) {
+          doc.image(LOGO_PATH, MARGIN, 11, { height: 42, fit: [150, 42] });
+        } else {
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('white').text(companyName, MARGIN, 12, { width: CW * 0.6 });
+        }
+        doc.fontSize(7.5).font('Helvetica').fillColor('rgba(255,255,255,0.5)').text('PAYSLIP SUMMARY REPORT', MARGIN, 57);
+        doc.fontSize(9).font('Helvetica').fillColor('rgba(255,255,255,0.85)')
            .text(period.period_name, PAGE_W - MARGIN - 180, 14, { width: 180, align: 'right' });
-        doc.fontSize(8).font('Helvetica').fillColor('rgba(255,255,255,0.55)')
+        doc.fontSize(8).font('Helvetica').fillColor('rgba(255,255,255,0.6)')
            .text(`${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`, PAGE_W - MARGIN - 180, 30, { width: 180, align: 'right' });
         const typeLabel = period.period_type === 'foreign' ? 'International' : 'Local';
         doc.fontSize(7).fillColor('rgba(255,255,255,0.4)')
@@ -820,7 +830,7 @@ class PDFService {
           { label: 'Status',         w: 55,  align: 'center' },
         ];
         const ROW_H  = 18;
-        const HDR_BG = '#2c3e50';
+        const HDR_BG = '#1B5FAD';
         const ALT_BG = '#f9fafb';
 
         // Draw header
@@ -880,15 +890,15 @@ class PDFService {
         });
 
         // Totals row
-        doc.rect(MARGIN, y, CW, ROW_H).fill('#eef2ff');
+        doc.rect(MARGIN, y, CW, ROW_H).fill('#E8F4F8');
         const totalsCells = ['', '', 'TOTAL', `${parseFloat(totalHours.toFixed(2))}h`, money(totalGross), money(totalNet), ''];
         let tx = MARGIN;
         totalsCells.forEach((text, ci) => {
-          doc.fontSize(7).font('Helvetica-Bold').fillColor('#3730a3')
+          doc.fontSize(7).font('Helvetica-Bold').fillColor('#1A3A72')
              .text(text, tx + 3, y + 5, { width: COLS[ci].w - 6, align: COLS[ci].align, lineBreak: false });
           tx += COLS[ci].w;
         });
-        doc.rect(MARGIN, y, CW, ROW_H).lineWidth(0.5).strokeColor('#6366f1').stroke();
+        doc.rect(MARGIN, y, CW, ROW_H).lineWidth(0.5).strokeColor('#1B5FAD').stroke();
         y += ROW_H + 16;
 
         // ── Footer ───────────────────────────────────────────────────────────
