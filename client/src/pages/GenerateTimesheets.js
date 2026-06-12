@@ -207,11 +207,13 @@ export default function GenerateTimesheets() {
               sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
               {syncing ? 'Syncing…' : 'Sync from Wrike'}
             </Button>
-            <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking || !data.length}
-              startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
-              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
-              {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
-            </Button>
+            {!allVerified && (
+              <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking || !data.length}
+                startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+                {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
+              </Button>
+            )}
           </Box>
         )}
       </Box>
@@ -415,7 +417,7 @@ export default function GenerateTimesheets() {
                                             </IconButton>
                                           </Tooltip>
                                         </Box>
-                                      ) : (
+                                      ) : row.status === 'verified' ? null : (
                                         <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
                                           <Tooltip title={hasHours ? 'Edit & Verify' : 'No imported hours for this period'}>
                                             <span>
