@@ -263,14 +263,16 @@ export default function Payslips() {
             </span>
           </Tooltip>
           {!isReadOnly && !payslipsLocked && (
-          <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setShowBulkPanel(v => !v)}
-              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                borderColor: showBulkPanel ? '#6366f1' : 'divider',
-                color: showBulkPanel ? '#6366f1' : 'text.secondary',
-                bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
-              Generate Payslips
-            </Button>
+            <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
+                onClick={() => setShowBulkPanel(v => !v)}
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                  borderColor: showBulkPanel ? '#6366f1' : 'divider',
+                  color: showBulkPanel ? '#6366f1' : 'text.secondary',
+                  bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
+                Generate Payslips
+              </Button>
+          )}
+          {!isReadOnly && (
             <Tooltip title={!bankUploaded ? 'Bank upload must be confirmed first (Generate Bank Upload page)' : ''} arrow>
               <span>
                 <Button variant="contained" startIcon={releasing ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <PublishIcon sx={{ fontSize: '16px !important' }} />}
@@ -283,7 +285,6 @@ export default function Payslips() {
                 </Button>
               </span>
             </Tooltip>
-          </Box>
           )}
         </Box>
       </Box>
