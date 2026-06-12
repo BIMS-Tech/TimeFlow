@@ -183,13 +183,13 @@ export default function GenerateTimesheet() {
     : tabPeriods;
 
   // Employee table
-  const verifiedCount = data.filter(r => r.status === 'verified').length;
-  const pendingCount  = data.filter(r => r.status === 'pending').length;
-  const rejectedCount = data.filter(r => r.status === 'rejected').length;
   const withHours     = data.filter(r => r.actual_hours > 0).length;
-  const visibleData   = empSearch
-    ? data.filter(r => r.employee?.name?.toLowerCase().includes(empSearch.toLowerCase()))
-    : data;
+  const verifiedCount = data.filter(r => r.actual_hours > 0 && r.status === 'verified').length;
+  const pendingCount  = data.filter(r => r.actual_hours > 0 && r.status === 'pending').length;
+  const rejectedCount = data.filter(r => r.actual_hours > 0 && r.status === 'rejected').length;
+  const visibleData   = data
+    .filter(r => r.actual_hours > 0)
+    .filter(r => !empSearch || r.employee?.name?.toLowerCase().includes(empSearch.toLowerCase()));
 
   return (
     <Box>
@@ -458,21 +458,13 @@ export default function GenerateTimesheet() {
                                           </IconButton>
                                         </Tooltip>
                                       </Box>
-                                    ) : (
+                                    ) : row.status === 'verified' ? (
                                       <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-                                        <Tooltip title={hasHours ? 'Edit / Verify' : 'No imported hours — sync from Wrike first'}>
-                                          <span>
-                                            <Button size="small" variant="outlined" disabled={!hasHours}
-                                              startIcon={<EditIcon sx={{ fontSize: 14 }} />}
-                                              onClick={() => setEditingId(emp.id)}
-                                              sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
-                                                borderColor: '#6366f1', color: '#6366f1',
-                                                '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
-                                              Edit & Verify
-                                            </Button>
-                                          </span>
-                                        </Tooltip>
-                                        {row.status === 'verified' && !isEdit && (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981' }} />
+                                          <Typography sx={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>Verified</Typography>
+                                        </Box>
+                                        <Tooltip title="Reset to pending so it can be edited again" arrow>
                                           <Button size="small" variant="text"
                                             onClick={async () => {
                                               try {
@@ -483,8 +475,21 @@ export default function GenerateTimesheet() {
                                             sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#f59e0b' } }}>
                                             Reset
                                           </Button>
-                                        )}
+                                        </Tooltip>
                                       </Box>
+                                    ) : (
+                                      <Tooltip title="Edit hours and verify">
+                                        <span>
+                                          <Button size="small" variant="outlined"
+                                            startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                                            onClick={() => setEditingId(emp.id)}
+                                            sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
+                                              borderColor: '#6366f1', color: '#6366f1',
+                                              '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+                                            Edit & Verify
+                                          </Button>
+                                        </span>
+                                      </Tooltip>
                                     )}
                                   </TableCell>
                                 )}
@@ -499,7 +504,7 @@ export default function GenerateTimesheet() {
                   {/* Summary footer */}
                   <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderTopColor: 'divider', bgcolor: 'action.hover', display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                     <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                      <strong style={{ color: '#10b981' }}>{verifiedCount}</strong> of {data.length} employees verified
+                      <strong style={{ color: '#10b981' }}>{verifiedCount}</strong> of {withHours} employees verified
                     </Typography>
                     <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
                       <strong>{data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (r.verification?.verified_hours != null ? parseFloat(r.verification.verified_hours) : r.actual_hours), 0).toFixed(1)}h</strong> total hours
