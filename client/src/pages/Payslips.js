@@ -18,6 +18,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import DownloadIcon from '@mui/icons-material/Download';
 import PeopleIcon from '@mui/icons-material/People';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -75,6 +76,7 @@ export default function Payslips() {
   const [deleting, setDeleting]             = useState(false);
 
   const [releasing, setReleasing]           = useState(false);
+  const [dlSummary, setDlSummary]           = useState(false);
   const [releasingId, setReleasingId]       = useState(null);
 
   useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -241,9 +243,26 @@ export default function Payslips() {
             <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Release generated payslips to employees</Typography>
           </Box>
         </Box>
-        {!isReadOnly && (
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Tooltip title={!selectedPeriod || payslips.length === 0 ? 'Select a period with payslips to download summary' : ''} arrow>
+            <span>
+              <Button variant="outlined"
+                startIcon={dlSummary ? <CircularProgress size={14} /> : <DownloadIcon sx={{ fontSize: '16px !important' }} />}
+                disabled={dlSummary || !selectedPeriod || payslips.length === 0}
+                onClick={async () => {
+                  setDlSummary(true);
+                  try { await timesheetAPI.downloadSummaryPDF(selectedPeriod.id, selectedPeriod.period_name); }
+                  catch { toast.error('Failed to download summary'); }
+                  finally { setDlSummary(false); }
+                }}
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                  borderColor: 'divider', color: 'text.secondary' }}>
+                {dlSummary ? 'Generating…' : 'Download Summary'}
+              </Button>
+            </span>
+          </Tooltip>
+          {!isReadOnly && (
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
               onClick={() => setShowBulkPanel(v => !v)}
               sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
                 borderColor: showBulkPanel ? '#6366f1' : 'divider',
@@ -264,7 +283,8 @@ export default function Payslips() {
               </span>
             </Tooltip>
           </Box>
-        )}
+          )}
+        </Box>
       </Box>
 
       {/* Bulk Generate Panel */}

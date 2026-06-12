@@ -113,6 +113,15 @@ export const timesheetAPI = {
   createForeignMonthlyPeriod: (year, month) => api.post('/timesheet/periods/foreign-monthly', { year, month }),
   getPeriodSummaries: (id) => api.get(`/timesheet/periods/${id}/summaries`),
   getPeriodPayslips: (id) => api.get(`/timesheet/periods/${id}/payslips`),
+  downloadSummaryPDF: async (periodId, periodName) => {
+    const res = await api.get(`/timesheet/periods/${periodId}/summary-pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PayslipSummary_${(periodName || periodId).replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   getSummary: (id) => api.get(`/timesheet/summaries/${id}`),
   resendApproval: (id) => api.post(`/timesheet/summaries/${id}/resend`),
   approveSummary: (id) => api.post(`/timesheet/summaries/${id}/approve`),

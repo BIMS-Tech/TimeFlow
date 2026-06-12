@@ -1001,7 +1001,7 @@ class TimesheetService {
 
     // ── XCS format for local bank transfers ───────────────────────────────────
     const sheetData = [
-      ['Last Name', 'First Name', 'Middle Name', 'Account Number', 'Amount'],
+      ['Last Name', 'First Name', 'Middle Name', 'Employee Account Number', 'Amount'],
     ];
     rows.forEach(({ payslip: p, emp }) => {
       sheetData.push([

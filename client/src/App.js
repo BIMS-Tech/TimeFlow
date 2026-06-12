@@ -26,6 +26,8 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -47,6 +49,7 @@ import GenerateTimesheets from './pages/GenerateTimesheets';
 import WrikeTimesheets from './pages/WrikeTimesheets';
 
 const DRAWER_WIDTH = 268;
+const DRAWER_WIDTH_COLLAPSED = 68;
 
 const NAV_ITEMS = [
   { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
@@ -72,47 +75,52 @@ function RequireRole({ roles, children }) {
   return children;
 }
 
-function SidebarNav({ onNavigate }) {
+function SidebarNav({ onNavigate, collapsed }) {
   const { user } = useAuth();
   // Legacy 'admin' role (pre-migration tokens) maps to super_admin for nav purposes
   const effectiveRole = user?.role === 'admin' ? 'super_admin' : user?.role;
   const visibleItems = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(effectiveRole));
   return (
-    <List sx={{ px: 1.5 }}>
+    <List sx={{ px: collapsed ? 0.75 : 1.5 }}>
       {visibleItems.map((item) => (
         <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
-          <ListItemButton
-            component={NavLink}
-            to={item.path}
-            end={item.end}
-            onClick={onNavigate}
-            sx={{
-              borderRadius: '12px',
-              px: 2,
-              py: 1.1,
-              color: 'rgba(255,255,255,0.6)',
-              transition: 'all 0.2s',
-              '&.active': {
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)',
-                color: 'white',
-                boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
-                '& .MuiListItemIcon-root': { color: 'white' },
-              },
-              '&:hover:not(.active)': {
-                background: 'rgba(255,255,255,0.08)',
-                color: 'white',
-                '& .MuiListItemIcon-root': { color: 'rgba(255,255,255,0.9)' },
-              },
-            }}
-          >
-            <ListItemIcon sx={{ color: 'rgba(255,255,255,0.5)', minWidth: 38 }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText
-              primary={item.label}
-              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
-            />
-          </ListItemButton>
+          <Tooltip title={collapsed ? item.label : ''} placement="right" arrow>
+            <ListItemButton
+              component={NavLink}
+              to={item.path}
+              end={item.end}
+              onClick={onNavigate}
+              sx={{
+                borderRadius: '12px',
+                px: collapsed ? 1.5 : 2,
+                py: 1.1,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                color: 'rgba(255,255,255,0.6)',
+                transition: 'all 0.2s',
+                '&.active': {
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)',
+                  color: 'white',
+                  boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
+                  '& .MuiListItemIcon-root': { color: 'white' },
+                },
+                '&:hover:not(.active)': {
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': { color: 'rgba(255,255,255,0.9)' },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: 'rgba(255,255,255,0.5)', minWidth: collapsed ? 0 : 38 }}>
+                {item.icon}
+              </ListItemIcon>
+              {!collapsed && (
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+                />
+              )}
+            </ListItemButton>
+          </Tooltip>
         </ListItem>
       ))}
     </List>
@@ -151,101 +159,159 @@ function RequestFormDialog({ open, onClose }) {
   );
 }
 
-function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout, onOpenRequest }) {
+function DrawerContent({ onNavigate, user, mode, toggleTheme, handleLogout, onOpenRequest, collapsed, onToggleCollapse }) {
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : 'TF';
   return (
     <>
-      {/* Logo */}
-      <Box sx={{ px: 2.5, pt: 3, pb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <Box sx={{
-            width: 40, height: 40, borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
-          }}>
-            <AccessTimeFilledIcon sx={{ color: 'white', fontSize: 22 }} />
+      {/* Logo + collapse toggle */}
+      <Box sx={{ px: collapsed ? 1 : 2.5, pt: 3, pb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 1.5 }}>
+            <Tooltip title={collapsed ? 'Timeflow' : ''} placement="right" arrow>
+              <Box sx={{
+                width: 40, height: 40, borderRadius: '12px', flexShrink: 0,
+                background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
+              }}>
+                <AccessTimeFilledIcon sx={{ color: 'white', fontSize: 22 }} />
+              </Box>
+            </Tooltip>
+            {!collapsed && (
+              <Box>
+                <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.2rem', lineHeight: 1.1 }}>
+                  Timeflow
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Payroll System
+                </Typography>
+              </Box>
+            )}
           </Box>
-          <Box>
-            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.2rem', lineHeight: 1.1 }}>
-              Timeflow
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Payroll System
-            </Typography>
-          </Box>
+          {!collapsed && (
+            <Tooltip title="Collapse menu" placement="right" arrow>
+              <IconButton onClick={onToggleCollapse} size="small"
+                sx={{ color: 'rgba(255,255,255,0.35)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.08)' } }}>
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
+        {collapsed && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1.5 }}>
+            <Tooltip title="Expand menu" placement="right" arrow>
+              <IconButton onClick={onToggleCollapse} size="small"
+                sx={{ color: 'rgba(255,255,255,0.35)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.08)' } }}>
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
 
       {/* Navigation */}
       <Box sx={{ flex: 1, py: 1.5, overflowY: 'auto' }}>
-        <Typography sx={{ px: 3, py: 0.75, fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          Main Menu
-        </Typography>
-        <SidebarNav onNavigate={onNavigate} />
+        {!collapsed && (
+          <Typography sx={{ px: 3, py: 0.75, fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            Main Menu
+          </Typography>
+        )}
+        <SidebarNav onNavigate={onNavigate} collapsed={collapsed} />
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
 
       {/* Request / Suggestions */}
-      <Box sx={{ px: 2, py: 1.5 }}>
-        <Box
-          onClick={onOpenRequest}
-          sx={{
-            display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.1,
-            borderRadius: '12px', cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
-            border: '1px solid rgba(16,185,129,0.25)',
-            transition: 'all 0.2s',
-            '&:hover': { background: 'linear-gradient(135deg, rgba(16,185,129,0.28) 0%, rgba(5,150,105,0.22) 100%)', borderColor: 'rgba(16,185,129,0.5)' },
-          }}
-        >
-          <OpenInNewIcon sx={{ fontSize: 16, color: '#10b981' }} />
-          <Typography sx={{ color: '#10b981', fontSize: '0.82rem', fontWeight: 700, flex: 1 }}>
-            File a Request
-          </Typography>
-        </Box>
+      <Box sx={{ px: collapsed ? 0.75 : 2, py: 1.5 }}>
+        <Tooltip title={collapsed ? 'File a Request' : ''} placement="right" arrow>
+          <Box
+            onClick={onOpenRequest}
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 1,
+              px: collapsed ? 1.5 : 2, py: 1.1,
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: '12px', cursor: 'pointer',
+              background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
+              border: '1px solid rgba(16,185,129,0.25)',
+              transition: 'all 0.2s',
+              '&:hover': { background: 'linear-gradient(135deg, rgba(16,185,129,0.28) 0%, rgba(5,150,105,0.22) 100%)', borderColor: 'rgba(16,185,129,0.5)' },
+            }}
+          >
+            <OpenInNewIcon sx={{ fontSize: 16, color: '#10b981', flexShrink: 0 }} />
+            {!collapsed && (
+              <Typography sx={{ color: '#10b981', fontSize: '0.82rem', fontWeight: 700, flex: 1 }}>
+                File a Request
+              </Typography>
+            )}
+          </Box>
+        </Tooltip>
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
 
       {/* User section */}
-      <Box sx={{ p: 2 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5,
-          p: 1.5, borderRadius: '12px',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.07)',
-        }}>
-          <Avatar sx={{
-            width: 36, height: 36, fontSize: '0.875rem', fontWeight: 700,
-            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
-          }}>
-            {initials}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ color: 'white', fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.username}
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', textTransform: 'capitalize' }}>
-              {user?.role}
-            </Typography>
+      <Box sx={{ p: collapsed ? 1 : 2 }}>
+        {collapsed ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <Tooltip title={user?.username || ''} placement="right" arrow>
+              <Avatar sx={{
+                width: 36, height: 36, fontSize: '0.875rem', fontWeight: 700,
+                background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                cursor: 'default',
+              }}>
+                {initials}
+              </Avatar>
+            </Tooltip>
+            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} placement="right" arrow>
+              <IconButton onClick={toggleTheme} size="small"
+                sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
+                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Logout" placement="right" arrow>
+              <IconButton onClick={handleLogout} size="small"
+                sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
+                <LogoutIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
-          <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
-            <IconButton onClick={toggleTheme} size="small"
-              sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
-              {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Logout" arrow>
-            <IconButton onClick={handleLogout} size="small"
-              sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
-              <LogoutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        ) : (
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1.5,
+            p: 1.5, borderRadius: '12px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <Avatar sx={{
+              width: 36, height: 36, fontSize: '0.875rem', fontWeight: 700,
+              background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+            }}>
+              {initials}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ color: 'white', fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.username}
+              </Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', textTransform: 'capitalize' }}>
+                {user?.role}
+              </Typography>
+            </Box>
+            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
+              <IconButton onClick={toggleTheme} size="small"
+                sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
+                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Logout" arrow>
+              <IconButton onClick={handleLogout} size="small"
+                sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
+                <LogoutIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
       </Box>
     </>
   );
@@ -257,8 +323,9 @@ function AppLayout() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen,   setMobileOpen]   = useState(false);
-  const [requestOpen,  setRequestOpen]  = useState(false);
+  const [mobileOpen,       setMobileOpen]       = useState(false);
+  const [requestOpen,      setRequestOpen]      = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -266,10 +333,14 @@ function AppLayout() {
     navigate('/login');
   };
 
+  const currentDrawerWidth = sidebarCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
+
   const drawerProps = {
     user, mode, toggleTheme, handleLogout,
     onNavigate: isMobile ? () => setMobileOpen(false) : undefined,
     onOpenRequest: () => setRequestOpen(true),
+    collapsed: !isMobile && sidebarCollapsed,
+    onToggleCollapse: () => setSidebarCollapsed(v => !v),
   };
 
   const drawerContent = (
@@ -351,13 +422,15 @@ function AppLayout() {
         <Drawer
           variant="permanent"
           sx={{
-            width: DRAWER_WIDTH,
+            width: currentDrawerWidth,
             flexShrink: 0,
+            transition: theme.transitions.create('width', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.enteringScreen }),
             '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
+              width: currentDrawerWidth,
               border: 'none',
               boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
               overflowX: 'hidden',
+              transition: theme.transitions.create('width', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.enteringScreen }),
             },
           }}
         >
