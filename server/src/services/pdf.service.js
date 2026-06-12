@@ -779,24 +779,37 @@ class PDFService {
         const cur   = (payslips[0]?.currency) || process.env.CURRENCY || 'BDT';
         const money = (n) => `${cur} ${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-
-        // ── Header band ─────────────────────────────────────────────────────
-        doc.rect(0, 0, PAGE_W, 66).fill('#1A3A72');
-        if (HAS_LOGO) {
-          doc.image(LOGO_PATH, MARGIN, 11, { height: 42, fit: [150, 42] });
-        } else {
-          doc.fontSize(16).font('Helvetica-Bold').fillColor('white').text(companyName, MARGIN, 12, { width: CW * 0.6 });
-        }
-        doc.fontSize(7.5).font('Helvetica').fillColor('rgba(255,255,255,0.5)').text('PAYSLIP SUMMARY REPORT', MARGIN, 57);
-        doc.fontSize(9).font('Helvetica').fillColor('rgba(255,255,255,0.85)')
-           .text(period.period_name, PAGE_W - MARGIN - 180, 14, { width: 180, align: 'right' });
-        doc.fontSize(8).font('Helvetica').fillColor('rgba(255,255,255,0.6)')
-           .text(`${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`, PAGE_W - MARGIN - 180, 30, { width: 180, align: 'right' });
         const typeLabel = period.period_type === 'foreign' ? 'International' : 'Local';
-        doc.fontSize(7).fillColor('rgba(255,255,255,0.4)')
-           .text(`${typeLabel}  ·  Generated ${fmtDate(new Date())}`, PAGE_W - MARGIN - 180, 46, { width: 180, align: 'right' });
 
-        let y = 82;
+        // ── White header with logo ───────────────────────────────────────────
+        const HDR_H = 84;
+        doc.rect(0, 0, PAGE_W, HDR_H).fill('white');
+
+        // Logo or company name — left
+        if (HAS_LOGO) {
+          doc.image(LOGO_PATH, MARGIN, 16, { height: 50, fit: [180, 50] });
+        } else {
+          doc.fontSize(17).font('Helvetica-Bold').fillColor('#1A3A72')
+             .text(companyName, MARGIN, 28, { width: CW * 0.5 });
+        }
+
+        // Period info — right column
+        const RX = PAGE_W - MARGIN - 195;
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#1B5FAD')
+           .text('PAYSLIP SUMMARY REPORT', RX, 18, { width: 195, align: 'right', characterSpacing: 0.5 });
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#1A3A72')
+           .text(period.period_name, RX, 30, { width: 195, align: 'right' });
+        doc.fontSize(8).font('Helvetica').fillColor('#64748b')
+           .text(`${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`, RX, 46, { width: 195, align: 'right' });
+        doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+           .text(`${typeLabel}  ·  Generated ${fmtDate(new Date())}`, RX, 59, { width: 195, align: 'right' });
+
+        // BIMS blue accent bar
+        doc.rect(0, HDR_H, PAGE_W, 4).fill('#1B5FAD');
+        // Thin teal underline
+        doc.rect(0, HDR_H + 4, PAGE_W, 2).fill('#00A09A');
+
+        let y = HDR_H + 16;
 
         // ── Summary totals band ──────────────────────────────────────────────
         const totalHours = payslips.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
@@ -804,20 +817,24 @@ class PDFService {
         const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount)   || 0), 0);
         const statW = CW / 4;
         const stats = [
-          { label: 'Employees',    value: String(payslips.length) },
-          { label: 'Total Hours',  value: `${parseFloat(totalHours.toFixed(2))}h` },
-          { label: 'Total Gross',  value: money(totalGross) },
-          { label: 'Total Net',    value: money(totalNet) },
+          { label: 'Employees',   value: String(payslips.length),               color: '#1B5FAD' },
+          { label: 'Total Hours', value: `${parseFloat(totalHours.toFixed(2))}h`, color: '#1A3A72' },
+          { label: 'Total Gross', value: money(totalGross),                      color: '#1A3A72' },
+          { label: 'Total Net',   value: money(totalNet),                        color: '#00A09A' },
         ];
-        doc.rect(MARGIN, y, CW, 44).fill('#f8f9fa');
+        doc.rect(MARGIN, y, CW, 50).fill('#f0f4f8').stroke();
+        doc.rect(MARGIN, y, CW, 50).lineWidth(0.5).strokeColor('#dde5ee').stroke();
         stats.forEach((s, i) => {
           const x = MARGIN + i * statW;
-          doc.fontSize(7).font('Helvetica').fillColor('#888888').text(s.label, x + 8, y + 8, { width: statW - 16 });
-          doc.fontSize(10).font('Helvetica-Bold').fillColor('#1a1a2e').text(s.value, x + 8, y + 20, { width: statW - 16 });
-          if (i > 0) doc.moveTo(x, y + 6).lineTo(x, y + 38).lineWidth(0.5).strokeColor('#e0e0e0').stroke();
+          if (i > 0) {
+            doc.moveTo(x, y + 8).lineTo(x, y + 42).lineWidth(0.5).strokeColor('#dde5ee').stroke();
+          }
+          doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+             .text(s.label, x + 10, y + 10, { width: statW - 20 });
+          doc.fontSize(11).font('Helvetica-Bold').fillColor(s.color)
+             .text(s.value, x + 10, y + 24, { width: statW - 20 });
         });
-        doc.rect(MARGIN, y, CW, 44).lineWidth(0.5).strokeColor('#e0e0e0').stroke();
-        y += 54;
+        y += 60;
 
         // ── Table ────────────────────────────────────────────────────────────
         const COLS = [
