@@ -380,7 +380,9 @@ export default function GenerateBankUpload() {
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           {(() => {
-            const incompleteCount = employees.filter(e => e.hire_category === dlType && getMissingBankFields(e).length > 0).length;
+            const periodEmpIds = new Set(payslips.map(p => p.employee_id));
+            const periodEmployees = employees.filter(e => periodEmpIds.has(e.id));
+            const incompleteCount = periodEmployees.filter(e => getMissingBankFields(e).length > 0).length;
             return incompleteCount > 0 ? (
               <Box sx={{ display: 'flex', gap: 1, bgcolor: '#f59e0b10', border: '1px solid #f59e0b30', borderRadius: '10px', p: 1.5, mb: 2 }}>
                 <WarningAmberIcon sx={{ fontSize: 15, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
@@ -393,12 +395,12 @@ export default function GenerateBankUpload() {
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Include Employees</Typography>
           <FormControlLabel
             control={<Checkbox checked={dlSelectAll} onChange={e => { setDlSelectAll(e.target.checked); setDlEmpIds([]); }} size="small" sx={{ color: '#10b981', '&.Mui-checked': { color: '#10b981' } }} />}
-            label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>All {dlType === 'foreign' ? 'Foreign' : 'Local'} Employees ({employees.filter(e => e.hire_category === dlType).length})</Typography>}
+            label={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>All {dlType === 'foreign' ? 'Foreign' : 'Local'} Employees ({periodEmployees.length})</Typography>}
           />
           {!dlSelectAll && (
             <Box sx={{ maxHeight: 200, overflowY: 'auto', border: '1px solid', borderColor: 'divider', mt: 1, borderRadius: '10px', overflow: 'hidden' }}>
               <List dense disablePadding>
-                {employees.filter(e => e.hire_category === dlType).map(emp => {
+                {periodEmployees.map(emp => {
                   const missing = getMissingBankFields(emp);
                   const incomplete = missing.length > 0;
                   return (

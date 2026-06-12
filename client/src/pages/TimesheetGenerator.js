@@ -442,6 +442,44 @@ export default function TimesheetGenerator() {
                     No {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employees exist in the system.
                   </Typography>
                 </Box>
+              ) : eligibleEmployees.length === 0 && doneEmployees.length > 0 ? (
+                // Partially done: some payslips generated, remaining employees not yet verified
+                <Box sx={{ py: 3, px: 2.5 }}>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                    <Chip icon={<CheckCircleIcon sx={{ fontSize: '13px !important' }} />}
+                      label={`${doneEmployees.length} payslip${doneEmployees.length !== 1 ? 's' : ''} generated`}
+                      size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.7rem', '& .MuiChip-icon': { color: '#10b981' } }} />
+                    {pendingEmployees.length > 0 && (
+                      <Chip label={`${pendingEmployees.length} not yet verified`}
+                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem' }} />
+                    )}
+                    {rejectedEmployees.length > 0 && (
+                      <Chip label={`${rejectedEmployees.length} rejected`}
+                        size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                  <Box sx={{ bgcolor: '#10b9810a', border: '1px solid #10b98130', borderRadius: '12px', p: 2, mb: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                      <CheckCircleIcon sx={{ fontSize: 18, color: '#10b981', mt: 0.1, flexShrink: 0 }} />
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#065f46', mb: 0.4 }}>
+                          Payroll partially processed
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#065f46', lineHeight: 1.5 }}>
+                          {doneEmployees.length} payslip{doneEmployees.length !== 1 ? 's have' : ' has'} already been generated.
+                          {pendingEmployees.length > 0 && ` ${pendingEmployees.length} remaining employee${pendingEmployees.length !== 1 ? 's' : ''} need${pendingEmployees.length === 1 ? 's' : ''} timesheet verification before they can be processed.`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  {(pendingEmployees.length > 0 || rejectedEmployees.length > 0) && (
+                    <Button component={Link} to="/wrike" variant="outlined" size="small" startIcon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
+                      sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem',
+                        borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110', borderColor: '#6366f1' } }}>
+                      Verify Remaining Employees
+                    </Button>
+                  )}
+                </Box>
               ) : eligibleEmployees.length === 0 ? (
                 <Box sx={{ py: 3, px: 2.5 }}>
                   {/* Status breakdown */}
