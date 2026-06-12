@@ -782,27 +782,28 @@ class PDFService {
         const typeLabel = period.period_type === 'foreign' ? 'International' : 'Local';
 
         // ── White header with logo ───────────────────────────────────────────
-        const HDR_H = 84;
+        const HDR_H = 96;
         doc.rect(0, 0, PAGE_W, HDR_H).fill('white');
 
         // Logo or company name — left
         if (HAS_LOGO) {
-          doc.image(LOGO_PATH, MARGIN, 16, { height: 50, fit: [180, 50] });
+          doc.image(LOGO_PATH, MARGIN, 20, { height: 50, fit: [180, 50] });
         } else {
           doc.fontSize(17).font('Helvetica-Bold').fillColor('#1A3A72')
-             .text(companyName, MARGIN, 28, { width: CW * 0.5 });
+             .text(companyName, MARGIN, 32, { width: CW * 0.5 });
         }
 
-        // Period info — right column
-        const RX = PAGE_W - MARGIN - 195;
+        // Period info — right column (wider to prevent period name wrapping)
+        const RC_W = 230;
+        const RX = PAGE_W - MARGIN - RC_W;
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#1B5FAD')
-           .text('PAYSLIP SUMMARY REPORT', RX, 18, { width: 195, align: 'right', characterSpacing: 0.5 });
-        doc.fontSize(11).font('Helvetica-Bold').fillColor('#1A3A72')
-           .text(period.period_name, RX, 30, { width: 195, align: 'right' });
+           .text('PAYSLIP SUMMARY REPORT', RX, 16, { width: RC_W, align: 'right', characterSpacing: 0.5 });
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#1A3A72')
+           .text(period.period_name, RX, 28, { width: RC_W, align: 'right', lineBreak: false });
         doc.fontSize(8).font('Helvetica').fillColor('#64748b')
-           .text(`${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`, RX, 46, { width: 195, align: 'right' });
+           .text(`${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`, RX, 44, { width: RC_W, align: 'right' });
         doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
-           .text(`${typeLabel}  ·  Generated ${fmtDate(new Date())}`, RX, 59, { width: 195, align: 'right' });
+           .text(`${typeLabel}  ·  Generated ${fmtDate(new Date())}`, RX, 58, { width: RC_W, align: 'right' });
 
         // BIMS blue accent bar
         doc.rect(0, HDR_H, PAGE_W, 4).fill('#1B5FAD');
