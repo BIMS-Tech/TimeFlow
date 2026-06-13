@@ -247,7 +247,7 @@ export default function UserManagement() {
 
       {/* Role legend */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-        {ALL_ROLES.map(r => <RoleChip key={r} role={r} />)}
+        {ASSIGNABLE_ROLES.map(r => <RoleChip key={r} role={r} />)}
       </Box>
 
       {/* Table */}
