@@ -147,7 +147,7 @@ export const payslipsAPI = {
   downloadPDF: (id) => api.get(`/timesheet/payslips/${id}/pdf`, { responseType: 'blob' }),
   delete: (id) => api.delete(`/timesheet/payslips/${id}`),
   releaseOne: (id) => api.post(`/timesheet/payslips/${id}/release`),
-  downloadBankFile: async (periodId, type, employeeIds = null) => {
+  downloadBankFile: async (periodId, type, employeeIds = null, periodName = null) => {
     const params = new URLSearchParams({ periodId, type });
     if (employeeIds && employeeIds.length) params.set('employeeIds', employeeIds.join(','));
     const token = localStorage.getItem('token');
@@ -158,9 +158,9 @@ export const payslipsAPI = {
       const err = await res.json().catch(() => ({ error: 'Download failed' }));
       throw new Error(err.error || 'Download failed');
     }
-    const disposition = res.headers.get('Content-Disposition') || '';
-    const match = disposition.match(/filename="?([^"]+)"?/);
-    const filename = match ? match[1] : `bank_transfer_${type}_${periodId}.xlsx`;
+    const safeName = periodName ? periodName.replace(/[^a-zA-Z0-9-]/g, '_') : periodId;
+    const typeLabel = type === 'foreign' ? 'Foreign' : 'Local';
+    const filename = `BankTransfer_${typeLabel}_${safeName}.xlsx`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

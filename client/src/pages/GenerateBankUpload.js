@@ -104,7 +104,7 @@ export default function GenerateBankUpload() {
     if (!selectedPeriod) return;
     setDlLoading(true);
     try {
-      await payslipsAPI.downloadBankFile(selectedPeriod.id, dlType, dlSelectAll ? null : dlEmpIds);
+      await payslipsAPI.downloadBankFile(selectedPeriod.id, dlType, dlSelectAll ? null : dlEmpIds, selectedPeriod.period_name);
       // Record the download against this period
       const updated = await timesheetAPI.markBankDownloaded(selectedPeriod.id, dlType);
       if (updated?.success) {
