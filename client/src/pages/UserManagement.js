@@ -28,6 +28,7 @@ const ROLE_META = {
 };
 
 const ALL_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager', 'employee'];
+const ASSIGNABLE_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
@@ -367,7 +368,7 @@ export default function UserManagement() {
           <FormControl size="small" fullWidth error={!!addErr.role}>
             <InputLabel>Role</InputLabel>
             <Select label="Role" value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}>
-              {ALL_ROLES.map(r => (
+              {ASSIGNABLE_ROLES.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>
@@ -376,7 +377,8 @@ export default function UserManagement() {
             <strong>Super Admin</strong> — full access + manage all users<br />
             <strong>HR</strong> — employee profiles, rates, timesheets<br />
             <strong>Payroll Officer</strong> — pay periods, payslips, bank file generation<br />
-            <strong>Employee</strong> — portal access only (auto-assigned via Employees page)
+            <strong>Accounting Manager</strong> — view payslips and financial reports<br />
+            Employee accounts are created automatically via the Employees page.
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -412,7 +414,7 @@ export default function UserManagement() {
               onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
               disabled={editUser && String(editUser.id) === String(currentUser?.id)}
             >
-              {ALL_ROLES.map(r => (
+              {ASSIGNABLE_ROLES.map(r => (
                 <MenuItem key={r} value={r}>{ROLE_META[r]?.label || r}</MenuItem>
               ))}
             </Select>
