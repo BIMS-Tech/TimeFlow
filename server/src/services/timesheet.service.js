@@ -993,7 +993,7 @@ class TimesheetService {
       const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       return {
         content: buffer,
-        filename: `bank_transfer_dft_${periodId}.xlsx`,
+        filename: `BankTransfer_Foreign_${period.period_name.replace(/[^a-zA-Z0-9-]/g, '_')}.xlsx`,
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         skipped,
       };
@@ -1018,7 +1018,7 @@ class TimesheetService {
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return {
       content: buffer,
-      filename: `bank_transfer_xcs_${periodId}.xlsx`,
+      filename: `BankTransfer_Local_${period.period_name.replace(/[^a-zA-Z0-9-]/g, '_')}.xlsx`,
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       skipped,
     };
