@@ -158,9 +158,11 @@ export const payslipsAPI = {
       const err = await res.json().catch(() => ({ error: 'Download failed' }));
       throw new Error(err.error || 'Download failed');
     }
-    const safeName = periodName ? periodName.replace(/[^a-zA-Z0-9-]/g, '_') : periodId;
-    const typeLabel = type === 'foreign' ? 'Foreign' : 'Local';
-    const filename = `BankTransfer_${typeLabel}_${safeName}.xlsx`;
+    const safeName = periodName
+      ? periodName.replace(/[()[\]]/g, '').trim().replace(/[^a-zA-Z0-9-]+/g, '_').replace(/_+$/g, '')
+      : periodId;
+    const typeLabel = type === 'foreign' ? 'Intl' : 'LCL';
+    const filename = `BT_${typeLabel}_${safeName}.xlsx`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
