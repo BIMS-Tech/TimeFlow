@@ -149,6 +149,7 @@ router.get('/timesheet/periods/:id/summaries', timesheetController.getPeriodSumm
  */
 router.get('/timesheet/periods/:id/payslips', timesheetController.getPeriodPayslips.bind(timesheetController));
 router.get('/timesheet/periods/:id/summary-pdf', timesheetController.downloadPeriodSummaryPDF.bind(timesheetController));
+router.get('/timesheet/periods/:id/summary-xlsx', timesheetController.downloadPeriodSummaryXLSX.bind(timesheetController));
 
 // ============================================
 // SUMMARY ROUTES

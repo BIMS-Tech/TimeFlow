@@ -16,6 +16,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import LockIcon from '@mui/icons-material/Lock';
+import SearchIcon from '@mui/icons-material/Search';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -112,6 +113,9 @@ export default function GenerateTimesheets() {
   const [editingId,     setEditingId]     = useState(null);
   const [bulking,       setBulking]       = useState(false);
   const [syncing,       setSyncing]       = useState(false);
+  const [search,        setSearch]        = useState('');
+  const [statusFilter,  setStatusFilter]  = useState('all');
+  const [periodSearch,  setPeriodSearch]  = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -125,6 +129,8 @@ export default function GenerateTimesheets() {
     if (!periodId) return;
     setDataLoading(true);
     setEditingId(null);
+    setSearch('');
+    setStatusFilter('all');
     try {
       const res = await verificationsAPI.getForPeriod(periodId);
       setData(res.data || []);
@@ -170,12 +176,16 @@ export default function GenerateTimesheets() {
     }
   };
 
-  // Periods filtered by tab type
-  const filteredPeriods = periods.filter(p =>
-    tab === 'local'
+  // Periods filtered by tab type + search term
+  const pq = periodSearch.trim().toLowerCase();
+  const filteredPeriods = periods.filter(p => {
+    const matchesType = tab === 'local'
       ? (!p.period_type || p.period_type === 'local')
-      : p.period_type === 'foreign'
-  );
+      : p.period_type === 'foreign';
+    if (!matchesType) return false;
+    if (!pq) return true;
+    return (p.period_name || '').toLowerCase().includes(pq);
+  });
 
   const verifiedCount  = data.filter(r => r.status === 'verified').length;
   const pendingCount   = data.filter(r => r.status === 'pending').length;
@@ -186,6 +196,26 @@ export default function GenerateTimesheets() {
   const periodLocked   = selectedPeriod?.status !== 'open';
 
   const tabColor = TYPE_TABS.find(t => t.value === tab)?.color || '#6366f1';
+
+  // Filter the employee rows by search term + status
+  const q = search.trim().toLowerCase();
+  const filteredData = data.filter(r => {
+    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+    if (!q) return true;
+    const emp = r.employee || {};
+    return (
+      (emp.name || '').toLowerCase().includes(q) ||
+      (emp.employee_id || '').toLowerCase().includes(q) ||
+      (emp.department || '').toLowerCase().includes(q)
+    );
+  });
+
+  const STATUS_FILTERS = [
+    { value: 'all',      label: 'All',      count: data.length,    color: tabColor },
+    { value: 'verified', label: 'Verified', count: verifiedCount,  color: '#10b981' },
+    { value: 'pending',  label: 'Pending',  count: pendingCount,   color: '#f59e0b' },
+    { value: 'rejected', label: 'Rejected', count: rejectedCount,  color: '#ef4444' },
+  ];
 
   return (
     <Box>
@@ -238,6 +268,23 @@ export default function GenerateTimesheets() {
                   <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', mt: 0.25 }}>{t.badge}</Typography>
                 </Box>
               ))}
+            </Box>
+
+            {/* Period search */}
+            <Box sx={{ px: 1.25, py: 1, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+              <TextField
+                size="small" fullWidth placeholder="Search period…"
+                value={periodSearch} onChange={e => setPeriodSearch(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment>,
+                  endAdornment: periodSearch ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setPeriodSearch('')}><CloseIcon sx={{ fontSize: 14 }} /></IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '0.76rem' } }}
+              />
             </Box>
 
             {/* Period list */}
@@ -337,6 +384,40 @@ export default function GenerateTimesheets() {
                       Review hours below. Override if needed, add cash advances/deductions, then <strong>Verify</strong> each employee. Only verified employees proceed to payroll.
                     </Alert>
                   )}
+                  {/* Filter toolbar */}
+                  <Box sx={{ border: '1px solid', borderTop: 'none', borderColor: 'divider', px: 2.5, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', bgcolor: 'background.paper' }}>
+                    <TextField
+                      size="small" placeholder="Search employee, ID or department…"
+                      value={search} onChange={e => setSearch(e.target.value)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} /></InputAdornment>,
+                        endAdornment: search ? (
+                          <InputAdornment position="end">
+                            <IconButton size="small" onClick={() => setSearch('')}><CloseIcon sx={{ fontSize: 15 }} /></IconButton>
+                          </InputAdornment>
+                        ) : null,
+                      }}
+                      sx={{ width: 300, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.82rem' } }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                      {STATUS_FILTERS.map(f => {
+                        const active = statusFilter === f.value;
+                        return (
+                          <Chip key={f.value} label={`${f.label} (${f.count})`} size="small"
+                            onClick={() => setStatusFilter(f.value)}
+                            sx={{ fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', borderRadius: '8px',
+                              border: '1px solid', borderColor: active ? f.color : 'divider',
+                              bgcolor: active ? `${f.color}15` : 'transparent',
+                              color: active ? f.color : 'text.secondary',
+                              '&:hover': { bgcolor: `${f.color}12` } }} />
+                        );
+                      })}
+                    </Box>
+                    <Box sx={{ flex: 1 }} />
+                    <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>
+                      Showing {filteredData.length} of {data.length}
+                    </Typography>
+                  </Box>
                   <Paper elevation={0} sx={{ borderRadius: '0 0 16px 16px', border: '1px solid', borderColor: 'divider', borderTop: 'none', overflow: 'hidden' }}>
                     <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
@@ -351,7 +432,15 @@ export default function GenerateTimesheets() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {data.map(row => {
+                          {filteredData.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={isReadOnly || periodLocked ? 5 : 6} sx={{ ...TD, textAlign: 'center', py: 5, color: 'text.disabled' }}>
+                                <SearchIcon sx={{ fontSize: 28, opacity: 0.3, mb: 0.5, display: 'block', mx: 'auto' }} />
+                                No employees match the current filter
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {filteredData.map(row => {
                             const emp      = row.employee;
                             const ver      = row.verification;
                             const isEdit   = editingId === emp.id;

@@ -122,6 +122,15 @@ export const timesheetAPI = {
     a.click();
     URL.revokeObjectURL(url);
   },
+  downloadSummaryXLSX: async (periodId, periodName) => {
+    const res = await api.get(`/timesheet/periods/${periodId}/summary-xlsx`, { responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PayslipSummary_${(periodName || periodId).replace(/[^a-zA-Z0-9-]/g, '_')}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   getSummary: (id) => api.get(`/timesheet/summaries/${id}`),
   resendApproval: (id) => api.post(`/timesheet/summaries/${id}/resend`),
   approveSummary: (id) => api.post(`/timesheet/summaries/${id}/approve`),

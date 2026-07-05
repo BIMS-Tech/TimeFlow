@@ -121,6 +121,8 @@ export default function TimesheetGenerator() {
   const [periods, setPeriods]               = useState([]);
   const [periodsLoading, setPeriodsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
+  const [periodSearch, setPeriodSearch]     = useState('');
   const [verificationStatus, setVerificationStatus] = useState({});
   const [verLoading,         setVerLoading]         = useState(false);
   const [payslipEmpIds,      setPayslipEmpIds]      = useState(new Set());
@@ -158,6 +160,16 @@ export default function TimesheetGenerator() {
   };
 
   const [bulkResults, setBulkResults] = useState(null);
+
+  // Pay periods filtered by type (local/international) + search term
+  const pq = periodSearch.trim().toLowerCase();
+  const visiblePeriods = periods.filter(p => {
+    const isForeign = p.period_type === 'foreign';
+    if (periodTypeFilter === 'local' && isForeign) return false;
+    if (periodTypeFilter === 'foreign' && !isForeign) return false;
+    if (!pq) return true;
+    return (p.period_name || '').toLowerCase().includes(pq);
+  });
 
   // Employees filtered by period type AND verified status
   const periodCategory = selectedPeriod?.period_type === 'foreign' ? 'foreign' : 'local';
@@ -343,6 +355,44 @@ export default function TimesheetGenerator() {
                 </Button>
               </Box>
 
+              {!periodsLoading && periods.length > 0 && (
+                <Box sx={{ px: 1.5, pt: 1.25, pb: 1, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {[
+                      { value: 'all',     label: 'All',           color: '#6366f1' },
+                      { value: 'local',   label: 'Local',         color: '#6366f1' },
+                      { value: 'foreign', label: 'International',  color: '#0ea5e9' },
+                    ].map(t => {
+                      const active = periodTypeFilter === t.value;
+                      return (
+                        <Box key={t.value} onClick={() => setPeriodTypeFilter(t.value)}
+                          sx={{ flex: 1, textAlign: 'center', py: 0.5, cursor: 'pointer', borderRadius: '7px',
+                            border: '1px solid', borderColor: active ? t.color : 'divider',
+                            bgcolor: active ? `${t.color}12` : 'transparent',
+                            transition: 'all 0.15s', '&:hover': { bgcolor: `${t.color}10` } }}>
+                          <Typography sx={{ fontSize: '0.68rem', fontWeight: active ? 700 : 500, color: active ? t.color : 'text.secondary' }}>
+                            {t.label}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                  <TextField
+                    size="small" placeholder="Search period…"
+                    value={periodSearch} onChange={e => setPeriodSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment>,
+                      endAdornment: periodSearch ? (
+                        <InputAdornment position="end">
+                          <Box component="span" onClick={() => setPeriodSearch('')} sx={{ cursor: 'pointer', color: 'text.disabled', fontSize: '1rem', lineHeight: 1, px: 0.5 }}>×</Box>
+                        </InputAdornment>
+                      ) : null,
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '0.76rem' } }}
+                  />
+                </Box>
+              )}
+
               {periodsLoading ? (
                 <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
               ) : periods.length === 0 ? (
@@ -355,7 +405,11 @@ export default function TimesheetGenerator() {
                 </Box>
               ) : (
                 <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
-                  {periods.map((p, idx) => {
+                  {visiblePeriods.length === 0 ? (
+                    <Box sx={{ py: 4, textAlign: 'center', px: 2 }}>
+                      <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled' }}>No periods match your filter</Typography>
+                    </Box>
+                  ) : visiblePeriods.map((p, idx) => {
                     const sel       = selectedPeriod?.id === p.id;
                     const typeColor = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
                     const statusLabel = PERIOD_STATUS_LABEL[p.status] || p.status;
@@ -366,7 +420,7 @@ export default function TimesheetGenerator() {
                         sx={{ px: 2, py: 1.25, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           bgcolor: sel ? `${typeColor}08` : 'transparent',
                           borderLeft: sel ? `3px solid ${typeColor}` : '3px solid transparent',
-                          borderBottom: idx < periods.length - 1 ? '1px solid' : 'none',
+                          borderBottom: idx < visiblePeriods.length - 1 ? '1px solid' : 'none',
                           borderBottomColor: 'divider', transition: 'all 0.15s',
                           '&:hover': { bgcolor: sel ? `${typeColor}10` : 'action.hover' } }}>
                         <Box sx={{ flex: 1, minWidth: 0 }}>

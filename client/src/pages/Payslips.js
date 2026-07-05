@@ -6,6 +6,7 @@ import {
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, CircularProgress, Grid, Divider, Checkbox,
   List, ListItem, ListItemText, LinearProgress,
+  Menu, MenuItem, ListItemIcon,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -19,6 +20,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import DownloadIcon from '@mui/icons-material/Download';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PeopleIcon from '@mui/icons-material/People';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -77,6 +80,7 @@ export default function Payslips() {
 
   const [releasing, setReleasing]           = useState(false);
   const [dlSummary, setDlSummary]           = useState(false);
+  const [summaryMenuEl, setSummaryMenuEl]   = useState(null);
   const [releasingId, setReleasingId]       = useState(null);
 
   useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -249,19 +253,39 @@ export default function Payslips() {
             <span>
               <Button variant="outlined"
                 startIcon={dlSummary ? <CircularProgress size={14} /> : <DownloadIcon sx={{ fontSize: '16px !important' }} />}
+                endIcon={!dlSummary ? <ExpandMoreIcon sx={{ fontSize: '16px !important' }} /> : null}
                 disabled={dlSummary || !selectedPeriod || payslips.length === 0}
-                onClick={async () => {
-                  setDlSummary(true);
-                  try { await timesheetAPI.downloadSummaryPDF(selectedPeriod.id, selectedPeriod.period_name); }
-                  catch { toast.error('Failed to download summary'); }
-                  finally { setDlSummary(false); }
-                }}
+                onClick={(e) => setSummaryMenuEl(e.currentTarget)}
                 sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
                   borderColor: 'divider', color: 'text.secondary' }}>
                 {dlSummary ? 'Generating…' : 'Download Summary'}
               </Button>
             </span>
           </Tooltip>
+          <Menu anchorEl={summaryMenuEl} open={Boolean(summaryMenuEl)} onClose={() => setSummaryMenuEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <MenuItem onClick={async () => {
+              setSummaryMenuEl(null);
+              setDlSummary(true);
+              try { await timesheetAPI.downloadSummaryPDF(selectedPeriod.id, selectedPeriod.period_name); }
+              catch { toast.error('Failed to download summary'); }
+              finally { setDlSummary(false); }
+            }}>
+              <ListItemIcon><PictureAsPdfIcon sx={{ fontSize: 18, color: '#ef4444' }} /></ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>PDF (.pdf)</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={async () => {
+              setSummaryMenuEl(null);
+              setDlSummary(true);
+              try { await timesheetAPI.downloadSummaryXLSX(selectedPeriod.id, selectedPeriod.period_name); }
+              catch { toast.error('Failed to download summary'); }
+              finally { setDlSummary(false); }
+            }}>
+              <ListItemIcon><TableChartIcon sx={{ fontSize: 18, color: '#10b981' }} /></ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Excel (.xlsx)</ListItemText>
+            </MenuItem>
+          </Menu>
           {!isReadOnly && !payslipsLocked && (
             <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
                 onClick={() => setShowBulkPanel(v => !v)}

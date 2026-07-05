@@ -84,6 +84,64 @@ class CsvService {
     if (!d) return '';
     return String(d).substring(0, 10);
   }
+
+  /**
+   * Generate a payslip summary workbook (.xlsx) for a period.
+   * Mirrors the columns/totals of the summary PDF.
+   * @returns {{ filePath, fileName }}
+   */
+  async generateSummaryXLSX(payslips, period) {
+    const XLSX = require('xlsx');
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+    const cur = (payslips[0] && payslips[0].currency) || process.env.CURRENCY || 'BDT';
+    const typeLabel = period.period_type === 'foreign' ? 'International' : 'Local';
+    const num = (n) => Number(parseFloat(n || 0).toFixed(2));
+
+    const totalHours = payslips.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
+    const totalGross = payslips.reduce((s, p) => s + (parseFloat(p.gross_amount) || 0), 0);
+    const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount)   || 0), 0);
+
+    // Build sheet as an array-of-arrays so we can include a title block + totals
+    const rows = [];
+    rows.push(['PAYSLIP SUMMARY REPORT']);
+    rows.push(['Period', period.period_name]);
+    rows.push(['Dates', `${this._formatDate(period.start_date)} to ${this._formatDate(period.end_date)}`]);
+    rows.push(['Type', typeLabel]);
+    rows.push(['Currency', cur]);
+    rows.push([]);
+    rows.push(['Employees', payslips.length, 'Total Hours', num(totalHours), 'Total Gross', num(totalGross), 'Total Net', num(totalNet)]);
+    rows.push([]);
+    rows.push(['#', 'Payslip No.', 'Employee', 'Hours', 'Gross', 'Net Pay', 'Status']);
+
+    payslips.forEach((p, idx) => {
+      rows.push([
+        idx + 1,
+        p.payslip_number || '',
+        p.employee_name || '',
+        num(p.total_hours),
+        num(p.gross_amount),
+        num(p.net_amount),
+        (p.status || '').charAt(0).toUpperCase() + (p.status || '').slice(1),
+      ]);
+    });
+
+    rows.push(['', '', 'TOTAL', num(totalHours), num(totalGross), num(totalNet), '']);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 5 }, { wch: 18 }, { wch: 28 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Payslip Summary');
+
+    const safePeriod = (period.period_name || 'period').replace(/[^a-zA-Z0-9-]/g, '_');
+    const fileName = `PayslipSummary_${safePeriod}.xlsx`;
+    const filePath = path.join(uploadsDir, fileName);
+    XLSX.writeFile(wb, filePath);
+
+    return { fileName, filePath };
+  }
 }
 
 module.exports = new CsvService();

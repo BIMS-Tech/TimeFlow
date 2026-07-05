@@ -140,7 +140,13 @@ export default function GenerateBankUpload() {
 
   const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount) || 0), 0);
   const dlPeriodEmpIds  = new Set(payslips.map(p => p.employee_id));
-  const dlPeriodEmployees = employees.filter(e => dlPeriodEmpIds.has(e.id));
+  // Only include employees whose category matches the file being downloaded
+  const dlPeriodEmployees = employees.filter(e =>
+    dlPeriodEmpIds.has(e.id) &&
+    (dlType === 'foreign'
+      ? e.hire_category === 'foreign'
+      : (e.hire_category || 'local') === 'local')
+  );
 
   const isLocal   = !selectedPeriod?.period_type || selectedPeriod?.period_type === 'local';
   const localDone  = !!selectedPeriod?.local_bank_downloaded_at;
@@ -271,24 +277,27 @@ export default function GenerateBankUpload() {
 
                 {/* Action buttons */}
                 <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Button variant="outlined" startIcon={<DownloadIcon />}
-                    onClick={() => openDownload('local')}
-                    disabled={payslips.length === 0}
-                    sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                      borderColor: localDone ? '#10b981' : 'divider',
-                      color: localDone ? '#10b981' : 'text.secondary',
-                      '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
-                    {localDone ? 'Re-download Local File' : 'Download Local Bank File'}
-                  </Button>
-                  <Button variant="outlined" startIcon={<DownloadIcon />}
-                    onClick={() => openDownload('foreign')}
-                    disabled={payslips.length === 0}
-                    sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                      borderColor: foreignDone ? '#10b981' : 'divider',
-                      color: foreignDone ? '#10b981' : 'text.secondary',
-                      '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
-                    {foreignDone ? 'Re-download Foreign File' : 'Download Foreign Bank File'}
-                  </Button>
+                  {isLocal ? (
+                    <Button variant="outlined" startIcon={<DownloadIcon />}
+                      onClick={() => openDownload('local')}
+                      disabled={payslips.length === 0}
+                      sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                        borderColor: localDone ? '#10b981' : 'divider',
+                        color: localDone ? '#10b981' : 'text.secondary',
+                        '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                      {localDone ? 'Re-download Local File' : 'Download Local Bank File'}
+                    </Button>
+                  ) : (
+                    <Button variant="outlined" startIcon={<DownloadIcon />}
+                      onClick={() => openDownload('foreign')}
+                      disabled={payslips.length === 0}
+                      sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+                        borderColor: foreignDone ? '#10b981' : 'divider',
+                        color: foreignDone ? '#10b981' : 'text.secondary',
+                        '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                      {foreignDone ? 'Re-download Foreign File' : 'Download Foreign Bank File'}
+                    </Button>
+                  )}
                   <Button variant="contained"
                     startIcon={markingUploaded ? <CircularProgress size={14} sx={{ color: 'white' }} /> : uploadDone ? <CheckCircleIcon /> : <CheckCircleIcon />}
                     onClick={handleMarkUploaded}

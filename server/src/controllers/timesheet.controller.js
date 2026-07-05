@@ -521,6 +521,32 @@ class TimesheetController {
   }
 
   /**
+   * Download payslip summary as an Excel workbook for a period
+   * GET /api/timesheet/periods/:id/summary-xlsx
+   */
+  async downloadPeriodSummaryXLSX(req, res) {
+    const fs   = require('fs');
+    const csvService = require('../services/csv.service');
+    try {
+      const period = await PayPeriod.findById(req.params.id);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+
+      const payslips = await Payslip.findByPeriod(req.params.id);
+      if (!payslips.length) return res.status(400).json({ success: false, error: 'No payslips found for this period' });
+
+      const { fileName, filePath } = await csvService.generateSummaryXLSX(payslips, period);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+      stream.on('end', () => { try { fs.unlinkSync(filePath); } catch {} });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Release a single payslip to the employee
    * POST /api/timesheet/payslips/:id/release
    */
