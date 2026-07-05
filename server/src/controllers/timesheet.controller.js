@@ -643,7 +643,7 @@ class TimesheetController {
         data: period
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(error.code === 'PERIOD_TYPE_CONFLICT' ? 409 : 500).json({
         success: false,
         error: error.message
       });
@@ -696,7 +696,7 @@ class TimesheetController {
       const period = await PayPeriod.createForeignMonthlyPeriod(parseInt(year), parseInt(month));
       res.status(201).json({ success: true, data: period });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(error.code === 'PERIOD_TYPE_CONFLICT' ? 409 : 500).json({ success: false, error: error.message });
     }
   }
 

@@ -62,10 +62,26 @@ class PayPeriod {
   static async create(data) {
     const start = String(data.start_date).substring(0, 10);
     const end   = String(data.end_date).substring(0, 10);
+    const requestedType = data.period_type || 'local';
 
-    // Check first to avoid hitting the unique constraint
+    // A period is unique by date range (DB enforces UNIQUE(start_date, end_date)).
+    // If one already exists for these dates:
+    //   - same type  → idempotent, return it
+    //   - other type → reject clearly, since both cannot share the same dates
     const existing = await this.findByDateRange(start, end);
-    if (existing) return existing;
+    if (existing) {
+      const existingType = existing.period_type || 'local';
+      if (existingType !== requestedType) {
+        const label = (t) => (t === 'foreign' ? 'International' : 'Local');
+        const err = new Error(
+          `A ${label(existingType)} period ("${existing.period_name}") already exists for ${start} to ${end}. ` +
+          `A Local and an International period can't share the same dates — edit that period's type or pick different dates.`
+        );
+        err.code = 'PERIOD_TYPE_CONFLICT';
+        throw err;
+      }
+      return existing;
+    }
 
     const id = await db.insert('pay_periods', {
       period_name: data.period_name,
