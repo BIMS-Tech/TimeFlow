@@ -150,7 +150,7 @@ export default function GenerateTimesheet() {
     try {
       const res = await wrikeAPI.importPeriod(selectedPeriod.id);
       const { imported, updated = 0, deleted = 0, skipped } = res.data || res;
-      toast.success(`Synced from Wrike: ${imported} new, ${updated} corrected, ${deleted} removed, ${skipped} unchanged`);
+      toast.success(`Synced from Wrike: ${imported} new, ${updated} corrected, ${deleted} removed, ${skipped} unchanged`, { duration: 6000 });
       fetchVerifications(selectedPeriod.id);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Wrike sync failed');

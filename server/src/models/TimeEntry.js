@@ -143,10 +143,13 @@ class TimeEntry {
 
   /**
    * Fetch all Wrike-sourced entries for a set of employees within a date range in one query.
-   * Returns a Map keyed by `${employee_id}|${wrikeLogId}` → { id, hours_worked, category },
-   * where the Wrike log ID is parsed from the `[logId]` prefix of task_description.
-   * Used by the importer to detect duplicates and detect changed hours without a
-   * per-row SELECT.
+   * Returns a Map keyed by `${employee_id}|${wrikeLogId}` → ARRAY of matching rows
+   * ({ id, employee_id, hours_worked, category }), where the Wrike log ID is parsed
+   * from the `[logId]` prefix of task_description.
+   *
+   * The value is an array (not a single row) on purpose: the same Wrike log can have
+   * been imported into MULTIPLE rows by earlier buggy imports. The reconciler needs to
+   * see every copy so it can keep one and delete the duplicates.
    */
   static async getWrikeEntryMap(employeeIds, startDate, endDate) {
     const map = new Map();
@@ -158,19 +161,24 @@ class TimeEntry {
        FROM time_entries
        WHERE source = 'wrike'
          AND employee_id IN (${placeholders})
-         AND entry_date >= ? AND entry_date <= ?`,
+         AND entry_date >= ? AND entry_date <= ?
+       ORDER BY id ASC`,
       [...employeeIds, startDate, endDate]
     );
 
     for (const r of rows) {
       const match = (r.task_description || '').match(/^\[([^\]]+)\]/);
       if (!match) continue;
-      map.set(`${r.employee_id}|${match[1]}`, {
+      const key = `${r.employee_id}|${match[1]}`;
+      const entry = {
         id: r.id,
         employee_id: r.employee_id,
         hours_worked: parseFloat(r.hours_worked) || 0,
         category: r.category,
-      });
+      };
+      const bucket = map.get(key);
+      if (bucket) bucket.push(entry);
+      else map.set(key, [entry]);
     }
     return map;
   }

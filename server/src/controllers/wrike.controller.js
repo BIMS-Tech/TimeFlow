@@ -94,7 +94,9 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
 
   const toInsert = [];
   const toUpdate = [];
+  const toDelete = [];           // ids to remove: duplicate copies + (later) stale rows
   const presentKeys = new Set(); // employee|logId still present in the (filtered) fetch
+  let deduped = 0;
   let skipped = 0;
 
   for (const [wrikeUserId, logs] of Object.entries(byUser)) {
@@ -107,16 +109,26 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
       const key = `${emp.id}|${log.logId}`;
       presentKeys.add(key);
 
+      // hours_worked is DECIMAL(5,2) — round to the column's precision so a re-sync
+      // compares like-for-like. Wrike returns full-precision hours (e.g. 0.5666…),
+      // and comparing that against the stored 0.57 would flag every row as "changed"
+      // on every sync, churning pointless UPDATEs while the total never moves.
+      const hrs = Math.round(log.hours * 100) / 100;
       const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
-      const existing = existingMap.get(key);
+      const rows = existingMap.get(key);
 
-      if (existing) {
-        // Re-sync corrects entries whose hours/category changed in Wrike since last import
+      if (rows && rows.length) {
+        // Keep the first row as canonical; any further rows are duplicate imports of the
+        // same Wrike log (they inflate the total) — delete them.
+        const canonical = rows[0];
+        for (let i = 1; i < rows.length; i++) { toDelete.push(rows[i].id); deduped++; }
+
+        // Re-sync corrects the canonical row when hours/category changed in Wrike
         const changes = {};
-        if (Math.abs(existing.hours_worked - log.hours) > 0.001) changes.hours_worked = log.hours;
-        if (categoryName && existing.category !== categoryName) changes.category = categoryName;
+        if (Math.abs(canonical.hours_worked - hrs) >= 0.005) changes.hours_worked = hrs;
+        if (categoryName && canonical.category !== categoryName) changes.category = categoryName;
 
-        if (Object.keys(changes).length) toUpdate.push({ id: existing.id, changes });
+        if (Object.keys(changes).length) toUpdate.push({ id: canonical.id, changes });
         else skipped++;
         continue;
       }
@@ -125,7 +137,7 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
       toInsert.push({
         employee_id:      emp.id,
         entry_date:       log.date,
-        hours_worked:     log.hours,
+        hours_worked:     hrs,
         task_description: description,
         project_name:     taskTitles[log.taskId] || null,
         wrike_task_id:    log.taskId || null,
@@ -148,9 +160,10 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
     }
   }
 
-  const toDelete = [];
-  for (const [key, entry] of existingMap) {
-    if (!presentKeys.has(key) && okEmpIds.has(entry.employee_id)) toDelete.push(entry.id);
+  for (const [key, rows] of existingMap) {
+    if (!presentKeys.has(key) && okEmpIds.has(rows[0].employee_id)) {
+      for (const r of rows) toDelete.push(r.id);
+    }
   }
 
   const imported = await TimeEntry.bulkInsert(toInsert);
@@ -159,7 +172,8 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
   }
   const deleted = await TimeEntry.deleteByIds(toDelete);
 
-  return { imported, updated: toUpdate.length, deleted, skipped, startDate, endDate };
+  // `deleted` counts both stale rows and duplicate copies removed
+  return { imported, updated: toUpdate.length, deleted, deduped, skipped, startDate, endDate };
 }
 
 class WrikeController {
@@ -338,16 +352,17 @@ class WrikeController {
       const startDate = getWeekStart(date);
       const endDate   = getWeekEnd(date);
 
-      const { imported, updated, deleted, skipped } = await syncTimelogsToEntries({
+      const { imported, updated, deleted, deduped, skipped } = await syncTimelogsToEntries({
         startDate, endDate, approvedOnly
       });
 
       res.json({
         success: true,
-        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} stale, skipped ${skipped} unchanged`,
+        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} (incl. ${deduped} duplicates), skipped ${skipped} unchanged`,
         imported,
         updated,
         deleted,
+        deduped,
         skipped,
         weekStart: startDate,
         weekEnd:   endDate
@@ -386,16 +401,17 @@ class WrikeController {
       const startDate = toDateStr(period.start_date);
       const endDate   = toDateStr(period.end_date);
 
-      const { imported, updated, deleted, skipped } = await syncTimelogsToEntries({
+      const { imported, updated, deleted, deduped, skipped } = await syncTimelogsToEntries({
         startDate, endDate, approvedOnly: true
       });
 
       res.json({
         success: true,
-        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} stale, skipped ${skipped} unchanged`,
+        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} (incl. ${deduped} duplicates), skipped ${skipped} unchanged`,
         imported,
         updated,
         deleted,
+        deduped,
         skipped,
         startDate,
         endDate
