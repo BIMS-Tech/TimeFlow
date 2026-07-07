@@ -47,6 +47,90 @@ function weekDays(weekStart) {
   return days;
 }
 
+/**
+ * Sync Wrike timelogs for a date range into the time_entries table.
+ *
+ * Batched and idempotent:
+ *  - existing entries are fetched once (single query) instead of one SELECT per log
+ *  - new entries are written with a single chunked bulk INSERT
+ *  - entries whose hours or category CHANGED in Wrike are updated, so a re-sync
+ *    corrects previously wrong imports instead of silently skipping them
+ *
+ * @returns {{imported:number, updated:number, skipped:number, startDate:string, endDate:string}}
+ */
+async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
+  const allEmployees    = await Employee.findAll(false);
+  const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
+  const wrikeIds        = linkedEmployees.map(e => e.wrike_user_id);
+
+  let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+  if (approvedOnly) {
+    timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
+  }
+
+  const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
+  const [taskTitles, categoryMap] = await Promise.all([
+    wrikeService.getTaskTitles(allTaskIds),
+    wrikeService.getTimelogCategories()
+  ]);
+
+  const byUser = wrikeService.groupTimeLogsByUser(timelogs);
+
+  const empByWrikeId = {};
+  for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
+
+  // One query for all existing Wrike entries in range, keyed by employee+logId
+  const existingMap = await TimeEntry.getWrikeEntryMap(
+    linkedEmployees.map(e => e.id), startDate, endDate
+  );
+
+  const toInsert = [];
+  const toUpdate = [];
+  let skipped = 0;
+
+  for (const [wrikeUserId, logs] of Object.entries(byUser)) {
+    const emp = empByWrikeId[wrikeUserId];
+    if (!emp) { skipped += logs.length; continue; }
+
+    for (const log of logs) {
+      if (!log.hours || log.hours <= 0) continue;
+
+      const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
+      const existing = existingMap.get(`${emp.id}|${log.logId}`);
+
+      if (existing) {
+        // Re-sync corrects entries whose hours/category changed in Wrike since last import
+        const changes = {};
+        if (Math.abs(existing.hours_worked - log.hours) > 0.001) changes.hours_worked = log.hours;
+        if (categoryName && existing.category !== categoryName) changes.category = categoryName;
+
+        if (Object.keys(changes).length) toUpdate.push({ id: existing.id, changes });
+        else skipped++;
+        continue;
+      }
+
+      const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
+      toInsert.push({
+        employee_id:      emp.id,
+        entry_date:       log.date,
+        hours_worked:     log.hours,
+        task_description: description,
+        project_name:     taskTitles[log.taskId] || null,
+        wrike_task_id:    log.taskId || null,
+        category:         categoryName,
+        source:           'wrike'
+      });
+    }
+  }
+
+  const imported = await TimeEntry.bulkInsert(toInsert);
+  for (const { id, changes } of toUpdate) {
+    await TimeEntry.update(id, changes);
+  }
+
+  return { imported, updated: toUpdate.length, skipped, startDate, endDate };
+}
+
 class WrikeController {
   /**
    * GET /api/wrike/timelogs?date=YYYY-MM-DD&approvedOnly=true
@@ -223,70 +307,15 @@ class WrikeController {
       const startDate = getWeekStart(date);
       const endDate   = getWeekEnd(date);
 
-      const allEmployees   = await Employee.findAll(false);
-      const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
-      const wrikeIds       = linkedEmployees.map(e => e.wrike_user_id);
-
-      // Fetch timelogs from Wrike then filter client-side by approval status
-      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
-      if (approvedOnly) {
-        timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
-      }
-
-      const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
-      const [taskTitles, categoryMap] = await Promise.all([
-        wrikeService.getTaskTitles(allTaskIds),
-        wrikeService.getTimelogCategories()
-      ]);
-
-      // Group by Wrike user ID, mapping raw fields to processed shape
-      const byUser = wrikeService.groupTimeLogsByUser(timelogs);
-
-      const empByWrikeId = {};
-      for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
-
-      let imported = 0;
-      let skipped  = 0;
-
-      for (const [wrikeUserId, logs] of Object.entries(byUser)) {
-        const emp = empByWrikeId[wrikeUserId];
-        if (!emp) { skipped += logs.length; continue; }
-
-        for (const log of logs) {
-          if (!log.hours || log.hours <= 0) continue;
-
-          const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
-
-          // Check for duplicate (same employee, date, wrike source, same logId in description)
-          const existing = await TimeEntry.findDuplicate(emp.id, log.date, log.logId);
-          if (existing) {
-            // Back-fill category on entries that were imported before the category column existed
-            if (categoryName && !existing.category) {
-              await TimeEntry.update(existing.id, { category: categoryName });
-            }
-            skipped++;
-            continue;
-          }
-
-          const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
-          await TimeEntry.create({
-            employee_id:      emp.id,
-            entry_date:       log.date,
-            hours_worked:     log.hours,
-            task_description: description,
-            project_name:     taskTitles[log.taskId] || null,
-            wrike_task_id:    log.taskId || null,
-            category:         categoryName,
-            source:           'wrike'
-          });
-          imported++;
-        }
-      }
+      const { imported, updated, skipped } = await syncTimelogsToEntries({
+        startDate, endDate, approvedOnly
+      });
 
       res.json({
         success: true,
-        message: `Imported ${imported} entries, skipped ${skipped} duplicates`,
+        message: `Imported ${imported} new, updated ${updated} changed, skipped ${skipped} unchanged`,
         imported,
+        updated,
         skipped,
         weekStart: startDate,
         weekEnd:   endDate
@@ -325,64 +354,15 @@ class WrikeController {
       const startDate = toDateStr(period.start_date);
       const endDate   = toDateStr(period.end_date);
 
-      const allEmployees    = await Employee.findAll(false);
-      const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
-      const wrikeIds        = linkedEmployees.map(e => e.wrike_user_id);
-
-      let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
-      timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
-
-      const allTaskIds = timelogs.map(l => l.taskId).filter(Boolean);
-      const [taskTitles, categoryMap] = await Promise.all([
-        wrikeService.getTaskTitles(allTaskIds),
-        wrikeService.getTimelogCategories()
-      ]);
-
-      const byUser = wrikeService.groupTimeLogsByUser(timelogs);
-
-      const empByWrikeId = {};
-      for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
-
-      let imported = 0;
-      let skipped  = 0;
-
-      for (const [wrikeUserId, logs] of Object.entries(byUser)) {
-        const emp = empByWrikeId[wrikeUserId];
-        if (!emp) { skipped += logs.length; continue; }
-
-        for (const log of logs) {
-          if (!log.hours || log.hours <= 0) continue;
-
-          const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
-
-          const existing = await TimeEntry.findDuplicate(emp.id, log.date, log.logId);
-          if (existing) {
-            if (categoryName && !existing.category) {
-              await TimeEntry.update(existing.id, { category: categoryName });
-            }
-            skipped++;
-            continue;
-          }
-
-          const description = `[${log.logId}] ${log.comment || taskTitles[log.taskId] || ''}`.trim();
-          await TimeEntry.create({
-            employee_id:      emp.id,
-            entry_date:       log.date,
-            hours_worked:     log.hours,
-            task_description: description,
-            project_name:     taskTitles[log.taskId] || null,
-            wrike_task_id:    log.taskId || null,
-            category:         categoryName,
-            source:           'wrike'
-          });
-          imported++;
-        }
-      }
+      const { imported, updated, skipped } = await syncTimelogsToEntries({
+        startDate, endDate, approvedOnly: true
+      });
 
       res.json({
         success: true,
-        message: `Imported ${imported} entries, skipped ${skipped} duplicates`,
+        message: `Imported ${imported} new, updated ${updated} changed, skipped ${skipped} unchanged`,
         imported,
+        updated,
         skipped,
         startDate,
         endDate

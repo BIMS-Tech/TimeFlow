@@ -142,16 +142,67 @@ class TimeEntry {
   }
 
   /**
-   * Check for a duplicate Wrike import entry.
-   * Matches on employee + date + wrike source + the Wrike log ID stored in task_description prefix.
+   * Fetch all Wrike-sourced entries for a set of employees within a date range in one query.
+   * Returns a Map keyed by `${employee_id}|${wrikeLogId}` → { id, hours_worked, category },
+   * where the Wrike log ID is parsed from the `[logId]` prefix of task_description.
+   * Used by the importer to detect duplicates and detect changed hours without a
+   * per-row SELECT.
    */
-  static async findDuplicate(employeeId, date, wrikeLogId) {
-    return db.getOne(
-      `SELECT id, category FROM time_entries
-       WHERE employee_id = ? AND entry_date = ? AND source = 'wrike'
-         AND task_description LIKE ?`,
-      [employeeId, date, `[${wrikeLogId}]%`]
+  static async getWrikeEntryMap(employeeIds, startDate, endDate) {
+    const map = new Map();
+    if (!employeeIds.length) return map;
+
+    const placeholders = employeeIds.map(() => '?').join(',');
+    const rows = await db.query(
+      `SELECT id, employee_id, hours_worked, category, task_description
+       FROM time_entries
+       WHERE source = 'wrike'
+         AND employee_id IN (${placeholders})
+         AND entry_date >= ? AND entry_date <= ?`,
+      [...employeeIds, startDate, endDate]
     );
+
+    for (const r of rows) {
+      const match = (r.task_description || '').match(/^\[([^\]]+)\]/);
+      if (!match) continue;
+      map.set(`${r.employee_id}|${match[1]}`, {
+        id: r.id,
+        hours_worked: parseFloat(r.hours_worked) || 0,
+        category: r.category,
+      });
+    }
+    return map;
+  }
+
+  /**
+   * Bulk-insert time entries using chunked multi-row INSERTs (one round-trip per chunk).
+   * Returns the number of rows inserted.
+   */
+  static async bulkInsert(entries, chunkSize = 500) {
+    if (!entries.length) return 0;
+
+    const cols = [
+      'employee_id', 'entry_date', 'start_time', 'end_time', 'hours_worked',
+      'task_description', 'project_name', 'wrike_task_id', 'category', 'source',
+    ];
+    const rowPlaceholder = `(${cols.map(() => '?').join(',')})`;
+
+    let inserted = 0;
+    for (let i = 0; i < entries.length; i += chunkSize) {
+      const chunk = entries.slice(i, i + chunkSize);
+      const values = [];
+      for (const e of chunk) {
+        values.push(
+          e.employee_id, e.entry_date, e.start_time || null, e.end_time || null,
+          e.hours_worked, e.task_description || null, e.project_name || null,
+          e.wrike_task_id || null, e.category || null, e.source || 'wrike'
+        );
+      }
+      const sql = `INSERT INTO time_entries (${cols.join(',')}) VALUES ${chunk.map(() => rowPlaceholder).join(',')}`;
+      const result = await db.query(sql, values);
+      inserted += result.affectedRows || chunk.length;
+    }
+    return inserted;
   }
 
   /**
