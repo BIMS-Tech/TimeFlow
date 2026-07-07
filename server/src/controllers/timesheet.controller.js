@@ -705,11 +705,65 @@ class TimesheetController {
    * DELETE /api/timesheet/periods/:id
    */
   async deletePeriod(req, res) {
+    const db   = require('../database/connection');
+    const fs   = require('fs');
+    const path = require('path');
     try {
-      const period = await PayPeriod.findById(req.params.id);
+      const periodId = req.params.id;
+      const period = await PayPeriod.findById(periodId);
       if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
-      await PayPeriod.delete(req.params.id);
-      res.json({ success: true });
+
+      // Collect every PDF this period produced BEFORE the DB rows are cascaded away,
+      // so we can also remove the files from disk ("from the system"), not just the DB.
+      const [summaries, payslips] = await Promise.all([
+        db.query('SELECT timesheet_pdf_path, payslip_pdf_path FROM time_entries_summary WHERE period_id = ?', [periodId]),
+        db.query('SELECT pdf_path FROM payslips WHERE period_id = ?', [periodId]),
+      ]);
+      const filePaths = [
+        ...summaries.flatMap(s => [s.timesheet_pdf_path, s.payslip_pdf_path]),
+        ...payslips.map(p => p.pdf_path),
+      ].filter(Boolean);
+
+      // DB cleanup in one transaction. Delete every period-linked table explicitly in
+      // dependency order rather than trusting FK cascades — the live DB's
+      // timesheet_verifications has NO FK to pay_periods, and this stays correct even
+      // if a cascade FK is missing elsewhere.
+      let verificationsRemoved = 0;
+      await db.transaction(async (conn) => {
+        // task_breakdown → child of time_entries_summary (join via period)
+        await conn.query(
+          `DELETE tb FROM task_breakdown tb
+             JOIN time_entries_summary tes ON tb.summary_id = tes.id
+            WHERE tes.period_id = ?`,
+          [periodId]
+        );
+        await conn.query('DELETE FROM payslips WHERE period_id = ?', [periodId]);
+        const [vRes] = await conn.query('DELETE FROM timesheet_verifications WHERE period_id = ?', [periodId]);
+        verificationsRemoved = vRes.affectedRows || 0;
+        await conn.query('DELETE FROM time_entries_summary WHERE period_id = ?', [periodId]);
+        await conn.query('DELETE FROM pay_periods WHERE id = ?', [periodId]);
+      });
+
+      // Remove the physical PDFs (best-effort — a missing/locked file must not fail the delete).
+      let filesRemoved = 0;
+      for (const p of filePaths) {
+        try {
+          const filePath = path.isAbsolute(p) ? p : path.join(__dirname, '../../', p);
+          if (fs.existsSync(filePath)) { fs.unlinkSync(filePath); filesRemoved++; }
+        } catch (e) {
+          console.warn(`[deletePeriod] could not remove file ${p}: ${e.message}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        removed: {
+          summaries: summaries.length,
+          payslips: payslips.length,
+          verifications: verificationsRemoved,
+          files: filesRemoved,
+        },
+      });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
