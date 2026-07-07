@@ -55,15 +55,23 @@ function weekDays(weekStart) {
  *  - new entries are written with a single chunked bulk INSERT
  *  - entries whose hours or category CHANGED in Wrike are updated, so a re-sync
  *    corrects previously wrong imports instead of silently skipping them
+ *  - AUTHORITATIVE: Wrike-sourced entries in range whose log is no longer in the
+ *    fetch (deleted or, under approvedOnly, no longer approved) are deleted, so a
+ *    re-sync self-heals stale rows. Manual (non-Wrike) entries are never touched.
+ *    Deletion is scoped to employees whose Wrike fetch succeeded, so a partial API
+ *    failure can never wipe good data.
  *
- * @returns {{imported:number, updated:number, skipped:number, startDate:string, endDate:string}}
+ * @returns {{imported:number, updated:number, deleted:number, skipped:number, startDate:string, endDate:string}}
  */
 async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
   const allEmployees    = await Employee.findAll(false);
   const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
   const wrikeIds        = linkedEmployees.map(e => e.wrike_user_id);
 
-  let timelogs = await wrikeService.getTimeLogs(startDate, endDate, wrikeIds);
+  const { logs: fetchedLogs, okContactIds } =
+    await wrikeService.getTimeLogs(startDate, endDate, wrikeIds, { withMeta: true });
+
+  let timelogs = fetchedLogs;
   if (approvedOnly) {
     timelogs = timelogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
   }
@@ -86,6 +94,7 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
 
   const toInsert = [];
   const toUpdate = [];
+  const presentKeys = new Set(); // employee|logId still present in the (filtered) fetch
   let skipped = 0;
 
   for (const [wrikeUserId, logs] of Object.entries(byUser)) {
@@ -95,8 +104,11 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
     for (const log of logs) {
       if (!log.hours || log.hours <= 0) continue;
 
+      const key = `${emp.id}|${log.logId}`;
+      presentKeys.add(key);
+
       const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
-      const existing = existingMap.get(`${emp.id}|${log.logId}`);
+      const existing = existingMap.get(key);
 
       if (existing) {
         // Re-sync corrects entries whose hours/category changed in Wrike since last import
@@ -123,12 +135,31 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
     }
   }
 
+  // Authoritative reconcile: delete Wrike-sourced entries in range whose log is gone
+  // from the fetch — but only for employees whose fetch succeeded (guards against a
+  // partial Wrike API failure deleting good data).
+  const okEmpIds = new Set();
+  if (okContactIds === 'all') {
+    linkedEmployees.forEach(e => okEmpIds.add(e.id));
+  } else {
+    for (const cid of okContactIds) {
+      const emp = empByWrikeId[cid];
+      if (emp) okEmpIds.add(emp.id);
+    }
+  }
+
+  const toDelete = [];
+  for (const [key, entry] of existingMap) {
+    if (!presentKeys.has(key) && okEmpIds.has(entry.employee_id)) toDelete.push(entry.id);
+  }
+
   const imported = await TimeEntry.bulkInsert(toInsert);
   for (const { id, changes } of toUpdate) {
     await TimeEntry.update(id, changes);
   }
+  const deleted = await TimeEntry.deleteByIds(toDelete);
 
-  return { imported, updated: toUpdate.length, skipped, startDate, endDate };
+  return { imported, updated: toUpdate.length, deleted, skipped, startDate, endDate };
 }
 
 class WrikeController {
@@ -307,15 +338,16 @@ class WrikeController {
       const startDate = getWeekStart(date);
       const endDate   = getWeekEnd(date);
 
-      const { imported, updated, skipped } = await syncTimelogsToEntries({
+      const { imported, updated, deleted, skipped } = await syncTimelogsToEntries({
         startDate, endDate, approvedOnly
       });
 
       res.json({
         success: true,
-        message: `Imported ${imported} new, updated ${updated} changed, skipped ${skipped} unchanged`,
+        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} stale, skipped ${skipped} unchanged`,
         imported,
         updated,
+        deleted,
         skipped,
         weekStart: startDate,
         weekEnd:   endDate
@@ -354,15 +386,16 @@ class WrikeController {
       const startDate = toDateStr(period.start_date);
       const endDate   = toDateStr(period.end_date);
 
-      const { imported, updated, skipped } = await syncTimelogsToEntries({
+      const { imported, updated, deleted, skipped } = await syncTimelogsToEntries({
         startDate, endDate, approvedOnly: true
       });
 
       res.json({
         success: true,
-        message: `Imported ${imported} new, updated ${updated} changed, skipped ${skipped} unchanged`,
+        message: `Imported ${imported} new, updated ${updated} changed, removed ${deleted} stale, skipped ${skipped} unchanged`,
         imported,
         updated,
+        deleted,
         skipped,
         startDate,
         endDate

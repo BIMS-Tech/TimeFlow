@@ -167,6 +167,7 @@ class TimeEntry {
       if (!match) continue;
       map.set(`${r.employee_id}|${match[1]}`, {
         id: r.id,
+        employee_id: r.employee_id,
         hours_worked: parseFloat(r.hours_worked) || 0,
         category: r.category,
       });
@@ -203,6 +204,24 @@ class TimeEntry {
       inserted += result.affectedRows || chunk.length;
     }
     return inserted;
+  }
+
+  /**
+   * Delete entries by a list of IDs, using chunked IN () deletes.
+   * Returns the number of rows removed.
+   */
+  static async deleteByIds(ids, chunkSize = 500) {
+    if (!ids.length) return 0;
+    let removed = 0;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const result = await db.query(
+        `DELETE FROM time_entries WHERE id IN (${chunk.map(() => '?').join(',')})`,
+        chunk
+      );
+      removed += result.affectedRows || 0;
+    }
+    return removed;
   }
 
   /**

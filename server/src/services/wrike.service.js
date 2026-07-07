@@ -350,7 +350,13 @@ class WrikeService {
    * @param {string} endDate    - 'YYYY-MM-DD'
    * @param {string[]} contactIds - optional Wrike user ID array
    */
-  async getTimeLogs(startDate, endDate, contactIds = []) {
+  async getTimeLogs(startDate, endDate, contactIds = [], opts = {}) {
+    // When withMeta is set, returns { logs, okContactIds } so callers doing an
+    // authoritative reconcile know which contacts were fetched successfully and
+    // can safely delete stale rows only for those. okContactIds is 'all' for the
+    // unfiltered account-wide fetch.
+    const withMeta = opts.withMeta === true;
+
     // Wrike API expects plain YYYY-MM-DD dates — strip any time component
     const start = String(startDate).substring(0, 10);
     const end   = String(endDate).substring(0, 10);
@@ -363,7 +369,10 @@ class WrikeService {
     const cached = await cache.get(cacheKey);
     if (cached) {
       console.log(`[Cache] HIT wrike:timelogs ${start}→${end}`);
-      return cached;
+      // A cache hit means a prior fetch fully succeeded, so every requested contact is "ok"
+      return withMeta
+        ? { logs: cached, okContactIds: contactIds.length ? [...contactIds] : 'all' }
+        : cached;
     }
 
     try {
@@ -372,7 +381,7 @@ class WrikeService {
         const response = await this.client.get('/timelogs', { params });
         const data = response.data.data || [];
         await cache.set(cacheKey, data, TTL.WRIKE_TIMELOGS);
-        return data;
+        return withMeta ? { logs: data, okContactIds: 'all' } : data;
       }
 
       // Fetch per-contact and merge results (Wrike requires separate calls per user)
@@ -385,9 +394,11 @@ class WrikeService {
 
       const allLogs = [];
       const errors  = [];
+      const okContactIds = [];
       for (const result of settled) {
         if (result.status === 'fulfilled') {
           allLogs.push(...result.value.logs);
+          okContactIds.push(result.value.id); // succeeded even if it returned zero logs
         } else {
           const err    = result.reason;
           const status = err.response?.status;
@@ -409,7 +420,7 @@ class WrikeService {
         await cache.set(cacheKey, allLogs, TTL.WRIKE_TIMELOGS);
       }
 
-      return allLogs;
+      return withMeta ? { logs: allLogs, okContactIds } : allLogs;
     } catch (error) {
       throw this.handleError(error);
     }
