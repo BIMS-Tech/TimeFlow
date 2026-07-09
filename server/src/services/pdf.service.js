@@ -2,6 +2,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const { formatHM, hoursToMinutes, payForMinutes } = require('../utils/time');
 
 /**
  * PDF Generation Service
@@ -52,9 +53,10 @@ class PDFService {
 
         // Numeric fields
         const hourlyRate    = parseFloat(summary.hourly_rate)    || 0;
-        const totalHours    = parseFloat(summary.total_hours)    || 0;
-        const regularHours  = parseFloat(summary.regular_hours)  || 0;
-        const overtimeHours = parseFloat(summary.overtime_hours) || 0;
+        // Minutes are authoritative; fall back to hours for legacy rows.
+        const totalMinutes    = summary.total_minutes    != null ? parseInt(summary.total_minutes, 10)    : hoursToMinutes(summary.total_hours);
+        const regularMinutes  = summary.regular_minutes  != null ? parseInt(summary.regular_minutes, 10)  : hoursToMinutes(summary.regular_hours);
+        const overtimeMinutes = summary.overtime_minutes != null ? parseInt(summary.overtime_minutes, 10) : hoursToMinutes(summary.overtime_hours);
         const grossAmount   = parseFloat(summary.gross_amount)   || 0;
         const overtimeRate  = hourlyRate * 1.5;
         const money = (n) => `${cur} ${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -138,13 +140,13 @@ class PDFService {
         // ── Hours tiles (3 boxes) ─────────────────────────────────────────────
         const tileW = CONTENT_W / 3 - 5;
         const tiles = [
-          ['Total Hours',    `${totalHours.toFixed(2)} hrs`],
-          ['Regular Hours',  `${regularHours.toFixed(2)} hrs`],
-          ['Overtime Hours', `${overtimeHours.toFixed(2)} hrs`],
+          ['Total Hours',    formatHM(totalMinutes)],
+          ['Regular Hours',  formatHM(regularMinutes)],
+          ['Overtime Hours', formatHM(overtimeMinutes)],
         ];
         tiles.forEach(([label, value], i) => {
           const tx = MARGIN + i * (tileW + 7);
-          const isOvertimeTile = i === 2 && overtimeHours > 0;
+          const isOvertimeTile = i === 2 && overtimeMinutes > 0;
           doc.roundedRect(tx, y, tileW, 44, 5).fill(isOvertimeTile ? '#fef3c7' : '#f1f5f9');
           doc.fontSize(7).font('Helvetica')
              .fillColor(isOvertimeTile ? '#b45309' : '#94a3b8')
@@ -163,9 +165,9 @@ class PDFService {
         // ── Payment summary row ───────────────────────────────────────────────
         const payTiles = [
           ['Hourly Rate',    money(hourlyRate)],
-          overtimeHours > 0
+          overtimeMinutes > 0
             ? ['Overtime Rate', money(overtimeRate)]
-            : ['Regular Pay',   money(regularHours * hourlyRate)],
+            : ['Regular Pay',   money(payForMinutes(regularMinutes, hourlyRate))],
           ['Gross Amount',   money(grossAmount)],
         ];
         payTiles.forEach(([label, value], i) => {
@@ -236,7 +238,7 @@ class PDFService {
             doc.text(this.formatDateShort(task.task_date), COL.date.x,    y + 4, { width: COL.date.w,    ellipsis: true, lineBreak: false });
             doc.text(task.task_name    || '—',             COL.task.x,    y + 4, { width: COL.task.w,    ellipsis: true, lineBreak: false });
             doc.text(task.project_name || '—',             COL.project.x, y + 4, { width: COL.project.w, ellipsis: true, lineBreak: false });
-            doc.text(parseFloat(task.hours).toFixed(2),    COL.hours.x,   y + 4, { width: COL.hours.w,   align: 'right',  lineBreak: false });
+            doc.text(formatHM(task.minutes != null ? task.minutes : hoursToMinutes(task.hours)), COL.hours.x,   y + 4, { width: COL.hours.w,   align: 'right',  lineBreak: false });
             y += ROW_H;
           });
 
@@ -244,7 +246,7 @@ class PDFService {
           doc.rect(MARGIN, y, CONTENT_W, ROW_H + 2).fill('#1A3A72');
           doc.fontSize(8).font('Helvetica-Bold').fillColor('white');
           doc.text('TOTAL', COL.date.x, y + 4, { width: 200 });
-          doc.text(totalHours.toFixed(2), COL.hours.x, y + 4, { width: COL.hours.w, align: 'right' });
+          doc.text(formatHM(totalMinutes), COL.hours.x, y + 4, { width: COL.hours.w, align: 'right' });
           y += ROW_H + 2;
         }
 
@@ -277,8 +279,9 @@ class PDFService {
       try {
         // ── Numeric fields ──────────────────────────────────────────────────
         const hourlyRate    = parseFloat(employee.hourly_rate || summary.hourly_rate) || 0;
-        const regularHours  = parseFloat(summary.regular_hours)   || 0;
-        const overtimeHours = parseFloat(summary.overtime_hours)  || 0;
+        // Minutes authoritative; fall back to hours for legacy rows.
+        const regularMinutes  = summary.regular_minutes  != null ? parseInt(summary.regular_minutes, 10)  : hoursToMinutes(summary.regular_hours);
+        const overtimeMinutes = summary.overtime_minutes != null ? parseInt(summary.overtime_minutes, 10) : hoursToMinutes(summary.overtime_hours);
         const grossAmount   = parseFloat(summary.gross_amount)    || 0;
         const sssEE         = parseFloat(summary.sss_ee)          || 0;
         const sssMPF        = parseFloat(summary.sss_mpf)         || 0;
@@ -290,9 +293,10 @@ class PDFService {
         const totalDed      = govtDed + birTax + cashAdvance;
         const netAmount     = parseFloat(summary.net_amount)      || Math.max(0, grossAmount - totalDed);
         const overtimeRate  = hourlyRate * 1.5;
-        const regularPay    = regularHours  * hourlyRate;
-        const overtimePay   = overtimeHours * overtimeRate;
-        const totalHours    = regularHours + overtimeHours;
+        // Pay computed from exact minutes, not from rounded hours
+        const regularPay    = payForMinutes(regularMinutes,  hourlyRate);
+        const overtimePay   = payForMinutes(overtimeMinutes, hourlyRate, 1.5);
+        const totalMinutes  = regularMinutes + overtimeMinutes;
         const fmt2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         // ── Layout constants ────────────────────────────────────────────────
@@ -521,8 +525,8 @@ class PDFService {
         y = hdrRow(MARGIN, y, tE, HDR_H);
 
         const earningsRows = [
-          ['Regular',           '', fmt2(hourlyRate),  fmt2(regularHours),  fmt2(regularPay)  ],
-          ['Overtime',          '', fmt2(overtimeRate), fmt2(overtimeHours), fmt2(overtimePay) ],
+          ['Regular',           '', fmt2(hourlyRate),  formatHM(regularMinutes),  fmt2(regularPay)  ],
+          ['Overtime',          '', fmt2(overtimeRate), formatHM(overtimeMinutes), fmt2(overtimePay) ],
           ['Communication',     '', '', '', ''],
           ['Medical Allowance', '', '', '', ''],
           ['Bonus/Non-Taxable', '', '', '', ''],
@@ -537,7 +541,7 @@ class PDFService {
         y = dataRow(MARGIN, y, tE, [
           'Total Earnings', '',
           fmt2(grossAmount),
-          fmt2(totalHours),
+          formatHM(totalMinutes),
           fmt2(grossAmount),
         ], { bold: true });
         y += 12;
@@ -680,7 +684,7 @@ class PDFService {
       doc.text(this.formatDate(task.task_date), col1, y);
       doc.text(task.task_name || 'N/A', col2, y, { width: 190 });
       doc.text(task.project_name || 'N/A', col3, y, { width: 120 });
-      doc.text(task.hours.toFixed(2), col4, y);
+      doc.text(formatHM(task.minutes != null ? task.minutes : hoursToMinutes(task.hours)), col4, y);
       y += 16;
     });
 
@@ -813,13 +817,13 @@ class PDFService {
         let y = HDR_H + 16;
 
         // ── Summary totals band ──────────────────────────────────────────────
-        const totalHours = payslips.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
+        const totalMinutes = payslips.reduce((s, p) => s + (p.total_minutes != null ? parseInt(p.total_minutes, 10) : hoursToMinutes(p.total_hours)), 0);
         const totalGross = payslips.reduce((s, p) => s + (parseFloat(p.gross_amount) || 0), 0);
         const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount)   || 0), 0);
         const statW = CW / 4;
         const stats = [
           { label: 'Employees',   value: String(payslips.length),               color: '#1B5FAD' },
-          { label: 'Total Hours', value: `${parseFloat(totalHours.toFixed(2))}h`, color: '#1A3A72' },
+          { label: 'Total Hours', value: formatHM(totalMinutes), color: '#1A3A72' },
           { label: 'Total Gross', value: money(totalGross),                      color: '#1A3A72' },
           { label: 'Total Net',   value: money(totalNet),                        color: '#00A09A' },
         ];
@@ -882,12 +886,12 @@ class PDFService {
           doc.rect(MARGIN, y, CW, ROW_H).fill(rowBg);
 
           const statusColor = STATUS_COLORS[p.status] || '#888888';
-          const hours = parseFloat(parseFloat(p.total_hours || 0).toFixed(2));
+          const rowMinutes = p.total_minutes != null ? parseInt(p.total_minutes, 10) : hoursToMinutes(p.total_hours);
           const rowData = [
             { text: String(idx + 1), align: 'center' },
             { text: p.payslip_number || '—', align: 'left' },
             { text: p.employee_name  || '—', align: 'left' },
-            { text: `${hours}h`,              align: 'right' },
+            { text: formatHM(rowMinutes),     align: 'right' },
             { text: money(p.gross_amount),    align: 'right' },
             { text: money(p.net_amount),      align: 'right' },
             { text: (p.status || '').charAt(0).toUpperCase() + (p.status || '').slice(1), align: 'center', color: statusColor, bold: true },
@@ -909,7 +913,7 @@ class PDFService {
 
         // Totals row
         doc.rect(MARGIN, y, CW, ROW_H).fill('#E8F4F8');
-        const totalsCells = ['', '', 'TOTAL', `${parseFloat(totalHours.toFixed(2))}h`, money(totalGross), money(totalNet), ''];
+        const totalsCells = ['', '', 'TOTAL', formatHM(totalMinutes), money(totalGross), money(totalNet), ''];
         let tx = MARGIN;
         totalsCells.forEach((text, ci) => {
           doc.fontSize(7).font('Helvetica-Bold').fillColor('#1A3A72')

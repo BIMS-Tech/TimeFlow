@@ -23,6 +23,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHoursAsHM } from '../utils/time';
 
 function pollJob(jobId, onProgress) {
   return new Promise((resolve, reject) => {
@@ -803,7 +804,7 @@ export default function TimesheetGenerator() {
                             {dailyEntries.map(([date, hours]) => (
                               <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <TableCell sx={TD}>{fmtDay(date)}</TableCell>
-                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{hours.toFixed(2)}h</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{formatHoursAsHM(hours)}</TableCell>
                                 {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>}
                               </TableRow>
                             ))}
@@ -853,7 +854,7 @@ export default function TimesheetGenerator() {
                                 <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
                                 <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem' }}>{t.taskTitle}</TableCell>
                                 <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem' }}>{t.comment || '—'}</TableCell>
-                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{formatHoursAsHM(t.hours)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -891,7 +892,7 @@ export default function TimesheetGenerator() {
                                 <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
                                 <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.taskTitle}</TableCell>
                                 <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.comment || '—'}</TableCell>
-                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{t.hours.toFixed(2)}h</TableCell>
+                                <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{formatHoursAsHM(t.hours)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -946,7 +947,7 @@ export default function TimesheetGenerator() {
                             <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{r.emp.employee_id}</Typography>
                           </TableCell>
                           <TableCell sx={{ ...TD, color: 'text.secondary' }}>{r.emp.department || '—'}</TableCell>
-                          <TableCell sx={TD}>{r.hours ? `${r.hours}h` : '—'}</TableCell>
+                          <TableCell sx={TD}>{r.hours ? formatHoursAsHM(r.hours) : '—'}</TableCell>
                           {showRates && <TableCell sx={TD}>{r.gross ? fmt(r.gross, r.emp.currency || 'USD') : '—'}</TableCell>}
                           <TableCell sx={TD}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: s.color }}>

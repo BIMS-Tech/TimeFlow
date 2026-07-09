@@ -15,6 +15,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PeopleIcon from '@mui/icons-material/People';
 import { wrikeAPI, employeesAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHoursAsHM } from '../utils/time';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import DateRangeIcon from '@mui/icons-material/DateRange';
@@ -192,7 +193,7 @@ export default function WrikeTimesheets() {
           sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
           <ChevronRightIcon fontSize="small" />
         </IconButton>
-        <Chip icon={<AccessTimeIcon />} label={`${totalHours.toFixed(1)}h total`} size="small"
+        <Chip icon={<AccessTimeIcon />} label={`${formatHoursAsHM(totalHours)} total`} size="small"
           sx={{ ml: 'auto', bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, '& .MuiChip-icon': { fontSize: 14, color: '#6366f1' } }} />
       </Paper>
 
@@ -256,7 +257,7 @@ export default function WrikeTimesheets() {
                           return (
                             <TableCell key={d} sx={{ ...TD, textAlign: 'center' }}>
                               {h > 0 ? (
-                                <Chip label={h.toFixed(1)} size="small" sx={{
+                                <Chip label={formatHoursAsHM(h)} size="small" sx={{
                                   height: 24, fontWeight: 700, fontSize: '0.75rem',
                                   bgcolor: h >= 8 ? '#10b98115' : h >= 4 ? '#6366f115' : '#f59e0b15',
                                   color: h >= 8 ? '#10b981' : h >= 4 ? '#6366f1' : '#f59e0b',
@@ -267,7 +268,7 @@ export default function WrikeTimesheets() {
                         }) : (row.weekHours || []).map((h, i) => (
                           <TableCell key={i} sx={{ ...TD, textAlign: 'center' }}>
                             {h > 0 ? (
-                              <Chip label={h.toFixed(1)} size="small" sx={{
+                              <Chip label={formatHoursAsHM(h)} size="small" sx={{
                                 height: 24, fontWeight: 700, fontSize: '0.75rem',
                                 bgcolor: h >= 40 ? '#10b98115' : h >= 20 ? '#6366f115' : '#f59e0b15',
                                 color: h >= 40 ? '#10b981' : h >= 20 ? '#6366f1' : '#f59e0b',
@@ -276,7 +277,7 @@ export default function WrikeTimesheets() {
                           </TableCell>
                         ))}
                         <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
-                          {row.totalHours.toFixed(1)}h
+                          {formatHoursAsHM(row.totalHours)}
                         </TableCell>
                         {showPay && (
                           <TableCell sx={{ ...TD, textAlign: 'right' }}>
@@ -316,7 +317,7 @@ export default function WrikeTimesheets() {
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, whiteSpace: 'nowrap' }}>{fmtDay(t.date)}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: '#6366f1', maxWidth: 200 }}>{t.taskTitle}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: 'text.disabled', maxWidth: 200 }}>{t.comment || '—'}</TableCell>
-                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, fontWeight: 700, textAlign: 'right' }}>{t.hours.toFixed(2)}h</TableCell>
+                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, fontWeight: 700, textAlign: 'right' }}>{formatHoursAsHM(t.hours)}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
@@ -335,13 +336,13 @@ export default function WrikeTimesheets() {
                   <TableCell sx={{ ...TD, fontWeight: 700 }}>Totals</TableCell>
                   {viewMode === 'weekly' ? days.map(d => {
                     const dt = visibleData.reduce((s, r) => s + (r.dailyHours?.[d] || 0), 0);
-                    return <TableCell key={d} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{dt > 0 ? `${dt.toFixed(1)}h` : '—'}</TableCell>;
+                    return <TableCell key={d} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{dt > 0 ? formatHoursAsHM(dt) : '—'}</TableCell>;
                   }) : (weeks || []).map((_, i) => {
                     const wt = visibleData.reduce((s, r) => s + ((r.weekHours || [])[i] || 0), 0);
-                    return <TableCell key={i} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{wt > 0 ? `${wt.toFixed(1)}h` : '—'}</TableCell>;
+                    return <TableCell key={i} sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>{wt > 0 ? formatHoursAsHM(wt) : '—'}</TableCell>;
                   })}
                   <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
-                    {visibleData.reduce((s, r) => s + r.totalHours, 0).toFixed(1)}h
+                    {formatHoursAsHM(visibleData.reduce((s, r) => s + r.totalHours, 0))}
                   </TableCell>
                   <TableCell colSpan={viewMode === 'weekly' ? 2 : 1} sx={{ ...TD, textAlign: 'right', color: 'text.disabled', fontSize: '0.8rem' }}>Mixed currencies</TableCell>
                 </TableRow>

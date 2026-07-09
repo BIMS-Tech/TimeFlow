@@ -894,10 +894,13 @@ class TimesheetController {
         });
       }
 
-      const verifiedHours = verification.verified_hours !== null ? parseFloat(verification.verified_hours) : null;
+      // Prefer the exact verified_minutes; fall back to legacy verified_hours rows.
+      const verifiedMinutes = verification.verified_minutes != null
+        ? parseInt(verification.verified_minutes, 10)
+        : (verification.verified_hours !== null ? Math.round(parseFloat(verification.verified_hours) * 60) : null);
       const cashAdvance   = parseFloat(verification.cash_advance) || 0;
 
-      const job = await jobWorker.enqueueJob('submit', { employeeId, startDate, endDate, periodName, verifiedHours, cashAdvance });
+      const job = await jobWorker.enqueueJob('submit', { employeeId, startDate, endDate, periodName, verifiedMinutes, cashAdvance });
       res.json({ success: true, data: { jobId: job.id, status: 'queued' } });
     } catch (error) {
       console.error('❌ submitTimesheet error:', error.message);

@@ -1,5 +1,6 @@
 const db = require('../database/connection');
 const { v4: uuidv4 } = require('uuid');
+const { hoursToMinutes, minutesToHours } = require('../utils/time');
 
 // Serialises payslip number generation within a single process instance.
 // Prevents two parallel bulk-generation jobs from reading the same COUNT
@@ -111,12 +112,18 @@ class Payslip {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const payslipNumber = await withSeqLock(() => this._nextPayslipNumber());
       try {
+        // minutes authoritative, hours derived
+        const totalMinutes = data.total_minutes != null
+          ? Math.round(Number(data.total_minutes))
+          : hoursToMinutes(data.total_hours);
+
         const id = await db.insert('payslips', {
           summary_id:       data.summary_id,
           payslip_number:   payslipNumber,
           employee_id:      data.employee_id,
           period_id:        data.period_id,
-          total_hours:      data.total_hours,
+          total_minutes:    totalMinutes,
+          total_hours:      minutesToHours(totalMinutes),
           hourly_rate:      data.hourly_rate,
           gross_amount:     data.gross_amount,
           sss_ee:           parseFloat(data.sss_ee       || 0),

@@ -74,8 +74,11 @@ class JobWorkerService {
       let result;
       switch (job.type) {
         case 'submit': {
-          const { employeeId, startDate, endDate, periodName, verifiedHours, cashAdvance } = job.payload;
-          result = await timesheetService.submitTimesheet(employeeId, startDate, endDate, periodName, verifiedHours ?? null, cashAdvance ?? 0);
+          const { employeeId, startDate, endDate, periodName, verifiedMinutes, verifiedHours, cashAdvance } = job.payload;
+          // verifiedHours is the legacy payload shape — keep jobs queued before this
+          // deploy working by converting them to exact minutes.
+          const minutes = verifiedMinutes ?? (verifiedHours != null ? Math.round(Number(verifiedHours) * 60) : null);
+          result = await timesheetService.submitTimesheet(employeeId, startDate, endDate, periodName, minutes, cashAdvance ?? 0);
           break;
         }
         case 'bulk_generate': {

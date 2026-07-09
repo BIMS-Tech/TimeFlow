@@ -18,6 +18,13 @@ import HomeIcon from '@mui/icons-material/Home';
 import PublicIcon from '@mui/icons-material/Public';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHM, parseToMinutes } from '../utils/time';
+
+// Minutes for a row, preferring the exact server value, falling back to derived hours
+const rowMinutes = (row) => row.actual_minutes != null ? row.actual_minutes : Math.round((row.actual_hours || 0) * 60);
+const verMinutes = (ver) => ver?.verified_minutes != null
+  ? ver.verified_minutes
+  : (ver?.verified_hours != null ? Math.round(parseFloat(ver.verified_hours) * 60) : null);
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -48,7 +55,9 @@ function StatusChip({ status }) {
 
 function EditRow({ row, periodId, onSaved }) {
   const sym = CURRENCY_SYMBOLS[row.employee?.currency] || row.employee?.currency || '₱';
-  const [hours, setHours]   = useState(row.verification?.verified_hours ?? row.actual_hours ?? '');
+  // Editable field holds "Hh Mm" text; the source of truth sent to the API is minutes.
+  const initialMinutes = verMinutes(row.verification) ?? rowMinutes(row);
+  const [hours, setHours]   = useState(initialMinutes ? formatHM(initialMinutes) : '');
   const [cash,  setCash]    = useState(row.verification?.cash_advance ?? 0);
   const [notes, setNotes]   = useState(row.verification?.notes ?? '');
   const [saving, setSaving] = useState(false);
@@ -57,11 +66,11 @@ function EditRow({ row, periodId, onSaved }) {
     setSaving(true);
     try {
       await verificationsAPI.upsert({
-        employee_id:    row.employee.id,
-        period_id:      periodId,
-        verified_hours: hours !== '' ? parseFloat(hours) : null,
-        cash_advance:   parseFloat(cash) || 0,
-        status:         newStatus,
+        employee_id:      row.employee.id,
+        period_id:        periodId,
+        verified_minutes: hours !== '' ? parseToMinutes(hours) : null,
+        cash_advance:     parseFloat(cash) || 0,
+        status:           newStatus,
         notes,
       });
       toast.success(`${row.employee.name} marked as ${newStatus}`);
@@ -75,8 +84,8 @@ function EditRow({ row, periodId, onSaved }) {
 
   return (
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-      <TextField label="Hours" type="number" size="small" value={hours} onChange={e => setHours(e.target.value)}
-        inputProps={{ step: 0.5, min: 0 }} sx={{ width: 100 }} />
+      <TextField label="Hours (e.g. 8h 30m)" size="small" value={hours} onChange={e => setHours(e.target.value)}
+        placeholder="8h 30m" sx={{ width: 130 }} />
       <TextField label="Cash Advance" type="number" size="small" value={cash} onChange={e => setCash(e.target.value)}
         InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
         inputProps={{ step: 100, min: 0 }} sx={{ width: 150 }} />
@@ -415,14 +424,14 @@ export default function GenerateTimesheet() {
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                   {hasHours
-                                    ? <Typography sx={{ fontWeight: 700, color: '#6366f1' }}>{row.actual_hours.toFixed(1)}h</Typography>
+                                    ? <Typography sx={{ fontWeight: 700, color: '#6366f1' }}>{formatHM(rowMinutes(row))}</Typography>
                                     : <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>No data</Typography>}
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
-                                  {ver?.verified_hours != null ? (
-                                    <Typography sx={{ fontWeight: 700, color: parseFloat(ver.verified_hours) !== row.actual_hours ? '#f59e0b' : 'text.primary' }}>
-                                      {parseFloat(ver.verified_hours).toFixed(1)}h
-                                      {parseFloat(ver.verified_hours) !== row.actual_hours && (
+                                  {verMinutes(ver) != null ? (
+                                    <Typography sx={{ fontWeight: 700, color: verMinutes(ver) !== rowMinutes(row) ? '#f59e0b' : 'text.primary' }}>
+                                      {formatHM(verMinutes(ver))}
+                                      {verMinutes(ver) !== rowMinutes(row) && (
                                         <Typography component="span" sx={{ fontSize: '0.65rem', color: '#f59e0b', ml: 0.5 }}>override</Typography>
                                       )}
                                     </Typography>
@@ -507,7 +516,7 @@ export default function GenerateTimesheet() {
                       <strong style={{ color: '#10b981' }}>{verifiedCount}</strong> of {withHours} employees verified
                     </Typography>
                     <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                      <strong>{data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (r.verification?.verified_hours != null ? parseFloat(r.verification.verified_hours) : r.actual_hours), 0).toFixed(1)}h</strong> total hours
+                      <strong>{formatHM(data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (verMinutes(r.verification) ?? rowMinutes(r)), 0))}</strong> total hours
                     </Typography>
                     {verifiedCount === withHours && withHours > 0 && (
                       <Chip label="All ready — go to Process Payroll" size="small" icon={<CheckCircleIcon />}

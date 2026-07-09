@@ -18,6 +18,7 @@ import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { timesheetAPI, payslipsAPI, employeesAPI } from '../api';
 import { getMissingBankFields } from '../utils/employeeProfile';
+import { formatHoursAsHM } from '../utils/time';
 
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.5, px: 2 };
@@ -349,7 +350,7 @@ export default function GenerateBankUpload() {
                               <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.2 }}>{p.employee_name}</Typography>
                               <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{p.emp_code || p.employee_id}</Typography>
                             </TableCell>
-                            <TableCell sx={TD}>{p.total_hours}h</TableCell>
+                            <TableCell sx={TD}>{formatHoursAsHM(p.total_hours)}</TableCell>
                             <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>
                               {p.currency || ''} {p.net_amount?.toLocaleString()}
                             </TableCell>

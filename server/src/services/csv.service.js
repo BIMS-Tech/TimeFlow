@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { formatHM, hoursToMinutes } = require('../utils/time');
 
 /**
  * CSV Service
@@ -37,16 +38,17 @@ class CsvService {
 
     // ── Summary block ─────────────────────────────────────────────────────────
     lines.push('SUMMARY');
-    lines.push(`Total Hours,${parseFloat(summary.total_hours || 0).toFixed(2)}`);
-    lines.push(`Regular Hours,${parseFloat(summary.regular_hours || 0).toFixed(2)}`);
-    lines.push(`Overtime Hours,${parseFloat(summary.overtime_hours || 0).toFixed(2)}`);
+    const sumMin = (m, h) => summary[m] != null ? parseInt(summary[m], 10) : hoursToMinutes(summary[h]);
+    lines.push(`Total Hours,${formatHM(sumMin('total_minutes', 'total_hours'))}`);
+    lines.push(`Regular Hours,${formatHM(sumMin('regular_minutes', 'regular_hours'))}`);
+    lines.push(`Overtime Hours,${formatHM(sumMin('overtime_minutes', 'overtime_hours'))}`);
     lines.push(`Hourly Rate,${parseFloat(summary.hourly_rate || 0).toFixed(2)}`);
     lines.push(`Gross Amount,${parseFloat(summary.gross_amount || 0).toFixed(2)}`);
     lines.push('');
 
     // ── Task breakdown ────────────────────────────────────────────────────────
     lines.push('TASK BREAKDOWN');
-    lines.push('Date,Task,Project,Hours,Description');
+    lines.push('Date,Task,Project,Hours (h:mm),Description');
 
     const sorted = [...(taskBreakdown || [])].sort((a, b) =>
       String(a.task_date).localeCompare(String(b.task_date))
@@ -57,13 +59,13 @@ class CsvService {
         this._formatDate(task.task_date),
         this._escape(task.task_name || ''),
         this._escape(task.project_name || ''),
-        parseFloat(task.hours || 0).toFixed(2),
+        formatHM(task.minutes != null ? task.minutes : hoursToMinutes(task.hours)),
         this._escape(task.description || ''),
       ].join(','));
     }
 
     lines.push('');
-    lines.push(`TOTAL,,,,${parseFloat(summary.total_hours || 0).toFixed(2)}`);
+    lines.push(`TOTAL,,,,${formatHM(sumMin('total_minutes', 'total_hours'))}`);
 
     fs.writeFileSync(filePath, lines.join('\r\n'), 'utf8');
     console.log(`📊 Timesheet CSV generated: ${fileName}`);
@@ -99,7 +101,7 @@ class CsvService {
     const typeLabel = period.period_type === 'foreign' ? 'International' : 'Local';
     const num = (n) => Number(parseFloat(n || 0).toFixed(2));
 
-    const totalHours = payslips.reduce((s, p) => s + (parseFloat(p.total_hours) || 0), 0);
+    const totalMinutes = payslips.reduce((s, p) => s + (p.total_minutes != null ? parseInt(p.total_minutes, 10) : hoursToMinutes(p.total_hours)), 0);
     const totalGross = payslips.reduce((s, p) => s + (parseFloat(p.gross_amount) || 0), 0);
     const totalNet   = payslips.reduce((s, p) => s + (parseFloat(p.net_amount)   || 0), 0);
 
@@ -111,23 +113,23 @@ class CsvService {
     rows.push(['Type', typeLabel]);
     rows.push(['Currency', cur]);
     rows.push([]);
-    rows.push(['Employees', payslips.length, 'Total Hours', num(totalHours), 'Total Gross', num(totalGross), 'Total Net', num(totalNet)]);
+    rows.push(['Employees', payslips.length, 'Total Hours', formatHM(totalMinutes), 'Total Gross', num(totalGross), 'Total Net', num(totalNet)]);
     rows.push([]);
-    rows.push(['#', 'Payslip No.', 'Employee', 'Hours', 'Gross', 'Net Pay', 'Status']);
+    rows.push(['#', 'Payslip No.', 'Employee', 'Hours (h:mm)', 'Gross', 'Net Pay', 'Status']);
 
     payslips.forEach((p, idx) => {
       rows.push([
         idx + 1,
         p.payslip_number || '',
         p.employee_name || '',
-        num(p.total_hours),
+        formatHM(p.total_minutes != null ? parseInt(p.total_minutes, 10) : hoursToMinutes(p.total_hours)),
         num(p.gross_amount),
         num(p.net_amount),
         (p.status || '').charAt(0).toUpperCase() + (p.status || '').slice(1),
       ]);
     });
 
-    rows.push(['', '', 'TOTAL', num(totalHours), num(totalGross), num(totalNet), '']);
+    rows.push(['', '', 'TOTAL', formatHM(totalMinutes), num(totalGross), num(totalNet), '']);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 5 }, { wch: 18 }, { wch: 28 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];

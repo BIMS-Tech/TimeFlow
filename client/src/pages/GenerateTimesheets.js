@@ -19,6 +19,12 @@ import LockIcon from '@mui/icons-material/Lock';
 import SearchIcon from '@mui/icons-material/Search';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHM, parseToMinutes } from '../utils/time';
+
+const rowMinutes = (row) => row.actual_minutes != null ? row.actual_minutes : Math.round((row.actual_hours || 0) * 60);
+const verMinutes = (ver) => ver?.verified_minutes != null
+  ? ver.verified_minutes
+  : (ver?.verified_hours != null ? Math.round(parseFloat(ver.verified_hours) * 60) : null);
 
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -45,7 +51,8 @@ function StatusChip({ status }) {
 
 function EditRow({ row, periodId, onSaved }) {
   const sym = currSym(row.employee?.currency);
-  const [hours, setHours] = useState(row.verification?.verified_hours ?? row.actual_hours ?? '');
+  const initialMinutes = verMinutes(row.verification) ?? rowMinutes(row);
+  const [hours, setHours] = useState(initialMinutes ? formatHM(initialMinutes) : '');
   const [cash,  setCash]  = useState(row.verification?.cash_advance ?? 0);
   const [notes, setNotes] = useState(row.verification?.notes ?? '');
   const [saving, setSaving] = useState(false);
@@ -54,9 +61,9 @@ function EditRow({ row, periodId, onSaved }) {
     setSaving(true);
     try {
       await verificationsAPI.upsert({
-        employee_id:    row.employee.id,
-        period_id:      periodId,
-        verified_hours: hours !== '' ? parseFloat(hours) : null,
+        employee_id:      row.employee.id,
+        period_id:        periodId,
+        verified_minutes: hours !== '' ? parseToMinutes(hours) : null,
         cash_advance:   parseFloat(cash) || 0,
         status,
         notes,
@@ -72,9 +79,9 @@ function EditRow({ row, periodId, onSaved }) {
 
   return (
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-      <TextField label="Hours" type="number" size="small" value={hours}
+      <TextField label="Hours (e.g. 8h 30m)" size="small" value={hours}
         onChange={e => setHours(e.target.value)}
-        inputProps={{ step: 0.5, min: 0 }} sx={{ width: 95 }} />
+        placeholder="8h 30m" sx={{ width: 130 }} />
       <TextField label="Cash Advance" type="number" size="small" value={cash}
         onChange={e => setCash(e.target.value)}
         InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
@@ -191,7 +198,7 @@ export default function GenerateTimesheets() {
   const pendingCount   = data.filter(r => r.status === 'pending').length;
   const rejectedCount  = data.filter(r => r.status === 'rejected').length;
   const withHours      = data.filter(r => r.actual_hours > 0).length;
-  const totalHours     = data.reduce((s, r) => s + (r.actual_hours || 0), 0);
+  const totalMinutes   = data.reduce((s, r) => s + rowMinutes(r), 0);
   const allVerified    = withHours > 0 && verifiedCount === withHours;
   const periodLocked   = selectedPeriod?.status !== 'open';
 
@@ -346,7 +353,7 @@ export default function GenerateTimesheets() {
                 {data.length > 0 && (
                   <>
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-                    <Chip icon={<AccessTimeIcon sx={{ fontSize: '13px !important' }} />} label={`${totalHours.toFixed(1)}h total`} size="small"
+                    <Chip icon={<AccessTimeIcon sx={{ fontSize: '13px !important' }} />} label={`${formatHM(totalMinutes)} total`} size="small"
                       sx={{ bgcolor: `${tabColor}15`, color: tabColor, fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { color: tabColor } }} />
                     {[{ label: `${verifiedCount} Verified`, color: '#10b981' }, { label: `${pendingCount} Pending`, color: '#f59e0b' }, ...(rejectedCount > 0 ? [{ label: `${rejectedCount} Rejected`, color: '#ef4444' }] : [])].map(s => (
                       <Chip key={s.label} label={s.label} size="small"
@@ -445,7 +452,7 @@ export default function GenerateTimesheets() {
                             const ver      = row.verification;
                             const isEdit   = editingId === emp.id;
                             const hasHours = row.actual_hours > 0;
-                            const overridden = ver?.verified_hours != null && parseFloat(ver.verified_hours) !== row.actual_hours;
+                            const overridden = verMinutes(ver) != null && verMinutes(ver) !== rowMinutes(row);
 
                             return (
                               <React.Fragment key={emp.id}>
@@ -464,17 +471,17 @@ export default function GenerateTimesheets() {
                                     {hasHours ? (
                                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                                         <AccessTimeIcon sx={{ fontSize: 14, color: tabColor }} />
-                                        <Typography sx={{ fontWeight: 700, color: tabColor }}>{row.actual_hours.toFixed(1)}h</Typography>
+                                        <Typography sx={{ fontWeight: 700, color: tabColor }}>{formatHM(rowMinutes(row))}</Typography>
                                       </Box>
                                     ) : (
                                       <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>No data</Typography>
                                     )}
                                   </TableCell>
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
-                                    {ver?.verified_hours != null ? (
+                                    {verMinutes(ver) != null ? (
                                       <Box>
                                         <Typography sx={{ fontWeight: 700, color: overridden ? '#f59e0b' : 'text.primary' }}>
-                                          {parseFloat(ver.verified_hours).toFixed(1)}h
+                                          {formatHM(verMinutes(ver))}
                                         </Typography>
                                         {overridden && <Typography sx={{ fontSize: '0.62rem', color: '#f59e0b' }}>overridden</Typography>}
                                       </Box>

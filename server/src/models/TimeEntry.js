@@ -1,4 +1,5 @@
 const db = require('../database/connection');
+const { hoursToMinutes, minutesToHours } = require('../utils/time');
 
 /**
  * TimeEntry Model
@@ -40,12 +41,19 @@ class TimeEntry {
    * Create a new time entry
    */
   static async create(data) {
+    // minutes_worked is the source of truth; hours_worked is derived for display.
+    // Accept either input so manual/CSV callers can still pass hours.
+    const minutes = data.minutes_worked != null
+      ? Math.round(Number(data.minutes_worked))
+      : hoursToMinutes(data.hours_worked);
+
     const id = await db.insert('time_entries', {
       employee_id: data.employee_id,
       entry_date: data.entry_date,
       start_time: data.start_time || null,
       end_time: data.end_time || null,
-      hours_worked: data.hours_worked,
+      minutes_worked: minutes,
+      hours_worked: minutesToHours(minutes),
       task_description: data.task_description || null,
       project_name: data.project_name || null,
       wrike_task_id: data.wrike_task_id || null,
@@ -71,7 +79,16 @@ class TimeEntry {
    * Update a time entry
    */
   static async update(id, data) {
-    await db.update('time_entries', data, 'id = ?', [id]);
+    // Keep the derived hours column in lockstep with the authoritative minutes.
+    const patch = { ...data };
+    if (patch.minutes_worked != null) {
+      patch.minutes_worked = Math.round(Number(patch.minutes_worked));
+      patch.hours_worked = minutesToHours(patch.minutes_worked);
+    } else if (patch.hours_worked != null) {
+      patch.minutes_worked = hoursToMinutes(patch.hours_worked);
+      patch.hours_worked = minutesToHours(patch.minutes_worked);
+    }
+    await db.update('time_entries', patch, 'id = ?', [id]);
     return this.findById(id);
   }
 
@@ -142,6 +159,20 @@ class TimeEntry {
   }
 
   /**
+   * Exact total minutes for a period. This — not getTotalHours — is what payroll
+   * math must use: summing integer minutes loses nothing.
+   */
+  static async getTotalMinutes(employeeId, startDate, endDate) {
+    const sql = `
+      SELECT COALESCE(SUM(minutes_worked), 0) as total_minutes
+      FROM time_entries
+      WHERE employee_id = ? AND entry_date BETWEEN ? AND ?
+    `;
+    const result = await db.getOne(sql, [employeeId, startDate, endDate]);
+    return parseInt(result.total_minutes, 10) || 0;
+  }
+
+  /**
    * Fetch all Wrike-sourced entries for a set of employees within a date range in one query.
    * Returns a Map keyed by `${employee_id}|${wrikeLogId}` → ARRAY of matching rows
    * ({ id, employee_id, hours_worked, category }), where the Wrike log ID is parsed
@@ -157,7 +188,7 @@ class TimeEntry {
 
     const placeholders = employeeIds.map(() => '?').join(',');
     const rows = await db.query(
-      `SELECT id, employee_id, hours_worked, category, task_description
+      `SELECT id, employee_id, minutes_worked, category, task_description
        FROM time_entries
        WHERE source = 'wrike'
          AND employee_id IN (${placeholders})
@@ -173,7 +204,7 @@ class TimeEntry {
       const entry = {
         id: r.id,
         employee_id: r.employee_id,
-        hours_worked: parseFloat(r.hours_worked) || 0,
+        minutes_worked: r.minutes_worked === null ? null : parseInt(r.minutes_worked, 10),
         category: r.category,
       };
       const bucket = map.get(key);
@@ -191,7 +222,7 @@ class TimeEntry {
     if (!entries.length) return 0;
 
     const cols = [
-      'employee_id', 'entry_date', 'start_time', 'end_time', 'hours_worked',
+      'employee_id', 'entry_date', 'start_time', 'end_time', 'minutes_worked', 'hours_worked',
       'task_description', 'project_name', 'wrike_task_id', 'category', 'source',
     ];
     const rowPlaceholder = `(${cols.map(() => '?').join(',')})`;
@@ -201,9 +232,13 @@ class TimeEntry {
       const chunk = entries.slice(i, i + chunkSize);
       const values = [];
       for (const e of chunk) {
+        const minutes = e.minutes_worked != null
+          ? Math.round(Number(e.minutes_worked))
+          : hoursToMinutes(e.hours_worked);
         values.push(
           e.employee_id, e.entry_date, e.start_time || null, e.end_time || null,
-          e.hours_worked, e.task_description || null, e.project_name || null,
+          minutes, minutesToHours(minutes),
+          e.task_description || null, e.project_name || null,
           e.wrike_task_id || null, e.category || null, e.source || 'wrike'
         );
       }

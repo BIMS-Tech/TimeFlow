@@ -10,6 +10,7 @@ const { computeDeductions } = require('./payroll-deductions.service');
 const db = require('../database/connection');
 const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
+const { hoursToMinutes, minutesToHours, roundMoney, payForMinutes } = require('../utils/time');
 const XLSX = require('xlsx');
 require('dotenv').config();
 
@@ -133,10 +134,10 @@ class TimesheetService {
 
   /**
    * Process timesheet for a single employee
-   * @param {object} opts.overrideHours - Use this total instead of reading from time_entries
+   * @param {number} opts.overrideMinutes - Use this total (integer minutes) instead of reading from time_entries
    * @param {number} opts.cashAdvance - Cash advance deduction amount
    */
-  async processEmployeeTimesheet(employee, period, { overrideHours = null, cashAdvance = 0 } = {}) {
+  async processEmployeeTimesheet(employee, period, { overrideMinutes = null, cashAdvance = 0 } = {}) {
     console.log(`📋 Processing timesheet for ${employee.name}...`);
 
     // Check if summary already exists
@@ -173,12 +174,13 @@ class TimesheetService {
       return { success: true, summary: approvalResult.summary, payslip: approvalResult.payslip };
     }
 
-    // Calculate hours from time entries (or use admin-verified override)
-    const totalHours = overrideHours !== null
-      ? parseFloat(overrideHours)
-      : await TimeEntry.getTotalHours(employee.id, period.start_date, period.end_date);
+    // Exact total minutes from time entries (or the admin-verified override).
+    // Never sum decimal hours here — integer minutes are the source of truth.
+    const totalMinutes = overrideMinutes !== null
+      ? Math.round(Number(overrideMinutes))
+      : await TimeEntry.getTotalMinutes(employee.id, period.start_date, period.end_date);
 
-    if (totalHours === 0) {
+    if (totalMinutes === 0) {
       console.log(`⏭️  ${employee.name} has no hours for this period`);
       return { success: false, reason: 'no_hours' };
     }
@@ -186,30 +188,33 @@ class TimesheetService {
     // Get hourly rate
     const hourlyRate = employee.hourly_rate || parseFloat(process.env.DEFAULT_HOURLY_RATE || 500);
 
-    // Calculate hours breakdown
-    const hoursBreakdown = await this.calculateHoursBreakdown(employee.id, period, totalHours, hourlyRate);
+    // Calculate minutes breakdown + gross (money rounded exactly once, inside)
+    const breakdown = await this.calculateHoursBreakdown(employee.id, period, totalMinutes, hourlyRate);
 
     // Compute PH government deductions based on employee type
-    const ded = computeDeductions(employee.employee_type, hoursBreakdown.grossAmount, period);
+    const ded = computeDeductions(employee.employee_type, breakdown.grossAmount, period);
 
     const cashAdv = parseFloat(cashAdvance) || 0;
 
-    // Create or update summary
+    // Create or update summary — minutes authoritative, hours derived for display
     summary = await TimeEntriesSummary.upsert({
       employee_id:   employee.id,
       period_id:     period.id,
-      total_hours:   hoursBreakdown.totalHours,
-      regular_hours: hoursBreakdown.regularHours,
-      overtime_hours: hoursBreakdown.overtimeHours,
+      total_minutes:    breakdown.totalMinutes,
+      regular_minutes:  breakdown.regularMinutes,
+      overtime_minutes: breakdown.overtimeMinutes,
+      total_hours:   minutesToHours(breakdown.totalMinutes),
+      regular_hours: minutesToHours(breakdown.regularMinutes),
+      overtime_hours: minutesToHours(breakdown.overtimeMinutes),
       hourly_rate:   hourlyRate,
-      gross_amount:  hoursBreakdown.grossAmount,
+      gross_amount:  breakdown.grossAmount,
       sss_ee:        ded.sssEE,
       sss_mpf:       ded.sssMPF,
       philhealth_ee: ded.philhealthEE,
       pagibig_ee:    ded.pagibigEE,
       bir_tax:       ded.birTax,
       cash_advance:  cashAdv,
-      net_amount:    Math.max(0, hoursBreakdown.grossAmount - ded.total - cashAdv),
+      net_amount:    roundMoney(Math.max(0, breakdown.grossAmount - ded.total - cashAdv)),
     });
 
     // Get task breakdown
@@ -247,14 +252,35 @@ class TimesheetService {
   /**
    * Calculate hours breakdown (regular vs overtime)
    */
-  async calculateHoursBreakdown(employeeId, period, totalHours, hourlyRate) {
+  /**
+   * Split exact total minutes into regular/overtime and price them.
+   *
+   * Money is computed from minutes at full precision and rounded exactly ONCE, on the
+   * final gross. Rounding hours first (or rounding each component) is what leaks pennies.
+   *
+   * @param {number} totalMinutes - exact integer minutes
+   */
+  async calculateHoursBreakdown(employeeId, period, totalMinutes, hourlyRate) {
     const { workingHoursPerDay, overtimeMultiplier } = await this.getSettings();
     const workingDays = this.countWorkingDays(new Date(period.start_date), new Date(period.end_date));
-    const maxRegularHours = workingHoursPerDay * workingDays;
-    const regularHours  = Math.min(totalHours, maxRegularHours);
-    const overtimeHours = Math.max(0, totalHours - maxRegularHours);
-    const grossAmount   = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * overtimeMultiplier);
-    return { totalHours, regularHours, overtimeHours, grossAmount };
+    const maxRegularMinutes = workingHoursPerDay * 60 * workingDays;
+
+    const regularMinutes  = Math.min(totalMinutes, maxRegularMinutes);
+    const overtimeMinutes = Math.max(0, totalMinutes - maxRegularMinutes);
+
+    const grossAmount = roundMoney(
+      payForMinutes(regularMinutes, hourlyRate) +
+      payForMinutes(overtimeMinutes, hourlyRate, overtimeMultiplier)
+    );
+
+    return {
+      totalMinutes, regularMinutes, overtimeMinutes,
+      // derived hours, for display/legacy columns only
+      totalHours: minutesToHours(totalMinutes),
+      regularHours: minutesToHours(regularMinutes),
+      overtimeHours: minutesToHours(overtimeMinutes),
+      grossAmount,
+    };
   }
 
   /**
@@ -277,14 +303,18 @@ class TimesheetService {
   async getTaskBreakdown(employeeId, period) {
     const entries = await TimeEntry.findByDateRange(employeeId, period.start_date, period.end_date);
     
-    return entries.map(entry => ({
-      task_date: entry.entry_date,
-      task_name: entry.task_description || 'General Work',
-      project_name: entry.project_name || 'N/A',
-      hours: parseFloat(entry.hours_worked),
-      description: entry.task_description,
-      wrike_task_id: entry.wrike_task_id
-    }));
+    return entries.map(entry => {
+      const minutes = parseInt(entry.minutes_worked, 10) || 0;
+      return {
+        task_date: entry.entry_date,
+        task_name: entry.task_description || 'General Work',
+        project_name: entry.project_name || 'N/A',
+        minutes,
+        hours: minutesToHours(minutes),
+        description: entry.task_description,
+        wrike_task_id: entry.wrike_task_id
+      };
+    });
   }
 
 
@@ -382,6 +412,7 @@ class TimesheetService {
       payslip_number: payslipNumber,
       employee_id:   summary.employee_id,
       period_id:     period.id,
+      total_minutes: summary.total_minutes,
       total_hours:   summary.total_hours,
       hourly_rate:   summary.hourly_rate,
       gross_amount:  summary.gross_amount,
@@ -555,9 +586,9 @@ class TimesheetService {
 
     // ── 1. Try fetching from Wrike live ─────────────────────────────────────
     let source     = 'wrike';
-    let dailyMap   = {};
+    let dailyMap   = {};   // date → exact integer minutes
     let taskDetails = [];
-    let totalHours = 0;
+    let totalMinutes = 0;
     let wrikeError = null;
 
     let noApprovedHours = false;
@@ -575,25 +606,26 @@ class TimesheetService {
       for (const log of userLogs) {
         const d = log.date?.substring(0, 10); // normalise to YYYY-MM-DD regardless of time suffix
         if (!dailyMap[d]) dailyMap[d] = 0;
-        dailyMap[d] += log.hours;
+        dailyMap[d] += hoursToMinutes(log.hours);
       }
 
       taskDetails = userLogs.map(log => ({
         date:      log.date?.substring(0, 10),
-        hours:     log.hours,
+        minutes:   hoursToMinutes(log.hours),
+        hours:     minutesToHours(hoursToMinutes(log.hours)),
         taskId:    log.taskId,
         taskTitle: taskTitles[log.taskId] || log.taskId || '—',
         comment:   log.comment || ''
       }));
 
-      totalHours = userLogs.reduce((sum, l) => sum + l.hours, 0);
+      totalMinutes = userLogs.reduce((sum, l) => sum + hoursToMinutes(l.hours), 0);
     } catch (err) {
       wrikeError = err.message;
       console.error('⚠️  previewTimesheet Wrike fetch failed:', err.message);
     }
 
     // ── 2. Fall back to imported DB entries when Wrike returns 0 ────────────
-    if (totalHours === 0) {
+    if (totalMinutes === 0) {
       const dbEntries = await TimeEntry.findByDateRange(employee.id, startDate, endDate);
 
       if (dbEntries.length > 0) {
@@ -603,23 +635,25 @@ class TimesheetService {
 
         for (const entry of dbEntries) {
           const d = String(entry.entry_date).substring(0, 10);
+          const mins = parseInt(entry.minutes_worked, 10) || 0;
           if (!dailyMap[d]) dailyMap[d] = 0;
-          dailyMap[d] += parseFloat(entry.hours_worked);
+          dailyMap[d] += mins;
 
           taskDetails.push({
             date:      d,
-            hours:     parseFloat(entry.hours_worked),
+            minutes:   mins,
+            hours:     minutesToHours(mins),
             taskId:    entry.wrike_task_id || null,
             taskTitle: entry.project_name || entry.task_description || '—',
             comment:   entry.task_description || ''
           });
         }
 
-        totalHours = dbEntries.reduce((sum, e) => sum + parseFloat(e.hours_worked), 0);
+        totalMinutes = dbEntries.reduce((sum, e) => sum + (parseInt(e.minutes_worked, 10) || 0), 0);
       }
     }
 
-    const breakdown = await this.calculateHoursBreakdown(employee.id, fakeperiod, totalHours, hourlyRate);
+    const breakdown = await this.calculateHoursBreakdown(employee.id, fakeperiod, totalMinutes, hourlyRate);
 
     return {
       employee: {
@@ -637,20 +671,24 @@ class TimesheetService {
       source,          // 'wrike' | 'db'
       wrikeError,      // null if Wrike succeeded
       noApprovedHours, // true when Wrike has timelogs but none are approved
-      dailyHours:    dailyMap,
+      dailyMinutes:  dailyMap,
+      dailyHours:    Object.fromEntries(Object.entries(dailyMap).map(([d, m]) => [d, minutesToHours(m)])),
       taskDetails,
-      totalHours:    +totalHours.toFixed(2),
-      regularHours:  +breakdown.regularHours.toFixed(2),
-      overtimeHours: +breakdown.overtimeHours.toFixed(2),
+      totalMinutes:    breakdown.totalMinutes,
+      regularMinutes:  breakdown.regularMinutes,
+      overtimeMinutes: breakdown.overtimeMinutes,
+      totalHours:    breakdown.totalHours,
+      regularHours:  breakdown.regularHours,
+      overtimeHours: breakdown.overtimeHours,
       hourlyRate,
-      grossAmount:   +breakdown.grossAmount.toFixed(2)
+      grossAmount:   breakdown.grossAmount
     };
   }
 
   /**
    * Process timesheet for an employee and period — imports approved Wrike timelogs and generates payslip.
    */
-  async submitTimesheet(employeeId, startDate, endDate, periodName = null, verifiedHours = null, cashAdvance = 0) {
+  async submitTimesheet(employeeId, startDate, endDate, periodName = null, verifiedMinutes = null, cashAdvance = 0) {
     const employee = await Employee.findById(employeeId);
     if (!employee) throw new Error('Employee not found');
 
@@ -667,10 +705,10 @@ class TimesheetService {
       period = await PayPeriod.create({ period_name: name, start_date: startDate, end_date: endDate });
     }
 
-    if (verifiedHours !== null) {
+    if (verifiedMinutes !== null) {
       // Admin has manually verified hours — skip Wrike fetch, use verified data directly
       const result = await this.processEmployeeTimesheet(employee, period, {
-        overrideHours: verifiedHours,
+        overrideMinutes: verifiedMinutes,
         cashAdvance,
       });
       if (!result.success) {

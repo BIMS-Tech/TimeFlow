@@ -11,6 +11,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { dashboardAPI } from '../api';
+import { formatHoursAsHM } from '../utils/time';
 
 
 function StatCard({ icon, label, value, color, gradient }) {
@@ -113,7 +114,7 @@ export default function Dashboard() {
           <StatCard icon={<PeopleIcon />} label="Total Employees" value={employeeCount || 0} color="#6366f1" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard icon={<HourglassEmptyIcon />} label="Total Hours" value={`${Number(summaries?.total_hours || 0).toFixed(1)}h`} color="#f59e0b" />
+          <StatCard icon={<HourglassEmptyIcon />} label="Total Hours" value={`${formatHoursAsHM(summaries?.total_hours || 0)}`} color="#f59e0b" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
@@ -145,7 +146,7 @@ export default function Dashboard() {
             <Box sx={{ mb: 1.5 }}>
               <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', mb: 0.25 }}>Total Hours</Typography>
               <Typography sx={{ fontSize: '1.75rem', fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
-                {Number(summaries?.total_hours || 0).toFixed(1)}h
+                {formatHoursAsHM(summaries?.total_hours || 0)}
               </Typography>
             </Box>
             <Divider sx={{ mb: 1.5 }} />

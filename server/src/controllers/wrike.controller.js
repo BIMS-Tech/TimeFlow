@@ -2,6 +2,7 @@ const wrikeService = require('../services/wrike.service');
 const Employee = require('../models/Employee');
 const TimeEntry = require('../models/TimeEntry');
 const db = require('../database/connection');
+const { hoursToMinutes } = require('../utils/time');
 
 function toDateStr(val) {
   if (!val) return '';
@@ -109,11 +110,10 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
       const key = `${emp.id}|${log.logId}`;
       presentKeys.add(key);
 
-      // hours_worked is DECIMAL(5,2) — round to the column's precision so a re-sync
-      // compares like-for-like. Wrike returns full-precision hours (e.g. 0.5666…),
-      // and comparing that against the stored 0.57 would flag every row as "changed"
-      // on every sync, churning pointless UPDATEs while the total never moves.
-      const hrs = Math.round(log.hours * 100) / 100;
+      // Wrike records whole minutes, so this conversion is exact and lossless.
+      // Comparing integers (not floats) also makes re-sync perfectly idempotent —
+      // no epsilon, no rounding churn.
+      const minutes = hoursToMinutes(log.hours);
       const categoryName = log.categoryId ? (categoryMap[log.categoryId] || null) : null;
       const rows = existingMap.get(key);
 
@@ -123,9 +123,9 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
         const canonical = rows[0];
         for (let i = 1; i < rows.length; i++) { toDelete.push(rows[i].id); deduped++; }
 
-        // Re-sync corrects the canonical row when hours/category changed in Wrike
+        // Re-sync corrects the canonical row when minutes/category changed in Wrike
         const changes = {};
-        if (Math.abs(canonical.hours_worked - hrs) >= 0.005) changes.hours_worked = hrs;
+        if (canonical.minutes_worked !== minutes) changes.minutes_worked = minutes;
         if (categoryName && canonical.category !== categoryName) changes.category = categoryName;
 
         if (Object.keys(changes).length) toUpdate.push({ id: canonical.id, changes });
@@ -137,7 +137,7 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
       toInsert.push({
         employee_id:      emp.id,
         entry_date:       log.date,
-        hours_worked:     hrs,
+        minutes_worked:   minutes,
         task_description: description,
         project_name:     taskTitles[log.taskId] || null,
         wrike_task_id:    log.taskId || null,

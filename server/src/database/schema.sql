@@ -74,7 +74,8 @@ CREATE TABLE IF NOT EXISTS time_entries (
     entry_date DATE NOT NULL,
     start_time TIME,
     end_time TIME,
-    hours_worked DECIMAL(5, 2) NOT NULL,
+    minutes_worked INT NOT NULL,                 -- source of truth (Wrike records whole minutes)
+    hours_worked DECIMAL(10, 4) NOT NULL,        -- derived from minutes_worked, display only
     task_description TEXT,
     project_name VARCHAR(255),
     wrike_task_id VARCHAR(100),
@@ -111,9 +112,12 @@ CREATE TABLE IF NOT EXISTS time_entries_summary (
     id INT PRIMARY KEY AUTO_INCREMENT,
     employee_id INT NOT NULL,
     period_id INT NOT NULL,
-    total_hours DECIMAL(6, 2) NOT NULL DEFAULT 0,
-    regular_hours DECIMAL(6, 2) DEFAULT 0,
-    overtime_hours DECIMAL(6, 2) DEFAULT 0,
+    total_minutes INT NOT NULL DEFAULT 0,        -- source of truth
+    regular_minutes INT DEFAULT 0,
+    overtime_minutes INT DEFAULT 0,
+    total_hours DECIMAL(10, 4) NOT NULL DEFAULT 0,   -- derived, display only
+    regular_hours DECIMAL(10, 4) DEFAULT 0,
+    overtime_hours DECIMAL(10, 4) DEFAULT 0,
     hourly_rate DECIMAL(10, 2) NOT NULL,
     gross_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
     deductions DECIMAL(12, 2) DEFAULT 0,
@@ -156,7 +160,8 @@ CREATE TABLE IF NOT EXISTS task_breakdown (
     task_date DATE NOT NULL,
     task_name VARCHAR(255),
     project_name VARCHAR(255),
-    hours DECIMAL(5, 2) NOT NULL,
+    minutes INT NOT NULL,                        -- source of truth
+    hours DECIMAL(10, 4) NOT NULL,               -- derived, display only
     description TEXT,
     wrike_task_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -176,7 +181,8 @@ CREATE TABLE IF NOT EXISTS payslips (
     period_id INT NOT NULL,
     
     -- Financial details
-    total_hours DECIMAL(6, 2) NOT NULL,
+    total_minutes INT NOT NULL,                  -- source of truth
+    total_hours DECIMAL(10, 4) NOT NULL,         -- derived, display only
     hourly_rate DECIMAL(10, 2) NOT NULL,
     gross_amount DECIMAL(12, 2) NOT NULL,
     tax_deductions DECIMAL(12, 2) DEFAULT 0,

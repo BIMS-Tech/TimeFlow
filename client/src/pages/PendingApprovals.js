@@ -16,6 +16,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { timesheetAPI } from '../api';
+import { formatHoursAsHM } from '../utils/time';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
@@ -137,7 +138,7 @@ export default function PendingApprovals() {
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{s.email}</Typography>
                       </TableCell>
                       <TableCell sx={TD}>{s.period_name}</TableCell>
-                      <TableCell sx={TD}>{s.total_hours}h</TableCell>
+                      <TableCell sx={TD}>{formatHoursAsHM(s.total_hours)}</TableCell>
                       <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                       <TableCell sx={TD}>
                         <Chip label={`${s.days_since_updated || 0} days`} size="small"
@@ -200,7 +201,7 @@ export default function PendingApprovals() {
                           <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{s.email}</Typography>
                         </TableCell>
                         <TableCell sx={TD}>{s.period_name}</TableCell>
-                        <TableCell sx={TD}>{s.total_hours}h</TableCell>
+                        <TableCell sx={TD}>{formatHoursAsHM(s.total_hours)}</TableCell>
                         <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                         <TableCell sx={TD}>
                           <Chip label={`${s.days_since_updated || 0} days`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 600, fontSize: '0.72rem' }} />
@@ -241,7 +242,7 @@ export default function PendingApprovals() {
             <Grid container spacing={2} sx={{ mt: 0 }}>
               <Grid item xs={6}><InfoRow label="Employee" value={selectedSummary.employee_name} /></Grid>
               <Grid item xs={6}><InfoRow label="Period" value={selectedSummary.period_name} /></Grid>
-              <Grid item xs={6}><InfoRow label="Total Hours" value={`${selectedSummary.total_hours}h`} /></Grid>
+              <Grid item xs={6}><InfoRow label="Total Hours" value={`${formatHoursAsHM(selectedSummary.total_hours)}`} /></Grid>
               <Grid item xs={6}><InfoRow label="Gross Amount" value={`${selectedSummary.currency || ''} ${selectedSummary.gross_amount?.toLocaleString()}`} /></Grid>
             </Grid>
           )}
@@ -261,7 +262,7 @@ export default function PendingApprovals() {
               <Grid container spacing={2} sx={{ mt: 0, mb: 2 }}>
                 <Grid item xs={6}><InfoRow label="Employee" value={showRejectionDetail.employee_name} /></Grid>
                 <Grid item xs={6}><InfoRow label="Period" value={showRejectionDetail.period_name} /></Grid>
-                <Grid item xs={6}><InfoRow label="Total Hours" value={`${showRejectionDetail.total_hours}h`} /></Grid>
+                <Grid item xs={6}><InfoRow label="Total Hours" value={`${formatHoursAsHM(showRejectionDetail.total_hours)}`} /></Grid>
                 <Grid item xs={6}><InfoRow label="Gross Amount" value={`${showRejectionDetail.currency || ''} ${showRejectionDetail.gross_amount?.toLocaleString()}`} /></Grid>
               </Grid>
               <Box sx={{ bgcolor: '#fff8e1', borderRadius: 0, p: 2, mb: 2 }}>

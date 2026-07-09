@@ -1,4 +1,5 @@
 const db = require('../database/connection');
+const { hoursToMinutes, minutesToHours } = require('../utils/time');
 
 /**
  * TimeEntriesSummary Model
@@ -100,11 +101,23 @@ class TimeEntriesSummary {
       cash_advance:  data.cash_advance  || 0,
     };
 
+    // Minutes are authoritative; hours are derived. Accept either input shape.
+    const totalMinutes    = data.total_minutes    != null ? Math.round(Number(data.total_minutes))    : hoursToMinutes(data.total_hours);
+    const regularMinutes  = data.regular_minutes  != null ? Math.round(Number(data.regular_minutes))  : hoursToMinutes(data.regular_hours ?? data.total_hours);
+    const overtimeMinutes = data.overtime_minutes != null ? Math.round(Number(data.overtime_minutes)) : hoursToMinutes(data.overtime_hours ?? 0);
+
+    const timeFields = {
+      total_minutes:    totalMinutes,
+      regular_minutes:  regularMinutes,
+      overtime_minutes: overtimeMinutes,
+      total_hours:      minutesToHours(totalMinutes),
+      regular_hours:    minutesToHours(regularMinutes),
+      overtime_hours:   minutesToHours(overtimeMinutes),
+    };
+
     if (existing) {
       await db.update('time_entries_summary', {
-        total_hours: data.total_hours,
-        regular_hours: data.regular_hours,
-        overtime_hours: data.overtime_hours,
+        ...timeFields,
         hourly_rate: data.hourly_rate,
         gross_amount: data.gross_amount,
         net_amount: data.net_amount,
@@ -116,9 +129,7 @@ class TimeEntriesSummary {
       const id = await db.insert('time_entries_summary', {
         employee_id:   data.employee_id,
         period_id:     data.period_id,
-        total_hours:   data.total_hours,
-        regular_hours: data.regular_hours || data.total_hours,
-        overtime_hours: data.overtime_hours || 0,
+        ...timeFields,
         hourly_rate:   data.hourly_rate,
         gross_amount:  data.gross_amount,
         net_amount:    data.net_amount || data.gross_amount,
@@ -244,14 +255,16 @@ class TimeEntriesSummary {
     // Clear existing breakdown
     await db.remove('task_breakdown', 'summary_id = ?', [summaryId]);
     
-    // Insert new breakdown
+    // Insert new breakdown — minutes authoritative, hours derived
     for (const task of tasks) {
+      const minutes = task.minutes != null ? Math.round(Number(task.minutes)) : hoursToMinutes(task.hours);
       await db.insert('task_breakdown', {
         summary_id: summaryId,
         task_date: task.task_date,
         task_name: task.task_name ? task.task_name.substring(0, 255) : null,
         project_name: task.project_name ? task.project_name.substring(0, 255) : null,
-        hours: task.hours,
+        minutes,
+        hours: minutesToHours(minutes),
         description: task.description,
         wrike_task_id: task.wrike_task_id
       });

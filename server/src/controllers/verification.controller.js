@@ -1,4 +1,5 @@
 const db = require('../database/connection');
+const { hoursToMinutes, minutesToHours } = require('../utils/time');
 
 function toDateStr(val) {
   if (!val) return '';
@@ -37,14 +38,15 @@ class VerificationController {
         [isForeign ? 'foreign' : 'local', isForeign ? 'foreign' : 'local']
       );
 
+      // Sum exact integer minutes — never decimal hours
       const hoursRows = await db.query(
-        `SELECT employee_id, SUM(hours_worked) as total_hours
+        `SELECT employee_id, SUM(minutes_worked) as total_minutes
          FROM time_entries WHERE entry_date >= ? AND entry_date <= ?
          GROUP BY employee_id`,
         [startDate, endDate]
       );
-      const hoursMap = {};
-      hoursRows.forEach(r => { hoursMap[r.employee_id] = parseFloat(r.total_hours) || 0; });
+      const minutesMap = {};
+      hoursRows.forEach(r => { minutesMap[r.employee_id] = parseInt(r.total_minutes, 10) || 0; });
 
       const verifications = await db.query(
         'SELECT * FROM timesheet_verifications WHERE period_id = ?',
@@ -53,12 +55,16 @@ class VerificationController {
       const verMap = {};
       verifications.forEach(v => { verMap[v.employee_id] = v; });
 
-      const data = employees.map(emp => ({
-        employee: emp,
-        actual_hours: hoursMap[emp.id] || 0,
-        verification: verMap[emp.id] || null,
-        status: verMap[emp.id]?.status || 'pending',
-      }));
+      const data = employees.map(emp => {
+        const minutes = minutesMap[emp.id] || 0;
+        return {
+          employee: emp,
+          actual_minutes: minutes,
+          actual_hours: minutesToHours(minutes), // derived, display only
+          verification: verMap[emp.id] || null,
+          status: verMap[emp.id]?.status || 'pending',
+        };
+      });
 
       res.json({ success: true, data, period });
     } catch (error) {
@@ -72,10 +78,15 @@ class VerificationController {
    */
   async upsert(req, res) {
     try {
-      const { employee_id, period_id, verified_hours, cash_advance, status, notes } = req.body;
+      const { employee_id, period_id, verified_hours, verified_minutes, cash_advance, status, notes } = req.body;
       if (!employee_id || !period_id) {
         return res.status(400).json({ success: false, error: 'employee_id and period_id are required' });
       }
+
+      // Minutes authoritative; accept legacy verified_hours from older clients.
+      const verifiedMinutes = verified_minutes !== undefined && verified_minutes !== null
+        ? Math.round(Number(verified_minutes))
+        : (verified_hours !== undefined && verified_hours !== null ? hoursToMinutes(verified_hours) : undefined);
 
       const existing = await db.getOne(
         'SELECT id FROM timesheet_verifications WHERE employee_id = ? AND period_id = ?',
@@ -86,7 +97,10 @@ class VerificationController {
 
       if (existing) {
         const updates = { updated_at: new Date() };
-        if (verified_hours !== undefined) updates.verified_hours = verified_hours;
+        if (verifiedMinutes !== undefined) {
+          updates.verified_minutes = verifiedMinutes;
+          updates.verified_hours   = minutesToHours(verifiedMinutes); // derived
+        }
         if (cash_advance  !== undefined) updates.cash_advance  = parseFloat(cash_advance) || 0;
         if (status        !== undefined) updates.status        = status;
         if (notes         !== undefined) updates.notes         = notes;
@@ -100,11 +114,12 @@ class VerificationController {
       } else {
         await db.query(
           `INSERT INTO timesheet_verifications
-            (employee_id, period_id, verified_hours, cash_advance, status, notes, verified_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (employee_id, period_id, verified_minutes, verified_hours, cash_advance, status, notes, verified_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             employee_id, period_id,
-            verified_hours !== undefined ? verified_hours : null,
+            verifiedMinutes !== undefined ? verifiedMinutes : null,
+            verifiedMinutes !== undefined ? minutesToHours(verifiedMinutes) : null,
             parseFloat(cash_advance) || 0,
             status || 'pending',
             notes || null,
@@ -173,18 +188,18 @@ class VerificationController {
       if (employeeIds) {
         const ids = employeeIds.split(',').map(Number).filter(Boolean);
         rows = await db.query(
-          `SELECT employee_id, status, verified_hours, cash_advance FROM timesheet_verifications WHERE period_id = ? AND employee_id IN (${ids.map(() => '?').join(',')})`,
+          `SELECT employee_id, status, verified_minutes, verified_hours, cash_advance FROM timesheet_verifications WHERE period_id = ? AND employee_id IN (${ids.map(() => '?').join(',')})`,
           [periodId, ...ids]
         );
       } else {
         rows = await db.query(
-          'SELECT employee_id, status, verified_hours, cash_advance FROM timesheet_verifications WHERE period_id = ?',
+          'SELECT employee_id, status, verified_minutes, verified_hours, cash_advance FROM timesheet_verifications WHERE period_id = ?',
           [periodId]
         );
       }
 
       const statusMap = {};
-      rows.forEach(r => { statusMap[r.employee_id] = { status: r.status, verified_hours: r.verified_hours, cash_advance: r.cash_advance }; });
+      rows.forEach(r => { statusMap[r.employee_id] = { status: r.status, verified_minutes: r.verified_minutes, verified_hours: r.verified_hours, cash_advance: r.cash_advance }; });
       res.json({ success: true, data: statusMap });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });

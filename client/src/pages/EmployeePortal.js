@@ -31,6 +31,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { getMissingBankFields } from '../utils/employeeProfile';
+import { formatHM, formatHoursAsHM } from '../utils/time';
 
 const DRAWER_W = 260;
 
@@ -105,7 +106,7 @@ function PortalCategoryHoursPanel({ timesheets }) {
             <Box key={cat.category || i} sx={{ mb: i < categories.length - 1 ? 2 : 0 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{cat.category || 'Uncategorized'}</Typography>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color }}>{hrs.toFixed(1)}h</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color }}>{formatHoursAsHM(hrs)}</Typography>
               </Box>
               <LinearProgress variant="determinate" value={pct} sx={{
                 height: 8, borderRadius: 1, bgcolor: 'action.hover',
@@ -123,7 +124,7 @@ function PortalCategoryHoursPanel({ timesheets }) {
 function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
   const cur = employee?.currency || '';
   const totalEarned = payslips.reduce((s, p) => s + parseFloat(p.net_amount || 0), 0);
-  const totalHours  = payslips.reduce((s, p) => s + parseFloat(p.total_hours || 0), 0);
+  const totalMinutes = payslips.reduce((s, p) => s + (p.total_minutes != null ? parseInt(p.total_minutes,10) : Math.round((parseFloat(p.total_hours)||0)*60)), 0);
   const missingFields = employee ? getMissingBankFields(employee) : [];
 
   return (
@@ -172,7 +173,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
         {[
           { label: 'Total Payslips', value: payslips.length,                                                    sub: 'generated',    color: '#10b981', bg: '#10b98112' },
           { label: 'Total Earned',   value: `${cur} ${totalEarned.toLocaleString()}`,                          sub: 'net pay',      color: '#6366f1', bg: '#6366f112' },
-          { label: 'Total Hours',    value: `${totalHours.toFixed(1)}h`,                                        sub: 'all periods',  color: '#0ea5e9', bg: '#0ea5e912' },
+          { label: 'Total Hours',    value: formatHM(totalMinutes),                                        sub: 'all periods',  color: '#0ea5e9', bg: '#0ea5e912' },
           { label: 'Latest Payslip', value: payslips[0] ? `${cur} ${parseFloat(payslips[0].net_amount||0).toLocaleString()}` : '—',
             sub: payslips[0]?.period_name || 'no payslips yet', color: '#f59e0b', bg: '#f59e0b12' },
         ].map(({ label, value, sub, color, bg }) => (
@@ -254,7 +255,7 @@ function PayslipsSection({ payslips, currency }) {
                   <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{fmt(p.start_date)} – {fmt(p.end_date)}</Typography>
                 </TableCell>
-                <TableCell sx={TD}>{parseFloat(p.total_hours || 0).toFixed(1)}h</TableCell>
+                <TableCell sx={TD}>{formatHoursAsHM(p.total_hours || 0)}</TableCell>
                 <TableCell sx={TD}>{cur} {parseFloat(p.gross_amount || 0).toLocaleString()}</TableCell>
                 <TableCell sx={{ ...TD, fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{cur} {parseFloat(p.net_amount || 0).toLocaleString()}</TableCell>
                 <TableCell sx={TD}>

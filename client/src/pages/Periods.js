@@ -23,6 +23,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import LockIcon from '@mui/icons-material/Lock';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHM, formatHoursAsHM } from '../utils/time';
 
 const STATUS_META = {
   open:             { label: 'Open',             color: '#6366f1', bg: '#6366f115' },
@@ -413,7 +414,7 @@ export default function Periods() {
                   <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
                     {[
                       { icon: <PeopleIcon />, label: 'Employees',    value: summaries.length,                                                                                      color: '#6366f1' },
-                      { icon: <AccessTimeIcon />, label: 'Total Hours', value: `${parseFloat(summaries.reduce((s, r) => s + (parseFloat(r.total_hours) || 0), 0).toFixed(2))}h`, color: '#f59e0b' },
+                      { icon: <AccessTimeIcon />, label: 'Total Hours', value: formatHM(summaries.reduce((s, r) => s + (r.total_minutes != null ? parseInt(r.total_minutes,10) : Math.round((parseFloat(r.total_hours)||0)*60)), 0)), color: '#f59e0b' },
                       { icon: <ReceiptLongIcon />, label: 'Payslips',  value: summaries.filter(s => s.approval_status === 'approved').length,                                    color: '#10b981' },
                     ].map(stat => (
                       <Box key={stat.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, bgcolor: 'background.paper', px: 1.5, py: 1, borderRadius: '10px', border: '1px solid', borderColor: 'divider' }}>
@@ -454,7 +455,7 @@ export default function Periods() {
                                 <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.employee_name}</Typography>
                                 <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{s.employee_id}</Typography>
                               </TableCell>
-                              <TableCell sx={TD}>{parseFloat(parseFloat(s.total_hours || 0).toFixed(2))}h</TableCell>
+                              <TableCell sx={TD}>{formatHoursAsHM(s.total_hours || 0)}</TableCell>
                               <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                               <TableCell sx={TD}>
                                 <Chip label={s.approval_status || 'pending'} size="small" sx={{ textTransform: 'capitalize', fontSize: '0.68rem', fontWeight: 600,

@@ -215,6 +215,36 @@ async function runMigrations() {
     `ALTER TABLE pay_periods ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`,
     `ALTER TABLE pay_periods ADD COLUMN local_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
     `ALTER TABLE pay_periods ADD COLUMN foreign_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
+
+    // ── Exact time: integer minutes become the source of truth ──────────────────
+    // Wrike records whole minutes; 1 min = 0.01666…h cannot be stored exactly in a
+    // DECIMAL column, so DECIMAL(5,2) silently rounded (biased up) on every write.
+    // Backfilling ROUND(hours*60) is LOSSLESS: minute spacing (0.0167h) exceeds the
+    // 0.01 rounding bucket, so each stored value maps back to exactly one minute.
+    `ALTER TABLE time_entries ADD COLUMN minutes_worked INT NULL DEFAULT NULL`,
+    `UPDATE time_entries SET minutes_worked = ROUND(hours_worked * 60) WHERE minutes_worked IS NULL`,
+    `ALTER TABLE time_entries MODIFY COLUMN hours_worked DECIMAL(10,4) NOT NULL`,
+
+    `ALTER TABLE time_entries_summary ADD COLUMN total_minutes INT NULL DEFAULT NULL`,
+    `ALTER TABLE time_entries_summary ADD COLUMN regular_minutes INT NULL DEFAULT NULL`,
+    `ALTER TABLE time_entries_summary ADD COLUMN overtime_minutes INT NULL DEFAULT NULL`,
+    `UPDATE time_entries_summary SET total_minutes = ROUND(total_hours * 60) WHERE total_minutes IS NULL`,
+    `UPDATE time_entries_summary SET regular_minutes = ROUND(regular_hours * 60) WHERE regular_minutes IS NULL`,
+    `UPDATE time_entries_summary SET overtime_minutes = ROUND(overtime_hours * 60) WHERE overtime_minutes IS NULL`,
+    `ALTER TABLE time_entries_summary MODIFY COLUMN total_hours DECIMAL(10,4) NOT NULL DEFAULT 0`,
+    `ALTER TABLE time_entries_summary MODIFY COLUMN regular_hours DECIMAL(10,4) DEFAULT 0`,
+    `ALTER TABLE time_entries_summary MODIFY COLUMN overtime_hours DECIMAL(10,4) DEFAULT 0`,
+
+    `ALTER TABLE task_breakdown ADD COLUMN minutes INT NULL DEFAULT NULL`,
+    `UPDATE task_breakdown SET minutes = ROUND(hours * 60) WHERE minutes IS NULL`,
+    `ALTER TABLE task_breakdown MODIFY COLUMN hours DECIMAL(10,4) NOT NULL`,
+
+    `ALTER TABLE payslips ADD COLUMN total_minutes INT NULL DEFAULT NULL`,
+    `UPDATE payslips SET total_minutes = ROUND(total_hours * 60) WHERE total_minutes IS NULL`,
+    `ALTER TABLE payslips MODIFY COLUMN total_hours DECIMAL(10,4) NOT NULL`,
+
+    `ALTER TABLE timesheet_verifications ADD COLUMN verified_minutes INT NULL DEFAULT NULL`,
+    `UPDATE timesheet_verifications SET verified_minutes = ROUND(verified_hours * 60) WHERE verified_minutes IS NULL AND verified_hours IS NOT NULL`,
   ];
   for (const sql of migrations) {
     try {

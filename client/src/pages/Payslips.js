@@ -25,6 +25,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PeopleIcon from '@mui/icons-material/People';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { formatHoursAsHM } from '../utils/time';
 
 function pollJob(jobId, onProgress) {
   return new Promise((resolve, reject) => {
@@ -450,7 +451,7 @@ export default function Payslips() {
                 </Typography>
                 {filtered.length > 0 && (
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
-                    {filtered.length} payslip{filtered.length !== 1 ? 's' : ''} · {totalHours.toFixed(1)}h total · Net {filtered[0]?.currency || ''} {totalNet.toLocaleString()}
+                    {filtered.length} payslip{filtered.length !== 1 ? 's' : ''} · {formatHoursAsHM(totalHours)}h total · Net {filtered[0]?.currency || ''} {totalNet.toLocaleString()}
                   </Typography>
                 )}
               </Box>
@@ -533,7 +534,7 @@ export default function Payslips() {
                           <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{p.employee_id}</Typography>
                         </TableCell>
                         <TableCell sx={TD}>
-                          <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{p.total_hours}h</Typography>
+                          <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{formatHoursAsHM(p.total_hours)}</Typography>
                         </TableCell>
                         <TableCell sx={{ ...TD, color: 'text.secondary' }}>
                           {p.currency || ''} {p.gross_amount?.toLocaleString()}
@@ -616,7 +617,7 @@ export default function Payslips() {
               </Box>
               <InfoRow label="Employee"    value={selected.employee_name} />
               <InfoRow label="Period"      value={selected.period_name} />
-              <InfoRow label="Total Hours" value={`${selected.total_hours}h`} />
+              <InfoRow label="Total Hours" value={`${formatHoursAsHM(selected.total_hours)}`} />
               <InfoRow label="Hourly Rate" value={`${selected.currency || ''} ${selected.hourly_rate}`} />
               <InfoRow label="Gross Amount" value={`${selected.currency || ''} ${selected.gross_amount?.toLocaleString()}`} />
               <InfoRow label="Deductions"  value={`${selected.currency || ''} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
