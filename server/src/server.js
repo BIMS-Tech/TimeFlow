@@ -161,9 +161,8 @@ async function runMigrations() {
     `ALTER TABLE payroll_jobs ADD COLUMN progress JSON DEFAULT NULL`,
     // Employee address (local employees)
     `ALTER TABLE employees ADD COLUMN employee_address TEXT DEFAULT NULL`,
-    // Add Independent Contractor to employee_type enum
-    `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC') DEFAULT NULL`,
-    // Split IC into IC-LCL (local) and IC-INTL (international); migrate existing 'IC' rows to IC-LCL
+    // Employee type: allow full set incl legacy 'IC', migrate 'IC' → 'IC-LCL', then drop 'IC'.
+    // The superset MODIFY runs first so re-runs never truncate existing IC-LCL/IC-INTL rows.
     `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC','IC-LCL','IC-INTL') DEFAULT NULL`,
     `UPDATE employees SET employee_type = 'IC-LCL' WHERE employee_type = 'IC'`,
     `ALTER TABLE employees MODIFY COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC-LCL','IC-INTL') DEFAULT NULL`,
@@ -185,26 +184,15 @@ async function runMigrations() {
       UNIQUE KEY uq_tv_emp_period (employee_id, period_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
-    // Multi-role user system (initial)
-    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','hr','accountant','viewer') DEFAULT 'viewer'`,
-    // Upgrade the seed admin user to super_admin
+    // User roles: widen to VARCHAR first (works from any prior ENUM and never truncates),
+    // then remap legacy roles. The old intermediate ENUM steps were removed — re-running
+    // them each boot narrowed the column back below its current values ('employee',
+    // 'accounting_manager', 'payroll_officer') and logged "Data truncated" warnings.
+    `ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'payroll_officer'`,
     `UPDATE users SET role = 'super_admin' WHERE username = 'dam' AND email = 'dam@bims.tech' AND role = 'admin'`,
-
-    // Revised role structure: super_admin | hr | payroll_officer
-    // Step 1: expand enum to include payroll_officer so UPDATE below won't fail
-    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','hr','accountant','viewer','payroll_officer') DEFAULT 'payroll_officer'`,
-    // Step 2: remap obsolete roles
     `UPDATE users SET role = 'hr' WHERE role = 'admin'`,
     `UPDATE users SET role = 'payroll_officer' WHERE role IN ('accountant', 'viewer')`,
-    // Step 3: contract enum to final 3-role set
-    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer') DEFAULT 'payroll_officer'`,
-
-    // Add employee role for portal-linked users
-    `ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','hr','payroll_officer','employee') DEFAULT 'payroll_officer'`,
     `UPDATE users SET role = 'employee' WHERE employee_id IS NOT NULL AND role != 'employee'`,
-
-    // Convert role column from ENUM to VARCHAR to support accounting_manager and future roles
-    `ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'payroll_officer'`,
 
     // Payslip release flow: released_at timestamp + widen status to VARCHAR
     `ALTER TABLE payslips ADD COLUMN released_at DATETIME NULL DEFAULT NULL`,
