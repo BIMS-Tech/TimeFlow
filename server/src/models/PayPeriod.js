@@ -1,5 +1,15 @@
 const db = require('../database/connection');
 
+// Build a 'YYYY-MM-DD' string from integers WITHOUT any timezone round-trip.
+// `new Date(y, m-1, d).toISOString()` converts local midnight to UTC, which on a
+// UTC-plus machine shifts the date back a day (May 1 → "2026-04-30"), producing
+// off-by-one pay-period ranges. Constructing the string directly avoids that.
+const pad2 = (n) => String(n).padStart(2, '0');
+const ymd = (year, month, day) => `${year}-${pad2(month)}-${pad2(day)}`;
+// Last calendar day of a month (28–31); day 0 of next month, read via getDate() —
+// the day count itself is timezone-independent.
+const lastDayOfMonth = (year, month) => new Date(year, month, 0).getDate();
+
 /**
  * PayPeriod Model
  */
@@ -136,28 +146,24 @@ class PayPeriod {
    * Create periods for a month
    */
   static async createMonthlyPeriods(year, month) {
-    const firstHalfStart = new Date(year, month - 1, 1);
-    const firstHalfEnd = new Date(year, month - 1, 15);
-    const secondHalfStart = new Date(year, month - 1, 16);
-    const secondHalfEnd = new Date(year, month, 0);
-
+    const lastDay = lastDayOfMonth(year, month);
     const periods = [];
 
-    // First half
+    // First half: 1st – 15th
     const firstHalf = await this.create({
       period_name: `Period ${month}/1-${month}/15/${year}`,
-      start_date: firstHalfStart.toISOString().split('T')[0],
-      end_date: firstHalfEnd.toISOString().split('T')[0],
+      start_date: ymd(year, month, 1),
+      end_date: ymd(year, month, 15),
       status: 'open',
       period_type: 'local'
     });
     periods.push(firstHalf);
 
-    // Second half
+    // Second half: 16th – end of month
     const secondHalf = await this.create({
-      period_name: `Period ${month}/16-${month}/${secondHalfEnd.getDate()}/${year}`,
-      start_date: secondHalfStart.toISOString().split('T')[0],
-      end_date: secondHalfEnd.toISOString().split('T')[0],
+      period_name: `Period ${month}/16-${month}/${lastDay}/${year}`,
+      start_date: ymd(year, month, 16),
+      end_date: ymd(year, month, lastDay),
       status: 'open',
       period_type: 'local'
     });
@@ -192,12 +198,10 @@ class PayPeriod {
    */
   static async createForeignMonthlyPeriod(year, month) {
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const start = new Date(year, month - 1, 1);
-    const end   = new Date(year, month, 0);
     return this.create({
       period_name: `${MONTHS[month - 1]} ${year} (International)`,
-      start_date:  start.toISOString().split('T')[0],
-      end_date:    end.toISOString().split('T')[0],
+      start_date:  ymd(year, month, 1),
+      end_date:    ymd(year, month, lastDayOfMonth(year, month)),
       status:      'open',
       period_type: 'foreign'
     });
@@ -235,22 +239,19 @@ class PayPeriod {
       const month = now.getMonth() + 1;
       const day = now.getDate();
 
-      // Determine if first or second half of month
-      const startDate = day <= 15 
-        ? new Date(year, now.getMonth(), 1)
-        : new Date(year, now.getMonth(), 16);
-      const endDate = day <= 15
-        ? new Date(year, now.getMonth(), 15)
-        : new Date(year, now.getMonth() + 1, 0);
+      // Determine if first or second half of month (timezone-safe date strings)
+      const lastDay = lastDayOfMonth(year, month);
+      const startDate = day <= 15 ? ymd(year, month, 1)  : ymd(year, month, 16);
+      const endDate   = day <= 15 ? ymd(year, month, 15) : ymd(year, month, lastDay);
 
       const periodName = day <= 15
         ? `Period ${month}/1-${month}/15/${year}`
-        : `Period ${month}/16-${month}/${endDate.getDate()}/${year}`;
+        : `Period ${month}/16-${month}/${lastDay}/${year}`;
 
       period = await this.create({
         period_name: periodName,
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
+        start_date: startDate,
+        end_date: endDate,
         status: 'open'
       });
     }
