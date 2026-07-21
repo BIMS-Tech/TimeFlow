@@ -451,7 +451,7 @@ export default function Payslips() {
                 </Typography>
                 {filtered.length > 0 && (
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
-                    {filtered.length} payslip{filtered.length !== 1 ? 's' : ''} · {formatHoursAsHM(totalHours)}h total · Net {filtered[0]?.currency || ''} {totalNet.toLocaleString()}
+                    {filtered.length} payslip{filtered.length !== 1 ? 's' : ''} · {formatHoursAsHM(totalHours)} total · Net {filtered[0]?.currency || ''} {totalNet.toLocaleString()}
                   </Typography>
                 )}
               </Box>

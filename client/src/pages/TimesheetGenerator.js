@@ -734,10 +734,10 @@ export default function TimesheetGenerator() {
                 {/* Summary cards */}
                 <Grid container spacing={1.5}>
                   <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<AccessTimeIcon />}  label="Total Hours"   value={`${preview.totalHours}h`}                              color="#6366f1" />
+                    <SummaryCard icon={<AccessTimeIcon />}  label="Total Hours"   value={formatHoursAsHM(preview.totalHours)}                              color="#6366f1" />
                   </Grid>
                   <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<TrendingUpIcon />}  label="Regular / OT"  value={`${preview.regularHours}h / ${preview.overtimeHours}h`} color="#f59e0b" />
+                    <SummaryCard icon={<TrendingUpIcon />}  label="Regular / OT"  value={`${formatHoursAsHM(preview.regularHours)} / ${formatHoursAsHM(preview.overtimeHours)}`} color="#f59e0b" />
                   </Grid>
                   {showRates && (
                     <Grid item xs={4}>
@@ -810,7 +810,7 @@ export default function TimesheetGenerator() {
                             ))}
                             <TableRow sx={{ bgcolor: 'action.hover' }}>
                               <TableCell sx={{ ...TD, fontWeight: 800 }}>Total</TableCell>
-                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800 }}>{preview.totalHours}h</TableCell>
+                              <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800 }}>{formatHoursAsHM(preview.totalHours)}</TableCell>
                               {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>}
                             </TableRow>
                           </TableBody>
