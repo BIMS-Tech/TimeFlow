@@ -1,5 +1,6 @@
 const db = require('../database/connection');
 const { hoursToMinutes, minutesToHours } = require('../utils/time');
+const { toDateStr } = require('../utils/date');
 
 /**
  * TimeEntry Model
@@ -188,7 +189,7 @@ class TimeEntry {
 
     const placeholders = employeeIds.map(() => '?').join(',');
     const rows = await db.query(
-      `SELECT id, employee_id, minutes_worked, category, task_description
+      `SELECT id, employee_id, entry_date, minutes_worked, category, task_description
        FROM time_entries
        WHERE source = 'wrike'
          AND employee_id IN (${placeholders})
@@ -204,6 +205,7 @@ class TimeEntry {
       const entry = {
         id: r.id,
         employee_id: r.employee_id,
+        entry_date: toDateStr(r.entry_date),
         minutes_worked: r.minutes_worked === null ? null : parseInt(r.minutes_worked, 10),
         category: r.category,
       };

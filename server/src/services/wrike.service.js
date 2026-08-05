@@ -2,6 +2,7 @@ const axios = require('axios');
 require('dotenv').config();
 const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
+const { toDateStr } = require('../utils/date');
 
 /**
  * Wrike API Service
@@ -346,9 +347,12 @@ class WrikeService {
    * Wrike API v4 does NOT support contactIds on GET /timelogs.
    * - No contactIds → single call to GET /timelogs (all users)
    * - With contactIds → one call per contact: GET /contacts/{id}/timelogs
-   * @param {string} startDate  - 'YYYY-MM-DD'
-   * @param {string} endDate    - 'YYYY-MM-DD'
+   * The returned range is INCLUSIVE of both endDate and startDate.
+   *
+   * @param {string|Date} startDate  - 'YYYY-MM-DD' or a Date (e.g. a MySQL DATE column)
+   * @param {string|Date} endDate    - 'YYYY-MM-DD' or a Date
    * @param {string[]} contactIds - optional Wrike user ID array
+   * @param {{withMeta?:boolean, fresh?:boolean}} opts
    */
   async getTimeLogs(startDate, endDate, contactIds = [], opts = {}) {
     // When withMeta is set, returns { logs, okContactIds } so callers doing an
@@ -357,16 +361,28 @@ class WrikeService {
     // unfiltered account-wide fetch.
     const withMeta = opts.withMeta === true;
 
-    // Wrike API expects plain YYYY-MM-DD dates — strip any time component
-    const start = String(startDate).substring(0, 10);
-    const end   = String(endDate).substring(0, 10);
+    // Normalise first: MySQL DATE columns arrive as Date objects, and stringifying
+    // one gives "Thu Jul 16" — which Wrike rejects with a 400 that callers swallow.
+    const start = toDateStr(startDate);
+    const end   = toDateStr(endDate);
+    if (!start || !end) {
+      throw new Error(`getTimeLogs: invalid date range (${startDate} → ${endDate})`);
+    }
+
     const params = {
-      trackedDate: JSON.stringify({ start, end }),
+      // Wrike compares trackedDate against TIMESTAMPS, so a bare 'YYYY-MM-DD' end
+      // means midnight and silently drops the entire last day of the range —
+      // every Sunday of a weekly sync, and the 15th/31st of a pay period.
+      // Anchoring the bounds to the full day makes the range inclusive at both ends.
+      trackedDate: JSON.stringify({ start: `${start}T00:00:00`, end: `${end}T23:59:59` }),
       fields: '["approvalStatus","billingType"]'
     };
 
-    const cacheKey = `wrike:timelogs:${start}:${end}:${[...contactIds].sort().join(',') || 'all'}`;
-    const cached = await cache.get(cacheKey);
+    // v2: keys written before the end-of-day fix hold a range short by one day.
+    const cacheKey = `wrike:timelogs:v2:${start}:${end}:${[...contactIds].sort().join(',') || 'all'}`;
+    // Write paths (imports/reconciles) must never act on a cached snapshot — a
+    // re-sync right after approving in Wrike has to see the new approvals.
+    const cached = opts.fresh === true ? null : await cache.get(cacheKey);
     if (cached) {
       console.log(`[Cache] HIT wrike:timelogs ${start}→${end}`);
       // A cache hit means a prior fetch fully succeeded, so every requested contact is "ok"

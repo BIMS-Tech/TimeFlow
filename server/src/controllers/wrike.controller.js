@@ -3,17 +3,7 @@ const Employee = require('../models/Employee');
 const TimeEntry = require('../models/TimeEntry');
 const db = require('../database/connection');
 const { hoursToMinutes } = require('../utils/time');
-
-function toDateStr(val) {
-  if (!val) return '';
-  if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  return String(val).substring(0, 10);
-}
+const { toDateStr } = require('../utils/date');
 
 /**
  * Returns Monday of the week containing `date`
@@ -65,12 +55,18 @@ function weekDays(weekStart) {
  * @returns {{imported:number, updated:number, deleted:number, skipped:number, startDate:string, endDate:string}}
  */
 async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
+  const start = toDateStr(startDate);
+  const end   = toDateStr(endDate);
+  if (!start || !end) throw new Error(`syncTimelogsToEntries: invalid range (${startDate} → ${endDate})`);
+
   const allEmployees    = await Employee.findAll(false);
   const linkedEmployees = allEmployees.filter(e => e.wrike_user_id);
   const wrikeIds        = linkedEmployees.map(e => e.wrike_user_id);
 
+  // fresh: this is a write path that also DELETES stale rows — it must reconcile
+  // against live Wrike data, never a cached snapshot.
   const { logs: fetchedLogs, okContactIds } =
-    await wrikeService.getTimeLogs(startDate, endDate, wrikeIds, { withMeta: true });
+    await wrikeService.getTimeLogs(start, end, wrikeIds, { withMeta: true, fresh: true });
 
   let timelogs = fetchedLogs;
   if (approvedOnly) {
@@ -88,9 +84,11 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
   const empByWrikeId = {};
   for (const e of linkedEmployees) empByWrikeId[e.wrike_user_id] = e;
 
-  // One query for all existing Wrike entries in range, keyed by employee+logId
+  // One query for all existing Wrike entries in range, keyed by employee+logId.
+  // This range MUST match the Wrike fetch range exactly: rows here that are absent
+  // from the fetch get deleted below, so any window mismatch destroys real payroll data.
   const existingMap = await TimeEntry.getWrikeEntryMap(
-    linkedEmployees.map(e => e.id), startDate, endDate
+    linkedEmployees.map(e => e.id), start, end
   );
 
   const toInsert = [];
@@ -161,8 +159,13 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
   }
 
   for (const [key, rows] of existingMap) {
-    if (!presentKeys.has(key) && okEmpIds.has(rows[0].employee_id)) {
-      for (const r of rows) toDelete.push(r.id);
+    if (presentKeys.has(key) || !okEmpIds.has(rows[0].employee_id)) continue;
+    for (const r of rows) {
+      // Belt-and-braces: never delete a row the Wrike fetch could not have covered.
+      // If these windows ever drift apart again, the sync under-reports instead of
+      // silently erasing approved hours.
+      if (r.entry_date && (r.entry_date < start || r.entry_date > end)) continue;
+      toDelete.push(r.id);
     }
   }
 
@@ -173,7 +176,7 @@ async function syncTimelogsToEntries({ startDate, endDate, approvedOnly }) {
   const deleted = await TimeEntry.deleteByIds(toDelete);
 
   // `deleted` counts both stale rows and duplicate copies removed
-  return { imported, updated: toUpdate.length, deleted, deduped, skipped, startDate, endDate };
+  return { imported, updated: toUpdate.length, deleted, deduped, skipped, startDate: start, endDate: end };
 }
 
 class WrikeController {

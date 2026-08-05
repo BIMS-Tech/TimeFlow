@@ -11,6 +11,7 @@ const db = require('../database/connection');
 const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
 const { hoursToMinutes, minutesToHours, roundMoney, payForMinutes } = require('../utils/time');
+const { toDateStr } = require('../utils/date');
 const XLSX = require('xlsx');
 require('dotenv').config();
 
@@ -817,24 +818,34 @@ class TimesheetService {
       : eligible
     );
 
+    // period.start_date/end_date are Date objects from the driver — normalise before
+    // they reach the Wrike API or a SQL date comparison.
+    const periodStart = toDateStr(period.start_date);
+    const periodEnd   = toDateStr(period.end_date);
+
     // ── Batch-fetch Wrike timelogs for all employees in parallel ──────────────
     const wrikeEmployees = targets.filter(e => e.wrike_user_id);
     const wrikeUserIds   = [...new Set(wrikeEmployees.map(e => e.wrike_user_id))];
     let timelogsByUser = {};
     let taskTitles     = {};
+    let batchWrikeError = null;
     if (wrikeUserIds.length) {
       try {
-        const allLogs = await wrikeService.getTimeLogs(period.start_date, period.end_date, wrikeUserIds);
+        const allLogs = await wrikeService.getTimeLogs(periodStart, periodEnd, wrikeUserIds, { fresh: true });
         const approved = allLogs.filter(l => l.approvalStatus?.toLowerCase() === 'approved');
         timelogsByUser = wrikeService.groupTimeLogsByUser(approved);
         const taskIds  = [...new Set(approved.map(l => l.taskId).filter(Boolean))];
         if (taskIds.length) taskTitles = await wrikeService.getTaskTitles(taskIds);
       } catch (err) {
-        console.warn('⚠️  Batch Wrike fetch failed:', err.message);
+        // Swallowing this used to report every employee as "no hours", which is
+        // indistinguishable from a genuinely empty period. Surface it instead.
+        batchWrikeError = err.message;
+        console.error('⚠️  Batch Wrike fetch failed:', err.message);
       }
     }
 
     const results = { generated: 0, skipped: 0, errors: [], details: [] };
+    if (batchWrikeError) results.errors.push({ employeeName: '(all)', error: `Wrike fetch failed: ${batchWrikeError}` });
     let completed = 0;
     const total = targets.length;
     if (onProgress && total > 0) onProgress(0, total, null);
@@ -851,7 +862,7 @@ class TimesheetService {
           results.details.push({ emp: { name: emp.name, employee_id: emp.employee_id }, status: 'no_hours' });
         } else {
           try {
-            await this._importLogs(emp.id, period.start_date, period.end_date, userLogs, taskTitles);
+            await this._importLogs(emp.id, periodStart, periodEnd, userLogs, taskTitles);
             const result = await this.processEmployeeTimesheet(emp, period);
             if (!result.success) {
               results.skipped++;

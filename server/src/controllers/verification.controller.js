@@ -1,16 +1,6 @@
 const db = require('../database/connection');
 const { hoursToMinutes, minutesToHours } = require('../utils/time');
-
-function toDateStr(val) {
-  if (!val) return '';
-  if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  return String(val).substring(0, 10);
-}
+const { toDateStr } = require('../utils/date');
 
 class VerificationController {
   /**
