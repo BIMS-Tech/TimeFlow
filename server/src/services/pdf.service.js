@@ -936,6 +936,255 @@ class PDFService {
     });
   }
 
+  /**
+   * Generate a payroll summary report PDF for an arbitrary date range.
+   *
+   * Rows are grouped by employee — one line per payslip — with a subtotal per
+   * employee and a grand total at the end. Totals are broken out per currency,
+   * because a range can span both local and international pay periods.
+   *
+   * @param {Array}  payslips - rows from Payslip.findByDateRange
+   * @param {Object} range    - { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
+   */
+  async generateRangeSummaryPDF(payslips, range) {
+    return new Promise((resolve, reject) => {
+      try {
+        const PDFDoc = require('pdfkit');
+        const { toDateStr } = require('../utils/date');
+        const companyName = process.env.COMPANY_NAME || 'BIMS Technologies, Inc.';
+        const PAGE_W = 595.28;
+        const PAGE_H = 841.89;
+        const MARGIN = 36;
+        const CW     = PAGE_W - MARGIN * 2;
+        const BOTTOM = PAGE_H - MARGIN - 12;
+
+        const doc = new PDFDoc({ size: 'A4', margin: 0, autoFirstPage: true });
+        const fileName = `PayrollSummary_${range.startDate}_to_${range.endDate}.pdf`;
+        const filePath = require('path').join(this.outputDir, fileName);
+        const writeStream = require('fs').createWriteStream(filePath);
+        doc.pipe(writeStream);
+
+        // Format calendar dates without ever parsing a 'YYYY-MM-DD' through Date(),
+        // which would shift the day in any timezone behind UTC.
+        const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const fmtDate = (val) => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(toDateStr(val));
+          return m ? `${MONTHS[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}, ${m[1]}` : '';
+        };
+        const minutesOf = (p) => p.total_minutes != null ? parseInt(p.total_minutes, 10) : hoursToMinutes(p.total_hours);
+        const num   = (n) => parseFloat(n) || 0;
+        const amt   = (n) => num(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const money = (n, cur) => `${cur} ${amt(n)}`;
+        const defCur = process.env.CURRENCY || 'BDT';
+
+        // ── Group by employee, preserving the query's name ordering ──────────
+        const groups = [];
+        const byEmp  = new Map();
+        payslips.forEach(p => {
+          let g = byEmp.get(p.employee_id);
+          if (!g) {
+            g = {
+              name: p.employee_name || '—',
+              code: p.emp_code || '',
+              cur:  p.currency || defCur,
+              rows: [], minutes: 0, gross: 0, net: 0,
+            };
+            byEmp.set(p.employee_id, g);
+            groups.push(g);
+          }
+          g.rows.push(p);
+          g.minutes += minutesOf(p);
+          g.gross   += num(p.gross_amount);
+          g.net     += num(p.net_amount);
+        });
+
+        // ── Grand totals, split by currency ──────────────────────────────────
+        const totalsByCur = {};
+        let grandMinutes = 0;
+        payslips.forEach(p => {
+          const cur = p.currency || defCur;
+          if (!totalsByCur[cur]) totalsByCur[cur] = { gross: 0, net: 0 };
+          totalsByCur[cur].gross += num(p.gross_amount);
+          totalsByCur[cur].net   += num(p.net_amount);
+          grandMinutes += minutesOf(p);
+        });
+        const currencies = Object.keys(totalsByCur).sort();
+        const singleCur  = currencies.length === 1 ? currencies[0] : null;
+
+        // ── Header ───────────────────────────────────────────────────────────
+        const HDR_H = 96;
+        const drawHeader = () => {
+          doc.rect(0, 0, PAGE_W, HDR_H).fill('white');
+          if (HAS_LOGO) {
+            doc.image(LOGO_PATH, MARGIN, 20, { height: 50, fit: [180, 50] });
+          } else {
+            doc.fontSize(17).font('Helvetica-Bold').fillColor('#1A3A72')
+               .text(companyName, MARGIN, 32, { width: CW * 0.5 });
+          }
+          const RC_W = 250;
+          const RX = PAGE_W - MARGIN - RC_W;
+          doc.fontSize(7).font('Helvetica-Bold').fillColor('#1B5FAD')
+             .text('PAYROLL SUMMARY REPORT', RX, 16, { width: RC_W, align: 'right', characterSpacing: 0.5 });
+          doc.fontSize(11).font('Helvetica-Bold').fillColor('#1A3A72')
+             .text(`${fmtDate(range.startDate)} – ${fmtDate(range.endDate)}`, RX, 28, { width: RC_W, align: 'right', lineBreak: false });
+          doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+             .text(`Custom range  ·  Generated ${fmtDate(toDateStr(new Date()))}`, RX, 46, { width: RC_W, align: 'right' });
+          doc.rect(0, HDR_H, PAGE_W, 4).fill('#1B5FAD');
+          doc.rect(0, HDR_H + 4, PAGE_W, 2).fill('#00A09A');
+        };
+        drawHeader();
+        let y = HDR_H + 16;
+
+        // ── Summary band ─────────────────────────────────────────────────────
+        const stats = [
+          { label: 'Employees',   value: String(groups.length),    color: '#1B5FAD' },
+          { label: 'Payslips',    value: String(payslips.length),  color: '#1B5FAD' },
+          { label: 'Total Hours', value: formatHM(grandMinutes),   color: '#1A3A72' },
+          { label: 'Total Gross', value: singleCur ? money(totalsByCur[singleCur].gross, singleCur) : 'Multi-currency', color: '#1A3A72' },
+          { label: 'Total Net',   value: singleCur ? money(totalsByCur[singleCur].net,   singleCur) : 'See totals',     color: '#00A09A' },
+        ];
+        const statW = CW / stats.length;
+        doc.rect(MARGIN, y, CW, 50).fill('#f0f4f8');
+        doc.rect(MARGIN, y, CW, 50).lineWidth(0.5).strokeColor('#dde5ee').stroke();
+        stats.forEach((s, i) => {
+          const x = MARGIN + i * statW;
+          if (i > 0) doc.moveTo(x, y + 8).lineTo(x, y + 42).lineWidth(0.5).strokeColor('#dde5ee').stroke();
+          doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+             .text(s.label, x + 8, y + 10, { width: statW - 16 });
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(s.color)
+             .text(s.value, x + 8, y + 24, { width: statW - 16, lineBreak: false });
+        });
+        y += 60;
+
+        // ── Table ────────────────────────────────────────────────────────────
+        const COLS = [
+          { label: 'Pay Period',  w: 112, align: 'left'   },
+          { label: 'Payslip No.', w: 82,  align: 'left'   },
+          { label: 'Hours',       w: 50,  align: 'right'  },
+          { label: 'Gross',       w: 80,  align: 'right'  },
+          { label: 'Deductions',  w: 72,  align: 'right'  },
+          { label: 'Net Pay',     w: 80,  align: 'right'  },
+          { label: 'Status',      w: 47,  align: 'center' },
+        ];
+        const ROW_H  = 17;
+        const HDR_BG = '#1B5FAD';
+        const ALT_BG = '#f9fafb';
+
+        const drawTableHeader = () => {
+          let cx = MARGIN;
+          doc.rect(MARGIN, y, CW, ROW_H).fill(HDR_BG);
+          COLS.forEach(c => {
+            doc.fontSize(7).font('Helvetica-Bold').fillColor('white')
+               .text(c.label, cx + 3, y + 5, { width: c.w - 6, align: c.align, lineBreak: false });
+            cx += c.w;
+          });
+          y += ROW_H;
+        };
+
+        // Start a new page when `needed` points of vertical space are unavailable.
+        const ensure = (needed) => {
+          if (y + needed <= BOTTOM) return;
+          doc.addPage();
+          y = MARGIN;
+          drawTableHeader();
+        };
+
+        const drawCells = (cells, opts = {}) => {
+          let rx = MARGIN;
+          cells.forEach((cell, ci) => {
+            const col = COLS[ci];
+            doc.fontSize(opts.size || 7)
+               .font(cell.bold || opts.bold ? 'Helvetica-Bold' : 'Helvetica')
+               .fillColor(cell.color || opts.color || '#333333')
+               .text(cell.text, rx + 3, y + 5, { width: col.w - 6, align: cell.align || col.align, lineBreak: false });
+            rx += col.w;
+          });
+        };
+
+        drawTableHeader();
+
+        const STATUS_COLORS = { generated: '#2980b9', released: '#27ae60', paid: '#27ae60', draft: '#f39c12' };
+
+        groups.forEach((g) => {
+          // Keep the employee band with at least its first row and subtotal.
+          ensure(ROW_H * 3);
+
+          // Employee band
+          doc.rect(MARGIN, y, CW, ROW_H).fill('#eef2f7');
+          doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#1A3A72')
+             .text(g.code ? `${g.name}  (${g.code})` : g.name, MARGIN + 4, y + 5, { width: CW - 100, lineBreak: false });
+          doc.fontSize(7).font('Helvetica').fillColor('#64748b')
+             .text(`${g.rows.length} payslip${g.rows.length === 1 ? '' : 's'}`, MARGIN + CW - 96, y + 5, { width: 92, align: 'right', lineBreak: false });
+          y += ROW_H;
+
+          g.rows.forEach((p, idx) => {
+            ensure(ROW_H * 2);
+            doc.rect(MARGIN, y, CW, ROW_H).fill(idx % 2 === 0 ? 'white' : ALT_BG);
+
+            const gross = num(p.gross_amount);
+            const net   = num(p.net_amount);
+            const status = (p.status || '');
+            drawCells([
+              { text: p.period_name || `${fmtDate(p.period_start)} – ${fmtDate(p.period_end)}` },
+              { text: p.payslip_number || '—' },
+              { text: formatHM(minutesOf(p)) },
+              { text: amt(gross) },
+              { text: amt(gross - net) },
+              { text: amt(net) },
+              { text: status.charAt(0).toUpperCase() + status.slice(1), color: STATUS_COLORS[status] || '#888888', bold: true },
+            ]);
+            doc.moveTo(MARGIN, y + ROW_H).lineTo(MARGIN + CW, y + ROW_H).lineWidth(0.3).strokeColor('#eeeeee').stroke();
+            y += ROW_H;
+          });
+
+          // Employee subtotal — safe to total, one employee has one currency.
+          ensure(ROW_H);
+          doc.rect(MARGIN, y, CW, ROW_H).fill('#f4f8fb');
+          drawCells([
+            { text: 'Subtotal' },
+            { text: '' },
+            { text: formatHM(g.minutes) },
+            { text: money(g.gross, g.cur) },
+            { text: amt(g.gross - g.net) },
+            { text: money(g.net, g.cur) },
+            { text: '' },
+          ], { bold: true, color: '#1A3A72' });
+          doc.moveTo(MARGIN, y + ROW_H).lineTo(MARGIN + CW, y + ROW_H).lineWidth(0.5).strokeColor('#c9d8e8').stroke();
+          y += ROW_H + 8;
+        });
+
+        // ── Grand total, one line per currency ───────────────────────────────
+        ensure(ROW_H * (currencies.length + 1) + 10);
+        currencies.forEach((cur, i) => {
+          doc.rect(MARGIN, y, CW, ROW_H).fill('#E8F4F8');
+          drawCells([
+            { text: i === 0 ? 'GRAND TOTAL' : '' },
+            { text: cur },
+            { text: i === 0 ? formatHM(grandMinutes) : '' },
+            { text: amt(totalsByCur[cur].gross) },
+            { text: amt(totalsByCur[cur].gross - totalsByCur[cur].net) },
+            { text: amt(totalsByCur[cur].net) },
+            { text: '' },
+          ], { bold: true, color: '#1A3A72' });
+          doc.rect(MARGIN, y, CW, ROW_H).lineWidth(0.5).strokeColor('#1B5FAD').stroke();
+          y += ROW_H;
+        });
+        y += 16;
+
+        // ── Footer ───────────────────────────────────────────────────────────
+        ensure(20);
+        doc.fontSize(7).font('Helvetica').fillColor('#aaaaaa')
+           .text('This is a computer-generated summary report.', MARGIN, y, { width: CW, align: 'center' });
+
+        doc.end();
+        writeStream.on('finish', () => resolve({ fileName, filePath }));
+        writeStream.on('error', reject);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   getPDFStats(filePath) {
     try {
       if (fs.existsSync(filePath)) {

@@ -73,6 +73,12 @@ class VerificationController {
         return res.status(400).json({ success: false, error: 'employee_id and period_id are required' });
       }
 
+      // Cash advance is a payroll deduction that feeds net pay, so anyone whose
+      // amounts are hidden must not set it even though it sits on the same form.
+      // Keyed off the flag rather than the role, so a super admin who re-enables
+      // amounts for a user restores this too.
+      const canSetCashAdvance = !req.permissions?.flags?.hide_amounts;
+
       // Minutes authoritative; accept legacy verified_hours from older clients.
       const verifiedMinutes = verified_minutes !== undefined && verified_minutes !== null
         ? Math.round(Number(verified_minutes))
@@ -91,7 +97,7 @@ class VerificationController {
           updates.verified_minutes = verifiedMinutes;
           updates.verified_hours   = minutesToHours(verifiedMinutes); // derived
         }
-        if (cash_advance  !== undefined) updates.cash_advance  = parseFloat(cash_advance) || 0;
+        if (canSetCashAdvance && cash_advance !== undefined) updates.cash_advance = parseFloat(cash_advance) || 0;
         if (status        !== undefined) updates.status        = status;
         if (notes         !== undefined) updates.notes         = notes;
         if (verifiedAt    !== undefined) updates.verified_at   = verifiedAt;
@@ -110,7 +116,7 @@ class VerificationController {
             employee_id, period_id,
             verifiedMinutes !== undefined ? verifiedMinutes : null,
             verifiedMinutes !== undefined ? minutesToHours(verifiedMinutes) : null,
-            parseFloat(cash_advance) || 0,
+            canSetCashAdvance ? (parseFloat(cash_advance) || 0) : 0,
             status || 'pending',
             notes || null,
             status === 'verified' ? new Date() : null,

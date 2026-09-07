@@ -54,6 +54,9 @@ function StatusChip({ status }) {
 }
 
 function EditRow({ row, periodId, onSaved }) {
+  const { hideAmounts } = useAuth();
+  // Cash advance is a payroll deduction, so it follows the amount-visibility flag.
+  const canSetCashAdvance = !hideAmounts;
   const sym = CURRENCY_SYMBOLS[row.employee?.currency] || row.employee?.currency || '₱';
   // Editable field holds "Hh Mm" text; the source of truth sent to the API is minutes.
   const initialMinutes = verMinutes(row.verification) ?? rowMinutes(row);
@@ -69,7 +72,7 @@ function EditRow({ row, periodId, onSaved }) {
         employee_id:      row.employee.id,
         period_id:        periodId,
         verified_minutes: hours !== '' ? parseToMinutes(hours) : null,
-        cash_advance:     parseFloat(cash) || 0,
+        ...(canSetCashAdvance ? { cash_advance: parseFloat(cash) || 0 } : {}),
         status:           newStatus,
         notes,
       });
@@ -86,9 +89,11 @@ function EditRow({ row, periodId, onSaved }) {
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
       <TextField label="Hours (e.g. 8h 30m)" size="small" value={hours} onChange={e => setHours(e.target.value)}
         placeholder="8h 30m" sx={{ width: 130 }} />
-      <TextField label="Cash Advance" type="number" size="small" value={cash} onChange={e => setCash(e.target.value)}
-        InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
-        inputProps={{ step: 100, min: 0 }} sx={{ width: 150 }} />
+      {canSetCashAdvance && (
+        <TextField label="Cash Advance" type="number" size="small" value={cash} onChange={e => setCash(e.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
+          inputProps={{ step: 100, min: 0 }} sx={{ width: 150 }} />
+      )}
       <TextField label="Notes" size="small" value={notes} onChange={e => setNotes(e.target.value)} sx={{ width: 200 }} />
       <Button size="small" variant="contained" disabled={saving} onClick={() => save('verified')}
         startIcon={saving ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <CheckCircleIcon />}

@@ -51,16 +51,18 @@ import WrikeTimesheets from './pages/WrikeTimesheets';
 const DRAWER_WIDTH = 268;
 const DRAWER_WIDTH_COLLAPSED = 68;
 
+// `page` keys match server/src/utils/permissions.js — a super admin can switch
+// any of these on or off per user, so nav is driven by permissions, not roles.
 const NAV_ITEMS = [
-  { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true },
-  { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      roles: ['super_admin', 'hr'] },
-  { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
-  { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/wrike',          roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
-  { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
-  { label: 'Generate Bank Upload',  icon: <AccountBalanceIcon />,          path: '/bank-upload',    roles: ['super_admin', 'accounting_manager'] },
-  { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       roles: ['super_admin', 'payroll_officer', 'accounting_manager'] },
-  { label: 'Work Timesheets',       icon: <IntegrationInstructionsIcon />, path: '/wrike-raw',      roles: ['super_admin'] },
-  { label: 'Users',                 icon: <ManageAccountsIcon />,          path: '/users',          roles: ['super_admin'] },
+  { label: 'Dashboard',             icon: <DashboardIcon />,               path: '/',               end: true, page: 'dashboard' },
+  { label: 'Upload Employees',      icon: <PeopleIcon />,                  path: '/employees',      page: 'employees' },
+  { label: 'Create Payroll Period', icon: <CalendarMonthIcon />,           path: '/periods',        page: 'periods' },
+  { label: 'Verify Timesheet',      icon: <VerifiedUserIcon />,            path: '/wrike',          page: 'verify' },
+  { label: 'Process Payroll',       icon: <AddchartIcon />,                path: '/generate',       page: 'process' },
+  { label: 'Generate Bank Upload',  icon: <AccountBalanceIcon />,          path: '/bank-upload',    page: 'bank_upload' },
+  { label: 'Payslips',              icon: <PublishIcon />,                 path: '/payslips',       page: 'payslips' },
+  { label: 'Work Timesheets',       icon: <IntegrationInstructionsIcon />, path: '/wrike-raw',      page: 'work_timesheets' },
+  { label: 'Users',                 icon: <ManageAccountsIcon />,          path: '/users',          page: 'users' },
 ];
 
 function ProtectedRoute({ children }) {
@@ -68,18 +70,47 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-function RequireRole({ roles, children }) {
-  const { user } = useAuth();
-  const effectiveRole = user?.role === 'admin' ? 'super_admin' : user?.role;
-  if (!user || !roles.includes(effectiveRole)) return <Navigate to="/" replace />;
+/**
+ * Where to send someone who lands on a page they cannot open. Falls back to
+ * their first permitted page, so unticking Dashboard actually takes effect
+ * instead of bouncing everything back to it.
+ */
+function useHomePath() {
+  const { pages } = useAuth();
+  if (pages.includes('dashboard')) return '/';
+  const first = NAV_ITEMS.find(item => item.page !== 'dashboard' && pages.includes(item.page));
+  return first ? first.path : null;
+}
+
+function NoAccess() {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 12, gap: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700 }}>No pages enabled</Typography>
+      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+        Your account has no pages assigned. Ask a super admin to grant access.
+      </Typography>
+    </Box>
+  );
+}
+
+function RequirePage({ page, children }) {
+  const { user, can } = useAuth();
+  const home = useHomePath();
+  if (!user || !can(page)) return home ? <Navigate to={home} replace /> : <NoAccess />;
   return children;
 }
 
+/** The "/" route: the dashboard when permitted, otherwise their first page. */
+function HomeRoute() {
+  const { can } = useAuth();
+  const home = useHomePath();
+  if (can('dashboard')) return <Dashboard />;
+  return home && home !== '/' ? <Navigate to={home} replace /> : <NoAccess />;
+}
+
 function SidebarNav({ onNavigate, collapsed }) {
-  const { user } = useAuth();
-  // Legacy 'admin' role (pre-migration tokens) maps to super_admin for nav purposes
-  const effectiveRole = user?.role === 'admin' ? 'super_admin' : user?.role;
-  const visibleItems = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(effectiveRole));
+  const { can } = useAuth();
+  const visibleItems = NAV_ITEMS.filter(item => can(item.page));
   return (
     <List sx={{ px: collapsed ? 0.75 : 1.5 }}>
       {visibleItems.map((item) => (
@@ -449,16 +480,16 @@ function AppLayout() {
         }}
       >
         <Routes>
-          <Route path="/"                   element={<Dashboard />} />
-          <Route path="/employees"          element={<RequireRole roles={['super_admin', 'hr']}><Employees /></RequireRole>} />
-          <Route path="/periods"            element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Periods /></RequireRole>} />
-          <Route path="/wrike-raw"          element={<RequireRole roles={['super_admin']}><WrikeTimesheets /></RequireRole>} />
-          <Route path="/wrike"              element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheets /></RequireRole>} />
-          <Route path="/timesheet-verify"   element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><GenerateTimesheet /></RequireRole>} />
-          <Route path="/generate"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><TimesheetGenerator /></RequireRole>} />
-          <Route path="/bank-upload"        element={<RequireRole roles={['super_admin', 'accounting_manager']}><GenerateBankUpload /></RequireRole>} />
-          <Route path="/payslips"           element={<RequireRole roles={['super_admin', 'payroll_officer', 'accounting_manager']}><Payslips /></RequireRole>} />
-          <Route path="/users"              element={<RequireRole roles={['super_admin']}><UserManagement /></RequireRole>} />
+          <Route path="/"                   element={<HomeRoute />} />
+          <Route path="/employees"          element={<RequirePage page="employees"><Employees /></RequirePage>} />
+          <Route path="/periods"            element={<RequirePage page="periods"><Periods /></RequirePage>} />
+          <Route path="/wrike-raw"          element={<RequirePage page="work_timesheets"><WrikeTimesheets /></RequirePage>} />
+          <Route path="/wrike"              element={<RequirePage page="verify"><GenerateTimesheets /></RequirePage>} />
+          <Route path="/timesheet-verify"   element={<RequirePage page="verify"><GenerateTimesheet /></RequirePage>} />
+          <Route path="/generate"           element={<RequirePage page="process"><TimesheetGenerator /></RequirePage>} />
+          <Route path="/bank-upload"        element={<RequirePage page="bank_upload"><GenerateBankUpload /></RequirePage>} />
+          <Route path="/payslips"           element={<RequirePage page="payslips"><Payslips /></RequirePage>} />
+          <Route path="/users"              element={<RequirePage page="users"><UserManagement /></RequirePage>} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Box>

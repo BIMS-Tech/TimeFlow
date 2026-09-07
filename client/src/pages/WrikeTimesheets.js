@@ -55,8 +55,9 @@ function getMonthOf(dateStr) {
 }
 
 export default function WrikeTimesheets() {
-  const { user } = useAuth();
-  const showPay = user?.role === 'super_admin';
+  const { hideAmounts } = useAuth();
+  // Pay and rates are shown unless a super admin has hidden amounts for this user.
+  const showPay = !hideAmounts;
   const [viewMode,  setViewMode]  = useState('weekly'); // 'weekly' | 'monthly'
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date().toISOString().split('T')[0]));
   const [month,     setMonth]     = useState(() => getMonthOf(new Date().toISOString()));

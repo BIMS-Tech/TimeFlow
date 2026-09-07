@@ -8,7 +8,7 @@ const webhookController = require('../controllers/webhook.controller');
 const authController = require('../controllers/auth.controller');
 const wrikeController = require('../controllers/wrike.controller');
 const authMiddleware = require('../middleware/auth.middleware');
-const { requireRole } = require('../middleware/auth.middleware');
+const { requireRole, requirePage, denyIfAmountsHidden, stripMoneyFromBody, redactAmountsMiddleware } = require('../middleware/auth.middleware');
 const portalController = require('../controllers/portal.controller');
 const verificationController = require('../controllers/verification.controller');
 const adminController = require('../controllers/admin.controller');
@@ -18,6 +18,11 @@ const requireHROrAbove          = requireRole('super_admin', 'hr');
 const requirePayrollOrAbove     = requireRole('super_admin', 'hr', 'payroll_officer');
 const requireAccountingOrAbove  = requireRole('super_admin', 'accounting_manager');
 const requirePayrollOrSuperAdmin = requireRole('super_admin', 'payroll_officer');
+// Everyone who may actually run payroll. Deliberately excludes 'timekeeper',
+// whose remit is checking hours before payroll, not processing it.
+const requirePayrollOps         = requireRole('super_admin', 'payroll_officer', 'accounting_manager');
+// Timesheet verification + Wrike reads — payroll ops plus the timekeeper.
+const requireVerifier           = requireRole('super_admin', 'payroll_officer', 'accounting_manager', 'timekeeper');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -48,6 +53,10 @@ router.post('/auth/logout', authMiddleware, authController.logout.bind(authContr
 
 // Protect all routes below this line
 router.use(authMiddleware);
+// Blank out money-bearing fields for users whose amounts are hidden. Placed
+// immediately after auth so it applies to every response below, not just the
+// endpoints someone remembered to annotate.
+router.use(redactAmountsMiddleware);
 
 // ============================================
 // DASHBOARD ROUTES
@@ -68,25 +77,25 @@ router.get('/dashboard/category-hours', timesheetController.getCategoryHours.bin
  * @route POST /api/timesheet/process
  * @desc Process timesheets for a period
  */
-router.post('/timesheet/process', timesheetController.processPeriod.bind(timesheetController));
+router.post('/timesheet/process', requirePayrollOps, requirePage('process'), timesheetController.processPeriod.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/generate
  * @desc Generate timesheet for specific employee
  */
-router.post('/timesheet/generate', timesheetController.generateForEmployee.bind(timesheetController));
+router.post('/timesheet/generate', requirePayrollOps, requirePage('process'), timesheetController.generateForEmployee.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/preview
  * @desc Preview timesheet hours from Wrike for an employee + date range (no DB writes)
  */
-router.post('/timesheet/preview', timesheetController.previewTimesheet.bind(timesheetController));
+router.post('/timesheet/preview', requirePayrollOps, requirePage('process'), timesheetController.previewTimesheet.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/submit
  * @desc Submit timesheet for approval (imports timelogs, generates PDF, creates Wrike task)
  */
-router.post('/timesheet/submit', timesheetController.submitTimesheet.bind(timesheetController));
+router.post('/timesheet/submit', requirePayrollOps, requirePage('process'), timesheetController.submitTimesheet.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/pending
@@ -120,36 +129,36 @@ router.get('/timesheet/periods', timesheetController.getPeriods.bind(timesheetCo
  * @route POST /api/timesheet/periods
  * @desc Create a new period
  */
-router.post('/timesheet/periods', requirePayrollOrAbove, timesheetController.createPeriod.bind(timesheetController));
+router.post('/timesheet/periods', requirePayrollOrAbove, requirePage('periods'), timesheetController.createPeriod.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/monthly
  * @desc Create periods for a month
  */
-router.post('/timesheet/periods/monthly', requirePayrollOrAbove, timesheetController.createMonthlyPeriods.bind(timesheetController));
-router.post('/timesheet/periods/foreign-monthly', requirePayrollOrAbove, timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
+router.post('/timesheet/periods/monthly', requirePayrollOrAbove, requirePage('periods'), timesheetController.createMonthlyPeriods.bind(timesheetController));
+router.post('/timesheet/periods/foreign-monthly', requirePayrollOrAbove, requirePage('periods'), timesheetController.createForeignMonthlyPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id
  * @desc Get period by ID
  */
 router.get('/timesheet/periods/:id', timesheetController.getPeriod.bind(timesheetController));
-router.put('/timesheet/periods/:id', requirePayrollOrAbove, timesheetController.updatePeriod.bind(timesheetController));
-router.delete('/timesheet/periods/:id', requirePayrollOrAbove, timesheetController.deletePeriod.bind(timesheetController));
+router.put('/timesheet/periods/:id', requirePayrollOrAbove, requirePage('periods'), timesheetController.updatePeriod.bind(timesheetController));
+router.delete('/timesheet/periods/:id', requirePayrollOrAbove, requirePage('periods'), timesheetController.deletePeriod.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id/summaries
  * @desc Get summaries for a period
  */
-router.get('/timesheet/periods/:id/summaries', timesheetController.getPeriodSummaries.bind(timesheetController));
+router.get('/timesheet/periods/:id/summaries', requirePage('periods'), timesheetController.getPeriodSummaries.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/periods/:id/payslips
  * @desc Get payslips for a period
  */
-router.get('/timesheet/periods/:id/payslips', timesheetController.getPeriodPayslips.bind(timesheetController));
-router.get('/timesheet/periods/:id/summary-pdf', timesheetController.downloadPeriodSummaryPDF.bind(timesheetController));
-router.get('/timesheet/periods/:id/summary-xlsx', timesheetController.downloadPeriodSummaryXLSX.bind(timesheetController));
+router.get('/timesheet/periods/:id/payslips', requirePage('payslips', 'process', 'bank_upload'), timesheetController.getPeriodPayslips.bind(timesheetController));
+router.get('/timesheet/periods/:id/summary-pdf', requirePayrollOps, requirePage('payslips'), denyIfAmountsHidden, timesheetController.downloadPeriodSummaryPDF.bind(timesheetController));
+router.get('/timesheet/periods/:id/summary-xlsx', requirePayrollOps, requirePage('payslips'), denyIfAmountsHidden, timesheetController.downloadPeriodSummaryXLSX.bind(timesheetController));
 
 // ============================================
 // SUMMARY ROUTES
@@ -165,25 +174,25 @@ router.get('/timesheet/summaries/:id', timesheetController.getSummary.bind(times
  * @route POST /api/timesheet/summaries/:id/resend
  * @desc Resend approval request
  */
-router.post('/timesheet/summaries/:id/resend', timesheetController.resendApproval.bind(timesheetController));
+router.post('/timesheet/summaries/:id/resend', requirePayrollOps, timesheetController.resendApproval.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/summaries/:id/approve
  * @desc Manually approve a summary
  */
-router.post('/timesheet/summaries/:id/approve', timesheetController.approveSummary.bind(timesheetController));
+router.post('/timesheet/summaries/:id/approve', requirePayrollOps, timesheetController.approveSummary.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/summaries/:id/reject
  * @desc Manually reject a summary
  */
-router.post('/timesheet/summaries/:id/reject', timesheetController.rejectSummary.bind(timesheetController));
+router.post('/timesheet/summaries/:id/reject', requirePayrollOps, timesheetController.rejectSummary.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/summaries/:id/generate-payslip
  * @desc Generate (or re-generate) payslip for an approved summary
  */
-router.post('/timesheet/summaries/:id/generate-payslip', timesheetController.generatePayslipForSummary.bind(timesheetController));
+router.post('/timesheet/summaries/:id/generate-payslip', requirePayrollOps, timesheetController.generatePayslipForSummary.bind(timesheetController));
 
 // ============================================
 // TIME ENTRY ROUTES
@@ -199,13 +208,13 @@ router.get('/timesheet/employees/:id/entries', timesheetController.getEmployeeEn
  * @route POST /api/timesheet/entries
  * @desc Add time entry
  */
-router.post('/timesheet/entries', timesheetController.addTimeEntry.bind(timesheetController));
+router.post('/timesheet/entries', requirePayrollOps, timesheetController.addTimeEntry.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/entries/bulk
  * @desc Bulk import time entries
  */
-router.post('/timesheet/entries/bulk', timesheetController.bulkImportEntries.bind(timesheetController));
+router.post('/timesheet/entries/bulk', requirePayrollOps, timesheetController.bulkImportEntries.bind(timesheetController));
 
 // ============================================
 // PAYSLIP ROUTES
@@ -215,50 +224,50 @@ router.post('/timesheet/entries/bulk', timesheetController.bulkImportEntries.bin
  * @route GET /api/timesheet/payslips/:id
  * @desc Get payslip details
  */
-router.get('/timesheet/payslips/:id', timesheetController.getPayslip.bind(timesheetController));
+router.get('/timesheet/payslips/:id', requirePage('payslips', 'process', 'bank_upload'), timesheetController.getPayslip.bind(timesheetController));
 
 /**
  * @route GET /api/timesheet/payslips/:id/pdf
  * @desc Download payslip PDF file
  */
-router.get('/timesheet/payslips/:id/pdf', timesheetController.downloadPayslipPDF.bind(timesheetController));
+router.get('/timesheet/payslips/:id/pdf', requirePage('payslips'), denyIfAmountsHidden, timesheetController.downloadPayslipPDF.bind(timesheetController));
 
 /**
  * @route DELETE /api/timesheet/payslips/:id
  * @desc Delete a payslip (super_admin only)
  */
-router.delete('/timesheet/payslips/:id', requireSuperAdmin, timesheetController.deletePayslip.bind(timesheetController));
+router.delete('/timesheet/payslips/:id', requireSuperAdmin, requirePage('payslips'), timesheetController.deletePayslip.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/payslips/:id/release
  * @desc Release a single payslip to the employee (payroll_officer, super_admin)
  */
-router.post('/timesheet/payslips/:id/release', requirePayrollOrSuperAdmin, timesheetController.releasePayslip.bind(timesheetController));
+router.post('/timesheet/payslips/:id/release', requirePayrollOrSuperAdmin, requirePage('payslips'), timesheetController.releasePayslip.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/:id/release-payslips
  * @desc Release all generated payslips for a period (payroll_officer, super_admin)
  */
-router.post('/timesheet/periods/:id/release-payslips', requirePayrollOrSuperAdmin, timesheetController.releasePayslips.bind(timesheetController));
+router.post('/timesheet/periods/:id/release-payslips', requirePayrollOrSuperAdmin, requirePage('payslips'), timesheetController.releasePayslips.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/:id/mark-bank-downloaded
  * @desc Record bank file download timestamp (accounting_manager, super_admin)
  */
-router.post('/timesheet/periods/:id/mark-bank-downloaded', requireAccountingOrAbove, timesheetController.markBankDownloaded.bind(timesheetController));
+router.post('/timesheet/periods/:id/mark-bank-downloaded', requireAccountingOrAbove, requirePage('bank_upload'), timesheetController.markBankDownloaded.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/periods/:id/mark-bank-uploaded
  * @desc Mark a period's bank file as uploaded (accounting_manager, super_admin)
  */
-router.post('/timesheet/periods/:id/mark-bank-uploaded', requireAccountingOrAbove, timesheetController.markBankUploaded.bind(timesheetController));
+router.post('/timesheet/periods/:id/mark-bank-uploaded', requireAccountingOrAbove, requirePage('bank_upload'), timesheetController.markBankUploaded.bind(timesheetController));
 
 /**
  * @route POST /api/timesheet/bulk-generate-payslips
  * @desc Bulk approve & generate payslips for a period (all or selected employees)
  */
-router.post('/timesheet/bulk-generate-payslips', timesheetController.bulkGeneratePayslips.bind(timesheetController));
-router.post('/timesheet/generate-payslips-for-period', timesheetController.generatePayslipsForPeriod.bind(timesheetController));
+router.post('/timesheet/bulk-generate-payslips', requirePayrollOps, requirePage('payslips'), timesheetController.bulkGeneratePayslips.bind(timesheetController));
+router.post('/timesheet/generate-payslips-for-period', requirePayrollOps, requirePage('payslips'), timesheetController.generatePayslipsForPeriod.bind(timesheetController));
 
 /**
  * @route GET /api/jobs/:id
@@ -270,7 +279,14 @@ router.get('/jobs/:id', timesheetController.getJobStatus.bind(timesheetControlle
  * @route GET /api/payroll/bank-file
  * @desc Generate bank transfer file for a period (?periodId=X&type=local|foreign)
  */
-router.get('/payroll/bank-file', timesheetController.generateBankFile.bind(timesheetController));
+router.get('/payroll/bank-file', requireAccountingOrAbove, requirePage('bank_upload'), denyIfAmountsHidden, timesheetController.generateBankFile.bind(timesheetController));
+
+/**
+ * @route GET /api/payroll/summary-range
+ * @desc Payroll summary across a custom date range, as PDF or CSV
+ * @query start=YYYY-MM-DD, end=YYYY-MM-DD, format=pdf|csv
+ */
+router.get('/payroll/summary-range', requirePayrollOps, requirePage('payslips'), denyIfAmountsHidden, timesheetController.downloadRangeSummary.bind(timesheetController));
 
 // ============================================
 // EMPLOYEE ROUTES
@@ -286,8 +302,8 @@ router.get('/employees', employeeController.getAll.bind(employeeController));
  * @route POST /api/employees
  * @desc Create new employee
  */
-router.post('/employees/bulk', requireHROrAbove, csvUpload.single('file'), employeeController.bulkUpload.bind(employeeController));
-router.post('/employees', requireHROrAbove, employeeController.create.bind(employeeController));
+router.post('/employees/bulk', requireHROrAbove, requirePage('employees'), csvUpload.single('file'), employeeController.bulkUpload.bind(employeeController));
+router.post('/employees', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, employeeController.create.bind(employeeController));
 
 /**
  * @route GET /api/employees/:id
@@ -299,25 +315,25 @@ router.get('/employees/:id', employeeController.getById.bind(employeeController)
  * @route PUT /api/employees/:id
  * @desc Update employee
  */
-router.put('/employees/:id', requireHROrAbove, employeeController.update.bind(employeeController));
+router.put('/employees/:id', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, employeeController.update.bind(employeeController));
 
 /**
  * @route DELETE /api/employees/:id
  * @desc Delete employee
  */
-router.delete('/employees/:id', requireHROrAbove, employeeController.delete.bind(employeeController));
+router.delete('/employees/:id', requireHROrAbove, requirePage('employees'), employeeController.delete.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/deactivate
  * @desc Deactivate employee
  */
-router.post('/employees/:id/deactivate', employeeController.deactivate.bind(employeeController));
+router.post('/employees/:id/deactivate', requireHROrAbove, requirePage('employees'), employeeController.deactivate.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/activate
  * @desc Activate employee
  */
-router.post('/employees/:id/activate', employeeController.activate.bind(employeeController));
+router.post('/employees/:id/activate', requireHROrAbove, requirePage('employees'), employeeController.activate.bind(employeeController));
 
 /**
  * @route GET /api/employees/:id/timesheets
@@ -335,26 +351,26 @@ router.get('/employees/:id/payslips', employeeController.getPayslips.bind(employ
  * @route GET /api/employees/:id/portal-account
  * @desc Get portal account info for an employee
  */
-router.get('/employees/:id/portal-account', employeeController.getPortalAccount.bind(employeeController));
-router.post('/employees/:id/create-portal-account', employeeController.createPortalAccount.bind(employeeController));
+router.get('/employees/:id/portal-account', requireHROrAbove, requirePage('employees'), employeeController.getPortalAccount.bind(employeeController));
+router.post('/employees/:id/create-portal-account', requireHROrAbove, requirePage('employees'), employeeController.createPortalAccount.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/revoke-access
  * @desc Revoke portal access for an employee
  */
-router.post('/employees/:id/revoke-access', employeeController.revokeAccess.bind(employeeController));
+router.post('/employees/:id/revoke-access', requireHROrAbove, requirePage('employees'), employeeController.revokeAccess.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/restore-access
  * @desc Restore portal access for an employee
  */
-router.post('/employees/:id/restore-access', employeeController.restoreAccess.bind(employeeController));
+router.post('/employees/:id/restore-access', requireHROrAbove, requirePage('employees'), employeeController.restoreAccess.bind(employeeController));
 
 /**
  * @route POST /api/employees/:id/reset-password
  * @desc Reset portal password for an employee
  */
-router.post('/employees/:id/reset-password', employeeController.resetPassword.bind(employeeController));
+router.post('/employees/:id/reset-password', requireHROrAbove, requirePage('employees'), employeeController.resetPassword.bind(employeeController));
 
 // ============================================
 // WRIKE TIMESHEET ROUTES
@@ -364,28 +380,28 @@ router.post('/employees/:id/reset-password', employeeController.resetPassword.bi
  * @route GET /api/wrike/timelogs?date=YYYY-MM-DD
  * @desc Fetch weekly timelogs from Wrike for all employees
  */
-router.get('/wrike/timelogs', wrikeController.getWeeklyTimelogs.bind(wrikeController));
-router.get('/wrike/timelogs/monthly', wrikeController.getMonthlyTimelogs.bind(wrikeController));
+router.get('/wrike/timelogs', requireVerifier, requirePage('work_timesheets'), wrikeController.getWeeklyTimelogs.bind(wrikeController));
+router.get('/wrike/timelogs/monthly', requireVerifier, requirePage('work_timesheets'), wrikeController.getMonthlyTimelogs.bind(wrikeController));
 
 /**
  * @route POST /api/wrike/import
  * @desc Import a week of Wrike timelogs into time_entries
  */
-router.post('/wrike/import', wrikeController.importWeekTimelogs.bind(wrikeController));
+router.post('/wrike/import', requireVerifier, wrikeController.importWeekTimelogs.bind(wrikeController));
 
 /**
  * @route GET /api/wrike/contacts
  * @desc Get all Wrike contacts/users
  */
-router.get('/wrike/contacts', wrikeController.getContacts.bind(wrikeController));
+router.get('/wrike/contacts', requireVerifier, wrikeController.getContacts.bind(wrikeController));
 
 /**
  * @route GET /api/wrike/folders
  * @desc List all Wrike folders (to find the correct WRIKE_FOLDER_ID)
  */
-router.get('/wrike/folders', wrikeController.getFolders.bind(wrikeController));
-router.post('/wrike/import-period', wrikeController.importPeriodTimelogs.bind(wrikeController));
-router.post('/wrike/backfill-categories', wrikeController.backfillCategories.bind(wrikeController));
+router.get('/wrike/folders', requireVerifier, wrikeController.getFolders.bind(wrikeController));
+router.post('/wrike/import-period', requireVerifier, requirePage('verify'), wrikeController.importPeriodTimelogs.bind(wrikeController));
+router.post('/wrike/backfill-categories', requirePayrollOps, wrikeController.backfillCategories.bind(wrikeController));
 
 // ============================================
 // WEBHOOK ROUTES
@@ -425,15 +441,17 @@ router.post('/webhooks/test', webhookController.testWebhook.bind(webhookControll
 // TIMESHEET VERIFICATION ROUTES
 // ============================================
 
-router.get('/verifications/status',            verificationController.getStatus.bind(verificationController));
-router.get('/verifications/period/:periodId',  verificationController.getForPeriod.bind(verificationController));
-router.post('/verifications/upsert',           verificationController.upsert.bind(verificationController));
-router.post('/verifications/bulk',             verificationController.bulk.bind(verificationController));
+router.get('/verifications/status',            requireVerifier, requirePage('verify', 'process'), verificationController.getStatus.bind(verificationController));
+router.get('/verifications/period/:periodId',  requireVerifier, requirePage('verify', 'payslips'), verificationController.getForPeriod.bind(verificationController));
+router.post('/verifications/upsert',           requireVerifier, requirePage('verify'), stripMoneyFromBody, verificationController.upsert.bind(verificationController));
+router.post('/verifications/bulk',             requireVerifier, requirePage('verify'), verificationController.bulk.bind(verificationController));
 
 // ============================================
 // ADMIN — USER MANAGEMENT ROUTES (super_admin only)
 // ============================================
 
+router.get('/admin/permissions/catalog',       requireSuperAdmin, adminController.permissionCatalog.bind(adminController));
+router.put('/admin/users/:id/permissions',     requireSuperAdmin, adminController.updatePermissions.bind(adminController));
 router.get('/admin/users',                     requireSuperAdmin, adminController.listUsers.bind(adminController));
 router.post('/admin/users',                    requireSuperAdmin, adminController.createUser.bind(adminController));
 router.put('/admin/users/:id',                 requireSuperAdmin, adminController.updateUser.bind(adminController));

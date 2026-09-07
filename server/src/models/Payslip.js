@@ -79,6 +79,32 @@ class Payslip {
   }
 
   /**
+   * Find every payslip whose pay period falls entirely inside [startDate, endDate].
+   * Used by the custom-range payroll summary report, so accounting can pull e.g.
+   * 2026-03-01 → 2026-06-30 across however many pay periods that spans.
+   * Ordered by employee then chronologically, which is the order the report groups in.
+   */
+  static async findByDateRange(startDate, endDate) {
+    const sql = `
+      SELECT p.*,
+             e.name        AS employee_name,
+             e.employee_id AS emp_code,
+             e.email,
+             e.currency,
+             pp.period_name,
+             pp.period_type,
+             pp.start_date AS period_start,
+             pp.end_date   AS period_end
+      FROM payslips p
+      JOIN employees e   ON p.employee_id = e.id
+      JOIN pay_periods pp ON p.period_id  = pp.id
+      WHERE pp.start_date >= ? AND pp.end_date <= ?
+      ORDER BY e.name, pp.start_date, p.payslip_number
+    `;
+    return db.query(sql, [startDate, endDate]);
+  }
+
+  /**
    * Generate a unique payslip number for the current month.
    * Uses MAX of existing sequences (not COUNT) so gaps from deletions
    * never cause collisions, and must be called inside withSeqLock.

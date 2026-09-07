@@ -122,6 +122,33 @@ export const timesheetAPI = {
     a.click();
     URL.revokeObjectURL(url);
   },
+  // A failed blob request carries its JSON error body inside a Blob, so the
+  // usual err.response.data.error is undefined — dig it back out.
+  downloadRangeSummary: async (startDate, endDate, format = 'pdf') => {
+    const qs = new URLSearchParams({ start: startDate, end: endDate, format });
+    let res;
+    try {
+      res = await api.get(`/payroll/summary-range?${qs}`, { responseType: 'blob' });
+    } catch (err) {
+      const body = err.response?.data;
+      if (body instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await body.text());
+          if (parsed?.error) throw new Error(parsed.error);
+        } catch (parseErr) {
+          if (parseErr instanceof Error && parseErr.message) throw parseErr;
+        }
+      }
+      throw err;
+    }
+    const mime = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/pdf';
+    const url = URL.createObjectURL(new Blob([res], { type: mime }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PayrollSummary_${startDate}_to_${endDate}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   downloadSummaryXLSX: async (periodId, periodName) => {
     const res = await api.get(`/timesheet/periods/${periodId}/summary-xlsx`, { responseType: 'blob' });
     const url = URL.createObjectURL(new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
@@ -273,6 +300,9 @@ export const usersAPI = {
   deactivate:    (id)       => api.post(`/admin/users/${id}/deactivate`),
   activate:      (id)       => api.post(`/admin/users/${id}/activate`),
   delete:        (id)       => api.delete(`/admin/users/${id}`),
+  permissionCatalog: ()     => api.get('/admin/permissions/catalog'),
+  // Pass { reset: true } to drop the override and fall back to role defaults.
+  updatePermissions: (id, body) => api.put(`/admin/users/${id}/permissions`, body),
 };
 
 export default api;

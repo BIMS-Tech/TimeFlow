@@ -57,6 +57,7 @@ export default function Payslips() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
   const isReadOnly   = user?.role === 'accounting_manager';
+  const { hideAmounts } = useAuth();
 
   const [periods, setPeriods]               = useState([]);
   const [periodTypeFilter, setPeriodTypeFilter] = useState('all');
@@ -82,6 +83,10 @@ export default function Payslips() {
   const [releasing, setReleasing]           = useState(false);
   const [dlSummary, setDlSummary]           = useState(false);
   const [summaryMenuEl, setSummaryMenuEl]   = useState(null);
+  const [rangeOpen, setRangeOpen]           = useState(false);
+  const [rangeStart, setRangeStart]         = useState('');
+  const [rangeEnd, setRangeEnd]             = useState('');
+  const [rangeBusy, setRangeBusy]           = useState(null);
   const [releasingId, setReleasingId]       = useState(null);
 
   useEffect(() => { fetchPeriods(); fetchEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -236,6 +241,22 @@ export default function Payslips() {
   const canRelease      = bankUploaded && !isReadOnly;
   const payslipsLocked  = payslips.length > 0;
 
+  const rangeInvalid = Boolean(rangeStart && rangeEnd && rangeStart > rangeEnd);
+  const rangeReady    = Boolean(rangeStart && rangeEnd) && !rangeInvalid;
+
+  const downloadRange = async (format) => {
+    setRangeBusy(format);
+    try {
+      await timesheetAPI.downloadRangeSummary(rangeStart, rangeEnd, format);
+      toast.success(`Payroll summary (${format.toUpperCase()}) downloaded`);
+      setRangeOpen(false);
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate report');
+    } finally {
+      setRangeBusy(null);
+    }
+  };
+
   return (
     <Box>
       {/* Header */}
@@ -287,6 +308,57 @@ export default function Payslips() {
               <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Excel (.xlsx)</ListItemText>
             </MenuItem>
           </Menu>
+
+          <Button variant="outlined"
+            startIcon={<CalendarMonthIcon sx={{ fontSize: '16px !important' }} />}
+            onClick={() => setRangeOpen(true)}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
+              borderColor: 'divider', color: 'text.secondary' }}>
+            Custom Range Report
+          </Button>
+
+          <Dialog open={rangeOpen} onClose={() => { if (!rangeBusy) setRangeOpen(false); }} maxWidth="xs" fullWidth>
+            <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>Payroll Summary — Custom Range</DialogTitle>
+            <DialogContent>
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2 }}>
+                Covers every pay period falling entirely within these dates. Rows are grouped by
+                employee with a subtotal each, plus a grand total.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
+                <TextField label="Start date" type="date" size="small" fullWidth
+                  InputLabelProps={{ shrink: true }} value={rangeStart}
+                  onChange={e => setRangeStart(e.target.value)} />
+                <TextField label="End date" type="date" size="small" fullWidth
+                  InputLabelProps={{ shrink: true }} value={rangeEnd}
+                  onChange={e => setRangeEnd(e.target.value)} />
+              </Box>
+              {rangeInvalid && (
+                <Typography sx={{ fontSize: '0.75rem', color: 'error.main', mt: 1.5 }}>
+                  Start date must be on or before the end date.
+                </Typography>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setRangeOpen(false)} disabled={Boolean(rangeBusy)}
+                sx={{ textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
+              <Button variant="outlined" disabled={!rangeReady || Boolean(rangeBusy)}
+                startIcon={rangeBusy === 'pdf'
+                  ? <CircularProgress size={14} />
+                  : <PictureAsPdfIcon sx={{ fontSize: '16px !important' }} />}
+                onClick={() => downloadRange('pdf')}
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
+                PDF
+              </Button>
+              <Button variant="contained" disableElevation disabled={!rangeReady || Boolean(rangeBusy)}
+                startIcon={rangeBusy === 'csv'
+                  ? <CircularProgress size={14} />
+                  : <TableChartIcon sx={{ fontSize: '16px !important' }} />}
+                onClick={() => downloadRange('csv')}
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
+                CSV
+              </Button>
+            </DialogActions>
+          </Dialog>
           {!isReadOnly && !payslipsLocked && (
             <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
                 onClick={() => setShowBulkPanel(v => !v)}
@@ -518,7 +590,7 @@ export default function Payslips() {
                 <Table size="small">
                   <TableHead sx={{ bgcolor: 'action.hover' }}>
                     <TableRow>
-                      {['Payslip No.', 'Employee', 'Hours', 'Gross', 'Net Pay', 'Status', 'Actions'].map(h => (
+                      {['Payslip No.', 'Employee', 'Hours', ...(hideAmounts ? [] : ['Gross', 'Net Pay']), 'Status', 'Actions'].map(h => (
                         <TableCell key={h} sx={TH}>{h}</TableCell>
                       ))}
                     </TableRow>
@@ -536,12 +608,16 @@ export default function Payslips() {
                         <TableCell sx={TD}>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{formatHoursAsHM(p.total_hours)}</Typography>
                         </TableCell>
-                        <TableCell sx={{ ...TD, color: 'text.secondary' }}>
-                          {p.currency || ''} {p.gross_amount?.toLocaleString()}
-                        </TableCell>
-                        <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>
-                          {p.currency || ''} {p.net_amount?.toLocaleString()}
-                        </TableCell>
+                        {!hideAmounts && (
+                          <>
+                            <TableCell sx={{ ...TD, color: 'text.secondary' }}>
+                              {p.currency || ''} {p.gross_amount?.toLocaleString()}
+                            </TableCell>
+                            <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>
+                              {p.currency || ''} {p.net_amount?.toLocaleString()}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell sx={TD}>
                           <Chip label={p.status} size="small" sx={{
                             bgcolor: p.status === 'released' ? '#10b98115' : p.status === 'paid' ? '#6366f115' : '#f59e0b15',
@@ -618,16 +694,20 @@ export default function Payslips() {
               <InfoRow label="Employee"    value={selected.employee_name} />
               <InfoRow label="Period"      value={selected.period_name} />
               <InfoRow label="Total Hours" value={`${formatHoursAsHM(selected.total_hours)}`} />
-              <InfoRow label="Hourly Rate" value={`${selected.currency || ''} ${selected.hourly_rate}`} />
-              <InfoRow label="Gross Amount" value={`${selected.currency || ''} ${selected.gross_amount?.toLocaleString()}`} />
-              <InfoRow label="Deductions"  value={`${selected.currency || ''} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
-              <Divider sx={{ my: 1.5 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#10b98110', border: '1px solid #10b98130', borderRadius: '12px', px: 2.5, py: 1.75 }}>
-                <Typography sx={{ fontWeight: 700, color: '#10b981' }}>Net Amount</Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#10b981' }}>
-                  {selected.currency || ''} {selected.net_amount?.toLocaleString()}
-                </Typography>
-              </Box>
+              {!hideAmounts && (
+                <>
+                  <InfoRow label="Hourly Rate" value={`${selected.currency || ''} ${selected.hourly_rate}`} />
+                  <InfoRow label="Gross Amount" value={`${selected.currency || ''} ${selected.gross_amount?.toLocaleString()}`} />
+                  <InfoRow label="Deductions"  value={`${selected.currency || ''} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
+                  <Divider sx={{ my: 1.5 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#10b98110', border: '1px solid #10b98130', borderRadius: '12px', px: 2.5, py: 1.75 }}>
+                    <Typography sx={{ fontWeight: 700, color: '#10b981' }}>Net Amount</Typography>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#10b981' }}>
+                      {selected.currency || ''} {selected.net_amount?.toLocaleString()}
+                    </Typography>
+                  </Box>
+                </>
+              )}
             </>
           )}
         </DialogContent>

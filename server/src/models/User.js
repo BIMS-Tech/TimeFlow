@@ -30,7 +30,7 @@ class User {
 
   static async findById(id) {
     return db.getOne(
-      'SELECT id, username, email, role, employee_id, is_active, last_login, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, role, employee_id, is_active, last_login, created_at, permissions FROM users WHERE id = ?',
       [id]
     );
   }
@@ -58,7 +58,7 @@ class User {
 
   static async findAll() {
     return db.query(
-      'SELECT id, username, email, role, employee_id, is_active, last_login, created_at FROM users WHERE employee_id IS NULL ORDER BY created_at ASC',
+      'SELECT id, username, email, role, employee_id, is_active, last_login, created_at, permissions FROM users WHERE employee_id IS NULL ORDER BY created_at ASC',
     );
   }
 
@@ -77,6 +77,15 @@ class User {
       'SELECT id, username, email, role, employee_id, is_active FROM users WHERE employee_id = ?',
       [employeeId]
     );
+  }
+
+  /**
+   * Store (or clear) a user's page/flag override.
+   * Pass null to drop the override and fall back to their role defaults.
+   */
+  static async updatePermissions(id, override) {
+    await db.update('users', { permissions: override ? JSON.stringify(override) : null }, 'id = ?', [id]);
+    return this.findById(id);
   }
 
   static async updatePassword(id, newPassword) {

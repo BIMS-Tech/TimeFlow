@@ -5,7 +5,7 @@ import {
   TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert,
-  InputAdornment,
+  InputAdornment, Checkbox, FormControlLabel, Switch, Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -16,7 +16,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import TuneIcon from '@mui/icons-material/Tune';
 import { usersAPI } from '../api';
+import { PAGES, ROLE_PAGES, ROLE_FLAGS, FLAG_LABELS } from '../permissions';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_META = {
@@ -24,10 +26,11 @@ const ROLE_META = {
   hr:                 { label: 'HR',                 bg: '#10b98115', color: '#10b981' },
   payroll_officer:    { label: 'Payroll Officer',    bg: '#f59e0b15', color: '#f59e0b' },
   accounting_manager: { label: 'Accounting Manager', bg: '#8b5cf615', color: '#8b5cf6' },
+  timekeeper:         { label: 'Timekeeper',         bg: '#0ea5e915', color: '#0ea5e9' },
   employee:           { label: 'Employee',            bg: '#06b6d415', color: '#06b6d4' },
 };
 
-const ASSIGNABLE_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager'];
+const ASSIGNABLE_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager', 'timekeeper'];
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
@@ -95,6 +98,12 @@ export default function UserManagement() {
   // Delete dialog
   const [deleteUser,   setDeleteUser]   = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // ── Per-user view permissions ─────────────────────────────────────────────
+  const [permUser, setPermUser]         = useState(null);
+  const [permPages, setPermPages]       = useState([]);
+  const [permHide, setPermHide]         = useState(false);
+  const [permSaving, setPermSaving]     = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -198,6 +207,36 @@ export default function UserManagement() {
     }
   };
 
+  // ── View permissions ──────────────────────────────────────────────────────
+  const openPerms = (u) => {
+    setPermUser(u);
+    setPermPages(u.permissions?.pages || ROLE_PAGES[u.role] || []);
+    setPermHide(Boolean(u.permissions?.flags?.hide_amounts));
+  };
+
+  const togglePermPage = (key) => {
+    setPermPages(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
+  const savePerms = async (reset = false) => {
+    setPermSaving(true);
+    try {
+      await usersAPI.updatePermissions(
+        permUser.id,
+        reset ? { reset: true } : { pages: permPages, flags: { hide_amounts: permHide } },
+      );
+      toast.success(reset
+        ? `"${permUser.username}" reset to ${permUser.role} defaults`
+        : `Access updated for "${permUser.username}"`);
+      setPermUser(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save permissions');
+    } finally {
+      setPermSaving(false);
+    }
+  };
+
   // ── Deactivate / Activate ─────────────────────────────────────────────────
   const handleDeactivate = async (u) => {
     try {
@@ -285,7 +324,19 @@ export default function UserManagement() {
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{u.email}</Typography>
                         {isSelf && <Typography sx={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 700 }}>— You</Typography>}
                       </TableCell>
-                      <TableCell sx={TD}><RoleChip role={u.role} /></TableCell>
+                      <TableCell sx={TD}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                          <RoleChip role={u.role} />
+                          {u.permissions?.customised && (
+                            <Chip label="Custom" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700,
+                              bgcolor: '#0ea5e915', color: '#0ea5e9' }} />
+                          )}
+                          {u.permissions?.flags?.hide_amounts && (
+                            <Chip label="No amounts" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700,
+                              bgcolor: '#64748b15', color: '#64748b' }} />
+                          )}
+                        </Box>
+                      </TableCell>
                       <TableCell sx={TD}>
                         <Chip
                           label={u.is_active ? 'Active' : 'Inactive'}
@@ -304,6 +355,14 @@ export default function UserManagement() {
                           <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
                             <EditIcon fontSize="small" />
                           </IconButton>
+                        </Tooltip>
+                        <Tooltip title={u.role === 'super_admin' ? 'A super admin always has full access' : 'Customise pages & visible data'}>
+                          <span>
+                            <IconButton size="small" disabled={u.role === 'super_admin'} onClick={() => openPerms(u)}
+                              sx={{ color: '#0ea5e9', '&:hover': { bgcolor: '#0ea5e910' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
+                              <TuneIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                         <Tooltip title="Reset password">
                           <IconButton size="small" onClick={() => openReset(u)} sx={{ color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b10' } }}>
@@ -472,6 +531,86 @@ export default function UserManagement() {
             startIcon={resetSaving ? <CircularProgress size={14} color="inherit" /> : null}
             sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' } }}>
             {resetSaving ? 'Updating…' : 'Reset Password'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── View Permissions Dialog ────────────────────────────────────────── */}
+      <Dialog open={!!permUser} onClose={() => { if (!permSaving) setPermUser(null); }} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>
+          Customise Access
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 400, mt: 0.25 }}>
+            {permUser?.username} · {ROLE_META[permUser?.role]?.label || permUser?.role}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: '12px !important' }}>
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 1.5 }}>
+            Pages this user can open. Unticking one removes it from their sidebar and
+            blocks the matching API calls.
+          </Typography>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 0.25 }}>
+            {PAGES.map(pg => {
+              const isDefault = (ROLE_PAGES[permUser?.role] || []).includes(pg.key);
+              return (
+                <FormControlLabel
+                  key={pg.key}
+                  control={
+                    <Checkbox size="small" checked={permPages.includes(pg.key)}
+                      onChange={() => togglePermPage(pg.key)} />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Typography sx={{ fontSize: '0.85rem' }}>{pg.label}</Typography>
+                      {isDefault && (
+                        <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled' }}>default</Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              );
+            })}
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          <FormControlLabel
+            control={<Switch size="small" checked={permHide} onChange={e => setPermHide(e.target.checked)} />}
+            label={
+              <Box>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  {FLAG_LABELS.hide_amounts.label}
+                  {Boolean((ROLE_FLAGS[permUser?.role] || {}).hide_amounts) && (
+                    <Typography component="span" sx={{ fontSize: '0.65rem', color: 'text.disabled', ml: 0.75, fontWeight: 400 }}>
+                      default for {ROLE_META[permUser?.role]?.label || permUser?.role}
+                    </Typography>
+                  )}
+                </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+                  {FLAG_LABELS.hide_amounts.help}
+                </Typography>
+              </Box>
+            }
+          />
+
+          {permPages.length === 0 && (
+            <Alert severity="warning" sx={{ mt: 2, fontSize: '0.78rem' }}>
+              With no pages ticked this user can sign in but will see an empty sidebar.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => savePerms(true)} disabled={permSaving}
+            sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary', mr: 'auto' }}>
+            Reset to role defaults
+          </Button>
+          <Button onClick={() => setPermUser(null)} disabled={permSaving}
+            sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={() => savePerms(false)} disabled={permSaving}
+            startIcon={permSaving ? <CircularProgress size={14} color="inherit" /> : null}
+            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#0ea5e9', '&:hover': { bgcolor: '#0284c7' } }}>
+            {permSaving ? 'Saving…' : 'Save Access'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -50,6 +50,9 @@ function StatusChip({ status }) {
 }
 
 function EditRow({ row, periodId, onSaved }) {
+  const { hideAmounts } = useAuth();
+  // Cash advance is a payroll deduction, so it follows the amount-visibility flag.
+  const canSetCashAdvance = !hideAmounts;
   const sym = currSym(row.employee?.currency);
   const initialMinutes = verMinutes(row.verification) ?? rowMinutes(row);
   const [hours, setHours] = useState(initialMinutes ? formatHM(initialMinutes) : '');
@@ -64,7 +67,7 @@ function EditRow({ row, periodId, onSaved }) {
         employee_id:      row.employee.id,
         period_id:        periodId,
         verified_minutes: hours !== '' ? parseToMinutes(hours) : null,
-        cash_advance:   parseFloat(cash) || 0,
+        ...(canSetCashAdvance ? { cash_advance: parseFloat(cash) || 0 } : {}),
         status,
         notes,
       });
@@ -82,10 +85,12 @@ function EditRow({ row, periodId, onSaved }) {
       <TextField label="Hours (e.g. 8h 30m)" size="small" value={hours}
         onChange={e => setHours(e.target.value)}
         placeholder="8h 30m" sx={{ width: 130 }} />
-      <TextField label="Cash Advance" type="number" size="small" value={cash}
-        onChange={e => setCash(e.target.value)}
-        InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
-        inputProps={{ step: 100, min: 0 }} sx={{ width: 145 }} />
+      {canSetCashAdvance && (
+        <TextField label="Cash Advance" type="number" size="small" value={cash}
+          onChange={e => setCash(e.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start">{sym}</InputAdornment> }}
+          inputProps={{ step: 100, min: 0 }} sx={{ width: 145 }} />
+      )}
       <TextField label="Notes" size="small" value={notes}
         onChange={e => setNotes(e.target.value)} sx={{ width: 180 }} />
       <Button size="small" variant="contained" disabled={saving} onClick={() => save('verified')}

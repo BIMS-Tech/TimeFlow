@@ -194,6 +194,10 @@ async function runMigrations() {
     `UPDATE users SET role = 'payroll_officer' WHERE role IN ('accountant', 'viewer')`,
     `UPDATE users SET role = 'employee' WHERE employee_id IS NOT NULL AND role != 'employee'`,
 
+    // Per-user page access + view-flag overrides, layered on top of the role
+    // defaults in utils/permissions.js. NULL means "use the role defaults".
+    `ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT NULL`,
+
     // Payslip release flow: released_at timestamp + widen status to VARCHAR
     `ALTER TABLE payslips ADD COLUMN released_at DATETIME NULL DEFAULT NULL`,
     `ALTER TABLE payslips MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'generated'`,

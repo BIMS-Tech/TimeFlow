@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { resolvePermissions } = require('../utils/permissions');
 
 class AuthController {
   async login(req, res) {
@@ -37,7 +38,10 @@ class AuthController {
             username: user.username,
             email: user.email,
             role: user.role,
-            employee_id: user.employee_id || null
+            employee_id: user.employee_id || null,
+            // Effective pages + view flags, so the UI can render the right nav
+            // immediately after login without a second round trip.
+            permissions: resolvePermissions(user)
           }
         }
       });
@@ -47,7 +51,9 @@ class AuthController {
   }
 
   async me(req, res) {
-    res.json({ success: true, data: req.user });
+    // Replace the stored override blob with the resolved permission set.
+    const { permissions, ...rest } = req.user;
+    res.json({ success: true, data: { ...rest, permissions: req.permissions } });
   }
 
   async logout(req, res) {

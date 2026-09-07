@@ -547,6 +547,51 @@ class TimesheetController {
   }
 
   /**
+   * Download a payroll summary covering an arbitrary date range, spanning
+   * however many pay periods fall inside it.
+   * GET /api/payroll/summary-range?start=YYYY-MM-DD&end=YYYY-MM-DD&format=pdf|csv
+   */
+  async downloadRangeSummary(req, res) {
+    const fs = require('fs');
+    const { isDateStr, toDateStr } = require('../utils/date');
+    try {
+      const startDate = toDateStr(req.query.start);
+      const endDate   = toDateStr(req.query.end);
+      const format    = String(req.query.format || 'pdf').toLowerCase();
+
+      if (!isDateStr(startDate) || !isDateStr(endDate)) {
+        return res.status(400).json({ success: false, error: 'start and end must be YYYY-MM-DD dates' });
+      }
+      if (startDate > endDate) {
+        return res.status(400).json({ success: false, error: 'start must be on or before end' });
+      }
+      if (format !== 'pdf' && format !== 'csv') {
+        return res.status(400).json({ success: false, error: "format must be 'pdf' or 'csv'" });
+      }
+
+      // Periods must fall entirely inside the range, so a report never counts
+      // a pay period only partly covered by the requested dates.
+      const payslips = await Payslip.findByDateRange(startDate, endDate);
+      if (!payslips.length) {
+        return res.status(404).json({ success: false, error: 'No payslips found for the selected date range' });
+      }
+
+      const range = { startDate, endDate };
+      const { fileName, filePath } = format === 'csv'
+        ? await require('../services/csv.service').generateRangeSummaryCSV(payslips, range)
+        : await require('../services/pdf.service').generateRangeSummaryPDF(payslips, range);
+
+      res.setHeader('Content-Type', format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+      stream.on('end', () => { try { fs.unlinkSync(filePath); } catch {} });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
    * Release a single payslip to the employee
    * POST /api/timesheet/payslips/:id/release
    */
