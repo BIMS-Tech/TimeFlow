@@ -106,6 +106,9 @@ export const timesheetAPI = {
   createPeriod: (data) => api.post('/timesheet/periods', data),
   updatePeriod: (id, data) => api.put(`/timesheet/periods/${id}`, data),
   deletePeriod: (id) => api.delete(`/timesheet/periods/${id}`),
+  // Super admin only — lifts/restores the lock on a processed period.
+  unlockPeriod: (id) => api.post(`/timesheet/periods/${id}/unlock`),
+  lockPeriod:   (id) => api.post(`/timesheet/periods/${id}/lock`),
   releasePayslips: (periodId) => api.post(`/timesheet/periods/${periodId}/release-payslips`),
   markBankDownloaded: (periodId, type) => api.post(`/timesheet/periods/${periodId}/mark-bank-downloaded?type=${type}`),
   markBankUploaded: (periodId) => api.post(`/timesheet/periods/${periodId}/mark-bank-uploaded`),

@@ -21,6 +21,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SearchIcon from '@mui/icons-material/Search';
 import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHM, formatHoursAsHM } from '../utils/time';
@@ -40,7 +41,11 @@ const PAYSLIP_CHIP = {
   rejected: { label: 'Failed',        color: '#ef4444', bg: '#ef444418' },
 };
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const isPeriodLocked = (p) => p && p.status !== 'open';
+// A processed period is locked, unless a super admin has lifted it. The
+// workflow status is left alone by an unlock, so this is the only place that
+// decides whether a period is currently editable.
+const isPeriodLocked = (p) => p && p.status !== 'open' && !p.unlocked_at;
+const isUnlocked     = (p) => p && p.status !== 'open' && !!p.unlocked_at;
 const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
@@ -66,8 +71,9 @@ function StatCard({ icon, label, value, color, bg }) {
   );
 }
 
-function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor, isReadOnly }) {
-  const locked = isPeriodLocked(p);
+function PeriodCard({ p, selected, onSelect, onEdit, onDelete, onToggleLock, canToggleLock, accentColor, isReadOnly }) {
+  const locked   = isPeriodLocked(p);
+  const unlocked = isUnlocked(p);
   return (
     <Box onClick={() => onSelect(p)}
       sx={{
@@ -93,8 +99,27 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, accentColor, isRe
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
             <StatusChip status={p.status} />
             {locked && (
-              <Tooltip title="Payroll processed — period is locked">
-                <LockIcon sx={{ fontSize: 11, color: '#94a3b8', ml: 0.25 }} />
+              <Tooltip title={canToggleLock ? 'Payroll processed — period is locked. Click to unlock.' : 'Payroll processed — period is locked'}>
+                {canToggleLock ? (
+                  <IconButton size="small" onClick={e => { e.stopPropagation(); onToggleLock(p); }}
+                    sx={{ p: 0.3, color: '#94a3b8', '&:hover': { color: '#f59e0b', bgcolor: '#f59e0b10' } }}>
+                    <LockIcon sx={{ fontSize: 12 }} />
+                  </IconButton>
+                ) : (
+                  <LockIcon sx={{ fontSize: 11, color: '#94a3b8', ml: 0.25 }} />
+                )}
+              </Tooltip>
+            )}
+            {unlocked && (
+              <Tooltip title={`Unlocked${p.unlocked_by_name ? ` by ${p.unlocked_by_name}` : ''} — editing is temporarily allowed${canToggleLock ? '. Click to re-lock.' : ''}`}>
+                {canToggleLock ? (
+                  <IconButton size="small" onClick={e => { e.stopPropagation(); onToggleLock(p); }}
+                    sx={{ p: 0.3, color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b15' } }}>
+                    <LockOpenIcon sx={{ fontSize: 12 }} />
+                  </IconButton>
+                ) : (
+                  <LockOpenIcon sx={{ fontSize: 11, color: '#f59e0b', ml: 0.25 }} />
+                )}
               </Tooltip>
             )}
             {!isReadOnly && !locked && (
@@ -228,6 +253,33 @@ export default function Periods() {
     finally { setEditSaving(false); }
   };
 
+  // ── Lock / unlock a processed period (super admin only) ───────────────────
+  const canToggleLock = user?.role === 'super_admin';
+  const [lockTarget, setLockTarget] = useState(null);
+  const [lockSaving, setLockSaving] = useState(false);
+
+  const handleToggleLock = async (p) => {
+    // Re-locking is harmless, so it applies straight away. Unlocking reopens a
+    // period that may already have payslips, so it asks first.
+    if (isUnlocked(p)) return applyLock(p, false);
+    setLockTarget(p);
+  };
+
+  const applyLock = async (p, unlock) => {
+    setLockSaving(true);
+    try {
+      const res = unlock ? await timesheetAPI.unlockPeriod(p.id) : await timesheetAPI.lockPeriod(p.id);
+      setAllPeriods(prev => prev.map(x => (x.id === p.id ? res.data : x)));
+      if (selectedPeriod?.id === p.id) setSelectedPeriod(res.data);
+      toast.success(unlock ? `"${p.period_name}" unlocked for editing` : `"${p.period_name}" re-locked`);
+      setLockTarget(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || `Failed to ${unlock ? 'unlock' : 'lock'} period`);
+    } finally {
+      setLockSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setDeleteLoading(true);
@@ -340,6 +392,7 @@ export default function Periods() {
               ) : activePeriods.map(p => (
                 <PeriodCard key={p.id} p={p} selected={selectedPeriod?.id === p.id}
                   onSelect={handleSelectPeriod} onEdit={openEdit} onDelete={setDeleteTarget}
+                  onToggleLock={handleToggleLock} canToggleLock={canToggleLock}
                   accentColor={accentColor} isReadOnly={isReadOnly} />
               ))}
             </Box>
@@ -623,6 +676,35 @@ export default function Periods() {
           <Button onClick={handleDelete} variant="contained" disabled={deleteLoading}
             sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
             {deleteLoading ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Unlock confirmation ─────────────────────────────────────────────── */}
+      <Dialog open={!!lockTarget} onClose={() => { if (!lockSaving) setLockTarget(null); }} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Unlock this period?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+            <strong>{lockTarget?.period_name}</strong> is <strong>{STATUS_META[lockTarget?.status]?.label || lockTarget?.status}</strong>.
+            Unlocking reopens it for Wrike syncing and re-verification.
+          </Typography>
+          <Typography sx={{ color: '#f59e0b', fontSize: '0.8rem', mt: 1.5 }}>
+            If payslips were already generated for this period, changing hours now will
+            leave them out of step with the figures employees may already have received.
+            Regenerate any affected payslips afterwards.
+          </Typography>
+          <Typography sx={{ color: 'text.disabled', fontSize: '0.75rem', mt: 1.5 }}>
+            The period keeps its current status; only the lock is lifted, and it records
+            that you unlocked it. You can re-lock it at any time.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setLockTarget(null)} disabled={lockSaving}
+            sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
+          <Button onClick={() => applyLock(lockTarget, true)} variant="contained" disabled={lockSaving}
+            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' } }}>
+            {lockSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Unlock'}
           </Button>
         </DialogActions>
       </Dialog>

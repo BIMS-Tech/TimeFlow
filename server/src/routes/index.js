@@ -147,6 +147,13 @@ router.put('/timesheet/periods/:id', requirePayrollOrAbove, requirePage('periods
 router.delete('/timesheet/periods/:id', requirePayrollOrAbove, requirePage('periods'), timesheetController.deletePeriod.bind(timesheetController));
 
 /**
+ * @route POST /api/timesheet/periods/:id/unlock | /lock
+ * @desc  Super admin lifts or restores the lock on a processed period.
+ */
+router.post('/timesheet/periods/:id/unlock', requireSuperAdmin, requirePage('periods'), timesheetController.unlockPeriod.bind(timesheetController));
+router.post('/timesheet/periods/:id/lock',   requireSuperAdmin, requirePage('periods'), timesheetController.lockPeriod.bind(timesheetController));
+
+/**
  * @route GET /api/timesheet/periods/:id/summaries
  * @desc Get summaries for a period
  */

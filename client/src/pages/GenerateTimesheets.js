@@ -205,7 +205,7 @@ export default function GenerateTimesheets() {
   const withHours      = data.filter(r => r.actual_hours > 0).length;
   const totalMinutes   = data.reduce((s, r) => s + rowMinutes(r), 0);
   const allVerified    = withHours > 0 && verifiedCount === withHours;
-  const periodLocked   = selectedPeriod?.status !== 'open';
+  const periodLocked   = selectedPeriod?.status !== 'open' && !selectedPeriod?.unlocked_at;
 
   const tabColor = TYPE_TABS.find(t => t.value === tab)?.color || '#6366f1';
 

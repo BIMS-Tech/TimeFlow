@@ -205,6 +205,10 @@ async function runMigrations() {
     // Bank upload tracking per period
     `ALTER TABLE pay_periods ADD COLUMN bank_uploaded_at DATETIME NULL DEFAULT NULL`,
     `ALTER TABLE pay_periods ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`,
+    // Super-admin unlock override. The period keeps its real workflow status;
+    // while unlocked_at is set, the UI treats it as editable again.
+    `ALTER TABLE pay_periods ADD COLUMN unlocked_at DATETIME NULL DEFAULT NULL`,
+    `ALTER TABLE pay_periods ADD COLUMN unlocked_by INT NULL DEFAULT NULL`,
     `ALTER TABLE pay_periods ADD COLUMN local_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
     `ALTER TABLE pay_periods ADD COLUMN foreign_bank_downloaded_at DATETIME NULL DEFAULT NULL`,
 

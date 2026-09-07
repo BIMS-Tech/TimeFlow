@@ -19,7 +19,10 @@ class PayPeriod {
    */
   static async findById(id) {
     return db.getOne(
-      'SELECT * FROM pay_periods WHERE id = ?',
+      `SELECT p.*, u.username AS unlocked_by_name
+       FROM pay_periods p
+       LEFT JOIN users u ON p.unlocked_by = u.id
+       WHERE p.id = ?`,
       [id]
     );
   }
@@ -30,7 +33,11 @@ class PayPeriod {
   static async findAll(limit = 20, offset = 0, type = null) {
     const where = type ? 'WHERE period_type = ?' : '';
     const params = type ? [type, limit, offset] : [limit, offset];
-    const sql = `SELECT * FROM pay_periods ${where} ORDER BY start_date DESC LIMIT ? OFFSET ?`;
+    const sql = `SELECT p.*, u.username AS unlocked_by_name
+                 FROM pay_periods p
+                 LEFT JOIN users u ON p.unlocked_by = u.id
+                 ${where.replace('WHERE', 'WHERE p.')}
+                 ORDER BY p.start_date DESC LIMIT ? OFFSET ?`;
     return db.query(sql, params);
   }
 
@@ -175,6 +182,20 @@ class PayPeriod {
   /**
    * Update a period
    */
+  /**
+   * Set or clear the super-admin unlock override.
+   * Pass a user id to unlock, or null to re-lock. The workflow `status` is
+   * deliberately left untouched, so a period keeps showing Pending Approval
+   * while it is temporarily editable.
+   */
+  static async setUnlocked(id, userId) {
+    await db.update('pay_periods', {
+      unlocked_at: userId ? new Date() : null,
+      unlocked_by: userId || null,
+    }, 'id = ?', [id]);
+    return this.findById(id);
+  }
+
   static async update(id, data) {
     const fields = {};
     if (data.period_name !== undefined) fields.period_name = data.period_name;

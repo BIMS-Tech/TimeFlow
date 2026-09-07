@@ -722,9 +722,55 @@ class TimesheetController {
   async updatePeriod(req, res) {
     try {
       const { period_name, start_date, end_date, status, period_type } = req.body;
-      const period = await PayPeriod.update(req.params.id, { period_name, start_date, end_date, status, period_type });
+      // `status` drives the lock that protects generated payslips, so only a
+      // super admin may change it here. For everyone else it is ignored rather
+      // than rejected, so the existing edit form keeps working unchanged.
+      const canSetStatus = req.user?.role === 'super_admin';
+      const period = await PayPeriod.update(req.params.id, {
+        period_name, start_date, end_date, period_type,
+        ...(canSetStatus ? { status } : {}),
+      });
       if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
       res.json({ success: true, data: period });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Temporarily reopen a processed period for editing.
+   * POST /api/timesheet/periods/:id/unlock  (super admin only)
+   *
+   * The period keeps its workflow status; only the lock is lifted. Editing a
+   * period that already has payslips can put the stored hours out of step with
+   * PDFs that may already have been released, which is why this is deliberate,
+   * attributable and reversible.
+   */
+  async unlockPeriod(req, res) {
+    try {
+      const period = await PayPeriod.findById(req.params.id);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+      if (period.status === 'open') {
+        return res.status(400).json({ success: false, error: 'This period is already open — nothing to unlock' });
+      }
+      const updated = await PayPeriod.setUnlocked(req.params.id, req.user.id);
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Re-lock a period that was unlocked. Clears the override; the workflow
+   * status was never changed, so there is nothing to restore.
+   * POST /api/timesheet/periods/:id/lock  (super admin only)
+   */
+  async lockPeriod(req, res) {
+    try {
+      const period = await PayPeriod.findById(req.params.id);
+      if (!period) return res.status(404).json({ success: false, error: 'Period not found' });
+      const updated = await PayPeriod.setUnlocked(req.params.id, null);
+      res.json({ success: true, data: updated });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
