@@ -201,7 +201,12 @@ export const payslipsAPI = {
       ? periodName.replace(/[()[\]]/g, '').trim().replace(/[^a-zA-Z0-9-]+/g, '_').replace(/_+$/g, '')
       : periodId;
     const typeLabel = type === 'foreign' ? 'Intl' : 'LCL';
-    const filename = `BT_${typeLabel}_${safeName}.xlsx`;
+    // The extension is not cosmetic — MBOS rejects the ISO 20022 EFT batch unless
+    // it is a *.xls (Excel 97-2003) workbook, so follow whatever the server built.
+    const serverName = res.headers.get('Content-Disposition') || '';
+    const ext = (serverName.match(/filename="?[^"]*\.([A-Za-z0-9]+)"?/) || [])[1]
+      || (type === 'foreign' ? 'xls' : 'xlsx');
+    const filename = `BT_${typeLabel}_${safeName}.${ext.toLowerCase()}`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

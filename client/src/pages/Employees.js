@@ -25,6 +25,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { employeesAPI, wrikeAPI } from '../api';
 import { getMissingBankFields } from '../utils/employeeProfile';
+import { REMITTANCE_OPTIONS, purposeOptionsFor, MBOS_CURRENCIES } from '../utils/bankFormats';
 import { useAuth } from '../context/AuthContext';
 
 const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
@@ -60,6 +61,8 @@ const EMPTY_FORM = {
   bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '',
   // DFT international fields
   remittance_type: '', beneficiary_code: '', beneficiary_address: '', bank_address: '',
+  beneficiary_building_no: '', beneficiary_building_name: '', beneficiary_street: '',
+  beneficiary_city: '', beneficiary_postal_code: '',
   country_of_destination: '', purpose_nature: '',
   intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
   payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '',
@@ -75,6 +78,8 @@ const TEMPLATE_COLS = [
   'bank_name','bank_account_number','bank_account_name','bank_branch','bank_swift_code',
   'wrike_user_id',
   'remittance_type','beneficiary_code','beneficiary_address','bank_address',
+  'beneficiary_building_no','beneficiary_building_name','beneficiary_street',
+  'beneficiary_city','beneficiary_postal_code',
   'country_of_destination','purpose_nature',
   'intermediary_bank_name','intermediary_bank_address','intermediary_bank_swift',
   'payee_zip_code','payee_foreign_address','payee_foreign_zip_code','tax_code',
@@ -197,6 +202,11 @@ export default function Employees() {
       bank_swift_code: emp.bank_swift_code || '',
       remittance_type: emp.remittance_type || '', beneficiary_code: emp.beneficiary_code || '',
       beneficiary_address: emp.beneficiary_address || '', bank_address: emp.bank_address || '',
+      beneficiary_building_no: emp.beneficiary_building_no || '',
+      beneficiary_building_name: emp.beneficiary_building_name || '',
+      beneficiary_street: emp.beneficiary_street || '',
+      beneficiary_city: emp.beneficiary_city || '',
+      beneficiary_postal_code: emp.beneficiary_postal_code || '',
       country_of_destination: emp.country_of_destination || '', purpose_nature: emp.purpose_nature || '',
       intermediary_bank_name: emp.intermediary_bank_name || '',
       intermediary_bank_address: emp.intermediary_bank_address || '',
@@ -532,8 +542,10 @@ export default function Employees() {
               <FormControl fullWidth size="small">
                 <InputLabel>Currency</InputLabel>
                 <Select label="Currency" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} sx={{ borderRadius: '10px' }}>
-                  <MenuItem value="PHP">PHP ₱</MenuItem>
-                  <MenuItem value="USD">USD $</MenuItem>
+                  {MBOS_CURRENCIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                  {form.currency && !MBOS_CURRENCIES.some(c => c.value === form.currency) && (
+                    <MenuItem value={form.currency}>{form.currency}</MenuItem>
+                  )}
                 </Select>
               </FormControl>
             </Grid>
@@ -711,12 +723,52 @@ export default function Employees() {
                 <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
                   <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>DFT Transfer Details</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}><TextField fullWidth label="Remittance Type" value={form.remittance_type} onChange={e => setForm(f => ({ ...f, remittance_type: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel shrink>Remittance Type</InputLabel>
+                        <Select label="Remittance Type" displayEmpty notched value={form.remittance_type}
+                          onChange={e => setForm(f => ({ ...f, remittance_type: e.target.value }))} sx={{ borderRadius: '10px' }}>
+                          <MenuItem value=""><em>Foreign Transfer (default)</em></MenuItem>
+                          {REMITTANCE_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          {form.remittance_type && !REMITTANCE_OPTIONS.some(o => o.value === form.remittance_type) && (
+                            <MenuItem value={form.remittance_type}>{form.remittance_type}</MenuItem>
+                          )}
+                        </Select>
+                      </FormControl>
+                    </Grid>
                     <Grid item xs={4}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                     <Grid item xs={4}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" helperText="Used for domestic remittance types (RTGS, PDDTS, PESONet, GSRT)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                     <Grid item xs={6}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={12}><TextField fullWidth label="Purpose / Nature of Transfer" value={form.purpose_nature} onChange={e => setForm(f => ({ ...f, purpose_nature: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel shrink>Purpose / Nature of Transfer</InputLabel>
+                        <Select label="Purpose / Nature of Transfer" displayEmpty notched value={form.purpose_nature}
+                          onChange={e => setForm(f => ({ ...f, purpose_nature: e.target.value }))} sx={{ borderRadius: '10px' }}>
+                          <MenuItem value=""><em>SALA — Salary (default)</em></MenuItem>
+                          {purposeOptionsFor(form.currency).map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          {form.purpose_nature && !purposeOptionsFor(form.currency).some(o => o.value === form.purpose_nature) && (
+                            <MenuItem value={form.purpose_nature}>{form.purpose_nature}</MenuItem>
+                          )}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Beneficiary Address Parts</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mb: 1.5 }}>
+                    Metrobank requires the address split into these fields for Foreign Transfer uploads.
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={3}><TextField fullWidth label="Building No." value={form.beneficiary_building_no} onChange={e => setForm(f => ({ ...f, beneficiary_building_no: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={4}><TextField fullWidth label="Building Name" value={form.beneficiary_building_name} onChange={e => setForm(f => ({ ...f, beneficiary_building_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={5}><TextField fullWidth label="Street Name" value={form.beneficiary_street} onChange={e => setForm(f => ({ ...f, beneficiary_street: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Town / City" value={form.beneficiary_city} onChange={e => setForm(f => ({ ...f, beneficiary_city: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Postal Code" value={form.beneficiary_postal_code} onChange={e => setForm(f => ({ ...f, beneficiary_postal_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   </Grid>
                 </Box>
               </Grid>

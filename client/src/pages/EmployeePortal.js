@@ -303,6 +303,8 @@ function ProfileSection({ employee, onUpdated }) {
     first_name: '', last_name: '', middle_name: '', employee_address: '',
     bank_name: '', bank_account_number: '', bank_account_name: '', bank_branch: '', bank_swift_code: '', bank_address: '',
     remittance_type: '', beneficiary_code: '', beneficiary_address: '',
+    beneficiary_building_no: '', beneficiary_building_name: '', beneficiary_street: '',
+    beneficiary_city: '', beneficiary_postal_code: '',
     country_of_destination: '', purpose_nature: '',
     intermediary_bank_name: '', intermediary_bank_address: '', intermediary_bank_swift: '',
     payee_tin: '', payee_zip_code: '', payee_foreign_address: '', payee_foreign_zip_code: '', tax_code: '',
@@ -432,6 +434,11 @@ function ProfileSection({ employee, onUpdated }) {
               <R label="Remittance Type"       value={form.remittance_type} />
               <R label="Beneficiary Code"      value={form.beneficiary_code} />
               <R label="Beneficiary Address"   value={form.beneficiary_address}   xs={12} sm={12} />
+              <R label="Building No."          value={form.beneficiary_building_no} />
+              <R label="Building Name"         value={form.beneficiary_building_name} />
+              <R label="Street Name"           value={form.beneficiary_street}     xs={12} sm={12} />
+              <R label="Town / City"           value={form.beneficiary_city} />
+              <R label="Postal Code"           value={form.beneficiary_postal_code} />
               <R label="Country of Destination" value={form.country_of_destination} />
               <R label="Purpose / Nature"      value={form.purpose_nature} />
               <R label="Payee TIN"             value={form.payee_tin} />

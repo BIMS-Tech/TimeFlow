@@ -391,6 +391,11 @@ export default function GenerateBankUpload() {
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2 }}>
+            {dlType === 'foreign'
+              ? 'ISO 20022 EFT format (.xls) — upload in MBOS under Electronic Fund Transfer › Domestic or Foreign Transfer.'
+              : 'Standard TAMA format (.xlsx) — upload in MBOS under Transfer to Another Metrobank Account.'}
+          </Typography>
           {(() => {
             const incompleteCount = dlPeriodEmployees.filter(e => getMissingBankFields(e).length > 0).length;
             return incompleteCount > 0 ? (

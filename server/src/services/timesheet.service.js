@@ -12,19 +12,8 @@ const cache = require('./cache.service');
 const { TTL } = require('./cache.service');
 const { hoursToMinutes, minutesToHours, roundMoney, payForMinutes } = require('../utils/time');
 const { toDateStr } = require('../utils/date');
-const XLSX = require('xlsx');
+const bankFile = require('./bank-file.service');
 require('dotenv').config();
-
-function toLocalDateStr(val) {
-  if (!val) return '';
-  if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  return String(val).substring(0, 10);
-}
 
 // Simple concurrency limiter — max N PDF jobs running simultaneously
 function createLimiter(concurrency) {
@@ -940,8 +929,9 @@ class TimesheetService {
   }
 
   /**
-   * Generate bank transfer file content for a period.
-   * type = 'local' (CSV) | 'foreign' (SWIFT text)
+   * Generate a Metrobank (MBOS) upload file for a period.
+   * type = 'local'   → Standard TAMA XLS  (Transfer to Another Metrobank Account, *.xlsx)
+   * type = 'foreign' → ISO 20022 EFT XLS  (Domestic or Foreign Transfer, Excel 97-2003 *.xls)
    */
   async generateBankFile(periodId, type = 'local', employeeIds = null) {
     const period = await PayPeriod.findById(periodId);
@@ -950,125 +940,45 @@ class TimesheetService {
     const payslips = await Payslip.findByPeriod(periodId);
     if (!payslips.length) throw new Error('No payslips found for this period. Generate payslips first.');
 
-    const targetCategory = type === 'foreign' ? 'foreign' : 'local';
-    const LOCAL_REQUIRED = ['first_name', 'last_name', 'bank_account_number'];
-    const FOREIGN_REQUIRED = ['first_name', 'last_name', 'bank_account_number', 'bank_name', 'bank_swift_code', 'beneficiary_address', 'country_of_destination', 'purpose_nature', 'remittance_type'];
-    const requiredFields = type === 'foreign' ? FOREIGN_REQUIRED : LOCAL_REQUIRED;
+    const isForeignFile = type === 'foreign';
+    const targetCategory = isForeignFile ? 'foreign' : 'local';
 
-    const rows = [];
+    const entries = [];
     const skipped = [];
     for (const p of payslips) {
       const emp = await Employee.findById(p.employee_id);
       if (!emp) continue;
       if (emp.hire_category !== targetCategory) continue;
       if (employeeIds && employeeIds.length && !employeeIds.includes(emp.id)) continue;
-      const missing = requiredFields.filter(f => !emp[f]);
+
+      const missing = isForeignFile
+        ? bankFile.missingIsoFields(emp, bankFile.resolveRemittanceType(emp), p.net_amount)
+        : bankFile.missingTamaFields(emp);
       if (missing.length > 0) {
         skipped.push({ name: emp.name, missing });
         continue;
       }
-      rows.push({ payslip: p, emp });
+
+      entries.push({
+        emp,
+        netAmount: p.net_amount,
+        reference: p.payslip_number,
+        remarks: `Payroll ${period.period_name}`,
+      });
     }
 
-    if (!rows.length) {
+    if (!entries.length) {
       const skipDetail = skipped.length ? ` (${skipped.length} skipped due to incomplete profiles)` : '';
       throw new Error(`No ${targetCategory} employees with complete profiles and payslips found for this period${skipDetail}.`);
     }
 
-    if (type === 'foreign') {
-      const transactionDate = toLocalDateStr(new Date());
-      const sourceAccount = process.env.BANK_SOURCE_ACCOUNT || '';
-      const payorName = process.env.PAYOR_NAME || '';
-      const payorTin = process.env.PAYOR_TIN || '';
-      const payorAddress = process.env.PAYOR_ADDRESS || '';
-      const payorZip = process.env.PAYOR_ZIP_CODE || '';
+    const file = isForeignFile ? bankFile.buildIsoFile(entries) : bankFile.buildTamaFile(entries);
+    const safePeriodName = period.period_name.replace(/[^a-zA-Z0-9-]/g, '_');
 
-      const sheetData = [
-        [
-          'Row Type', 'Remittance Type', 'Currency', 'Amount', 'Source Account',
-          'Account Number', 'Beneficiary Code', 'Account Name',
-          'First Name', 'Middle Name', 'Last Name', 'Beneficiary Address',
-          'Bank Name', 'Bank Address', 'SWIFT Code', 'Reference',
-          'Purpose/Nature', 'Country of Destination',
-          'Intermediary Bank', 'Intermediary Bank Address', 'Intermediary SWIFT',
-          'Tax Period Start', 'Tax Period End', 'Payee TIN',
-          'Payee ZIP', 'Payee Foreign Address', 'Payee Foreign ZIP',
-          'Payor Name', 'Payor TIN', 'Payor Address', 'Payor ZIP',
-          'Tax Code', 'Gross Amount', 'Tax Deductions',
-        ],
-      ];
-      rows.forEach(({ payslip: p, emp }) => {
-        sheetData.push([
-          'D',
-          emp.remittance_type || '',
-          emp.currency || '',
-          Number(p.net_amount).toFixed(2),
-          sourceAccount,
-          emp.bank_account_number || '',
-          emp.beneficiary_code || emp.employee_id || '',
-          emp.bank_account_name || emp.name || '',
-          emp.first_name || '',
-          emp.middle_name || '',
-          emp.last_name || '',
-          emp.beneficiary_address || '',
-          emp.bank_name || '',
-          emp.bank_address || '',
-          emp.bank_swift_code || '',
-          `DFT ${transactionDate}`,
-          emp.purpose_nature || '',
-          emp.country_of_destination || '',
-          emp.intermediary_bank_name || '',
-          emp.intermediary_bank_address || '',
-          emp.intermediary_bank_swift || '',
-          toLocalDateStr(period.start_date),
-          toLocalDateStr(period.end_date),
-          emp.payee_tin || '',
-          emp.payee_zip_code || '',
-          emp.payee_foreign_address || '',
-          emp.payee_foreign_zip_code || '',
-          payorName,
-          payorTin,
-          payorAddress,
-          payorZip,
-          emp.tax_code || '',
-          Number(p.gross_amount || 0).toFixed(2),
-          Number(p.tax_deductions || 0).toFixed(2),
-        ]);
-      });
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      XLSX.utils.book_append_sheet(wb, ws, 'Foreign Transfer');
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      return {
-        content: buffer,
-        filename: `BankTransfer_Foreign_${period.period_name.replace(/[^a-zA-Z0-9-]/g, '_')}.xlsx`,
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        skipped,
-      };
-    }
-
-    // ── XCS format for local bank transfers ───────────────────────────────────
-    const sheetData = [
-      ['Last Name', 'First Name', 'Middle Name', 'Employee Account Number', 'Amount'],
-    ];
-    rows.forEach(({ payslip: p, emp }) => {
-      sheetData.push([
-        emp.last_name || '',
-        emp.first_name || '',
-        emp.middle_name || '',
-        emp.bank_account_number || '',
-        Number(p.net_amount || 0).toFixed(2),
-      ]);
-    });
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Local Transfer');
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return {
-      content: buffer,
-      filename: `BankTransfer_Local_${period.period_name.replace(/[^a-zA-Z0-9-]/g, '_')}.xlsx`,
-      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      content: file.content,
+      filename: `BankTransfer_${isForeignFile ? 'Foreign' : 'Local'}_${safePeriodName}.${file.extension}`,
+      contentType: file.contentType,
       skipped,
     };
   }

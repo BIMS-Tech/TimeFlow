@@ -919,10 +919,10 @@ class TimesheetController {
       const result = await timesheetService.generateBankFile(parseInt(periodId), type || 'local', empIds);
       res.setHeader('Content-Type', result.contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-Skipped-Count, X-Skipped-Names');
       if (result.skipped?.length) {
         res.setHeader('X-Skipped-Count', result.skipped.length);
         res.setHeader('X-Skipped-Names', result.skipped.map(s => s.name).join(', '));
-        res.setHeader('Access-Control-Expose-Headers', 'X-Skipped-Count, X-Skipped-Names');
       }
       res.send(result.content);
     } catch (error) {

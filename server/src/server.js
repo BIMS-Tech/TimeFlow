@@ -22,7 +22,9 @@ app.use(helmet());
 // CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  // Downloads need the filename (and its extension) to survive the cross-origin hop
+  exposedHeaders: ['Content-Disposition', 'X-Skipped-Count', 'X-Skipped-Names']
 }));
 
 // Body parsing
@@ -108,6 +110,12 @@ async function runMigrations() {
     `ALTER TABLE employees ADD COLUMN remittance_type VARCHAR(50) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN beneficiary_code VARCHAR(50) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN beneficiary_address TEXT DEFAULT NULL`,
+    // Beneficiary address parts — mandatory columns U-Y of the ISO 20022 EFT file
+    `ALTER TABLE employees ADD COLUMN beneficiary_building_no VARCHAR(16) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_building_name VARCHAR(35) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_street VARCHAR(70) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_city VARCHAR(35) DEFAULT NULL`,
+    `ALTER TABLE employees ADD COLUMN beneficiary_postal_code VARCHAR(16) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN bank_address VARCHAR(255) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN country_of_destination VARCHAR(100) DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN purpose_nature VARCHAR(255) DEFAULT NULL`,

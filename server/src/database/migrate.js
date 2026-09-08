@@ -94,6 +94,17 @@ async function applyMigrations() {
               ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`
       },
       {
+        name: 'add_iso20022_beneficiary_address_parts_to_employees',
+        check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'beneficiary_building_no'`,
+        sql: `ALTER TABLE employees
+              ADD COLUMN beneficiary_building_no VARCHAR(16) DEFAULT NULL AFTER beneficiary_address,
+              ADD COLUMN beneficiary_building_name VARCHAR(35) DEFAULT NULL AFTER beneficiary_building_no,
+              ADD COLUMN beneficiary_street VARCHAR(70) DEFAULT NULL AFTER beneficiary_building_name,
+              ADD COLUMN beneficiary_city VARCHAR(35) DEFAULT NULL AFTER beneficiary_street,
+              ADD COLUMN beneficiary_postal_code VARCHAR(16) DEFAULT NULL AFTER beneficiary_city`
+      },
+      {
         name: 'add_dft_fields_country_purpose_to_employees',
         check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'country_of_destination'`,

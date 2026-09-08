@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS employees (
     remittance_type VARCHAR(50) DEFAULT NULL,
     beneficiary_code VARCHAR(50) DEFAULT NULL,
     beneficiary_address TEXT DEFAULT NULL,
+    -- Beneficiary address parts (mandatory for ISO 20022 Foreign Transfer, cols U-Y)
+    beneficiary_building_no VARCHAR(16) DEFAULT NULL,
+    beneficiary_building_name VARCHAR(35) DEFAULT NULL,
+    beneficiary_street VARCHAR(70) DEFAULT NULL,
+    beneficiary_city VARCHAR(35) DEFAULT NULL,
+    beneficiary_postal_code VARCHAR(16) DEFAULT NULL,
     bank_address VARCHAR(255) DEFAULT NULL,
     country_of_destination VARCHAR(100) DEFAULT NULL,
     purpose_nature VARCHAR(255) DEFAULT NULL,
