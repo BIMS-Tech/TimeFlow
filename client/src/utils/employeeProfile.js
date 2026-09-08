@@ -1,3 +1,5 @@
+import { isMetrobankAccount } from './bankFormats';
+
 const LOCAL_REQUIRED = [
   { key: 'first_name', label: 'First Name' },
   { key: 'last_name', label: 'Last Name' },
@@ -34,11 +36,14 @@ function isDomesticRail(emp) {
 }
 
 export function getMissingBankFields(emp) {
-  let required = LOCAL_REQUIRED;
   if (emp.hire_category === 'foreign') {
-    required = isDomesticRail(emp) ? FOREIGN_DOMESTIC_RAIL_REQUIRED : FOREIGN_REQUIRED;
+    const required = isDomesticRail(emp) ? FOREIGN_DOMESTIC_RAIL_REQUIRED : FOREIGN_REQUIRED;
+    return required.filter(f => !emp[f.key]).map(f => f.label);
   }
-  return required.filter(f => !emp[f.key]).map(f => f.label);
+  const missing = LOCAL_REQUIRED.filter(f => !emp[f.key]).map(f => f.label);
+  // The local file is TAMA, which only reaches Metrobank accounts.
+  if (!isMetrobankAccount(emp.bank_name)) missing.push(`Metrobank account (has ${String(emp.bank_name).trim()})`);
+  return missing;
 }
 
 export function isBankProfileComplete(emp) {

@@ -199,12 +199,26 @@ function missingIsoFields(emp, remittanceType, netAmount = null) {
   return missing;
 }
 
+/**
+ * TAMA credits an account held at Metrobank — nothing else. A blank bank name is
+ * treated as Metrobank (that is how local employees have always been recorded);
+ * a name that clearly belongs to another bank is not.
+ */
+function isMetrobankAccount(bankName) {
+  const name = String(bankName ?? '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!name) return true;
+  return name.includes('METROBANK') || name.includes('METROPOLITANBANK') || name.includes('MBTC');
+}
+
 /** Employee fields the TAMA row needs. */
 function missingTamaFields(emp) {
   const missing = [];
   if (!String(emp.first_name ?? '').trim()) missing.push('First Name');
   if (!String(emp.last_name ?? '').trim()) missing.push('Last Name');
   if (!accountNumber(emp.bank_account_number)) missing.push('Bank Account Number');
+  if (!isMetrobankAccount(emp.bank_name)) {
+    missing.push(`Metrobank account (TAMA cannot credit ${String(emp.bank_name).trim()})`);
+  }
   return missing;
 }
 
@@ -357,6 +371,7 @@ module.exports = {
   accountNumber,
   resolveRemittanceType,
   resolvePurposeCode,
+  isMetrobankAccount,
   missingIsoFields,
   missingTamaFields,
   buildIsoFile,

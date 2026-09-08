@@ -212,6 +212,12 @@ export const payslipsAPI = {
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+    // The server excludes employees it cannot build a valid row for — report them.
+    return {
+      filename,
+      skippedCount: parseInt(res.headers.get('X-Skipped-Count') || '0', 10),
+      skippedNames: res.headers.get('X-Skipped-Names') || '',
+    };
   },
 };
 

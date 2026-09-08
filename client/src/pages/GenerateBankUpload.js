@@ -105,7 +105,7 @@ export default function GenerateBankUpload() {
     if (!selectedPeriod) return;
     setDlLoading(true);
     try {
-      await payslipsAPI.downloadBankFile(selectedPeriod.id, dlType, dlSelectAll ? null : dlEmpIds, selectedPeriod.period_name);
+      const dl = await payslipsAPI.downloadBankFile(selectedPeriod.id, dlType, dlSelectAll ? null : dlEmpIds, selectedPeriod.period_name);
       // Record the download against this period
       const updated = await timesheetAPI.markBankDownloaded(selectedPeriod.id, dlType);
       if (updated?.success) {
@@ -114,6 +114,10 @@ export default function GenerateBankUpload() {
       }
       setDlOpen(false);
       toast.success(`${dlType === 'foreign' ? 'Foreign' : 'Local'} bank file downloaded for ${selectedPeriod.period_name}`);
+      if (dl?.skippedCount) {
+        toast(`${dl.skippedCount} employee${dl.skippedCount > 1 ? 's were' : ' was'} left out of the file: ${dl.skippedNames}`,
+          { icon: '⚠️', duration: 8000 });
+      }
     } catch (e) { toast.error(e.message || 'Download failed'); }
     finally { setDlLoading(false); }
   };

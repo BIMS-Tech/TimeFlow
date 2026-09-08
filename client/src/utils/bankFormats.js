@@ -63,3 +63,13 @@ export const MBOS_CURRENCIES = [
   { value: 'SGD', label: 'SGD $' },
   { value: 'CNY', label: 'CNY ¥' },
 ];
+
+/**
+ * TAMA only credits accounts held at Metrobank. Mirrors isMetrobankAccount() in
+ * server/src/services/bank-file.service.js — a blank bank name counts as Metrobank.
+ */
+export function isMetrobankAccount(bankName) {
+  const name = String(bankName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!name) return true;
+  return name.includes('METROBANK') || name.includes('METROPOLITANBANK') || name.includes('MBTC');
+}
