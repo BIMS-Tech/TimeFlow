@@ -194,8 +194,11 @@ export const payslipsAPI = {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Download failed' }));
-      throw new Error(err.error || 'Download failed');
+      const err = await res.json().catch(() => ({ error: `Download failed (HTTP ${res.status})` }));
+      const e = new Error(err.error || 'Download failed');
+      e.code = err.code;
+      e.missing = err.missing;
+      throw e;
     }
     const safeName = periodName
       ? periodName.replace(/[()[\]]/g, '').trim().replace(/[^a-zA-Z0-9-]+/g, '_').replace(/_+$/g, '')

@@ -66,6 +66,7 @@ export default function GenerateBankUpload() {
   const [dlEmpIds, setDlEmpIds]           = useState([]);
   const [dlSelectAll, setDlSelectAll]     = useState(true);
   const [dlLoading, setDlLoading]         = useState(false);
+  const [dlError, setDlError]             = useState(null);
 
   const [markingUploaded, setMarkingUploaded] = useState(false);
 
@@ -99,11 +100,12 @@ export default function GenerateBankUpload() {
 
   const handleSelectPeriod = (p) => { setSelectedPeriod(p); fetchPayslips(p.id); };
 
-  const openDownload = (type) => { setDlType(type); setDlEmpIds([]); setDlSelectAll(true); setDlOpen(true); };
+  const openDownload = (type) => { setDlType(type); setDlEmpIds([]); setDlSelectAll(true); setDlError(null); setDlOpen(true); };
 
   const handleDownload = async () => {
     if (!selectedPeriod) return;
     setDlLoading(true);
+    setDlError(null);
     try {
       const dl = await payslipsAPI.downloadBankFile(selectedPeriod.id, dlType, dlSelectAll ? null : dlEmpIds, selectedPeriod.period_name);
       // Record the download against this period
@@ -118,7 +120,11 @@ export default function GenerateBankUpload() {
         toast(`${dl.skippedCount} employee${dl.skippedCount > 1 ? 's were' : ' was'} left out of the file: ${dl.skippedNames}`,
           { icon: '⚠️', duration: 8000 });
       }
-    } catch (e) { toast.error(e.message || 'Download failed'); }
+    } catch (e) {
+      // Keep the reason on screen — a toast disappears before anyone can act on it.
+      setDlError({ message: e.message || 'Download failed', missing: e.missing || null });
+      toast.error(e.message || 'Download failed');
+    }
     finally { setDlLoading(false); }
   };
 
@@ -395,6 +401,20 @@ export default function GenerateBankUpload() {
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
+          {dlError && (
+            <Box sx={{ display: 'flex', gap: 1, bgcolor: '#ef444410', border: '1px solid #ef444440', borderRadius: '10px', p: 1.5, mb: 2 }}>
+              <WarningAmberIcon sx={{ fontSize: 16, color: '#ef4444', mt: 0.2, flexShrink: 0 }} />
+              <Box>
+                <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>File not generated</Typography>
+                <Typography sx={{ fontSize: '0.8rem', color: '#b91c1c', mt: 0.25 }}>{dlError.message}</Typography>
+                {dlError.missing && (
+                  <Typography sx={{ fontSize: '0.75rem', color: '#b91c1c', mt: 0.5 }}>
+                    Ask an administrator to set {dlError.missing.join(', ')} on the server, then try again.
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          )}
           <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2 }}>
             {dlType === 'foreign'
               ? 'ISO 20022 EFT format (.xls) — upload in MBOS under Electronic Fund Transfer › Domestic or Foreign Transfer.'

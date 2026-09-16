@@ -926,7 +926,15 @@ class TimesheetController {
       }
       res.send(result.content);
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      // A missing setting or an empty batch is the caller's to fix, not a server fault.
+      const isClientFixable = error.code === 'BANK_CONFIG_MISSING'
+        || /^No (local|foreign) employees|^No payslips found|^Period not found/.test(error.message || '');
+      res.status(isClientFixable ? 400 : 500).json({
+        success: false,
+        error: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.missing ? { missing: error.missing } : {}),
+      });
     }
   }
 

@@ -151,6 +151,17 @@ function senderConfig() {
   };
 }
 
+/**
+ * A missing setting is an operator problem, not a server fault — tag it so the
+ * API answers 400 with the variable names instead of an opaque 500.
+ */
+function configError(missing) {
+  const err = new Error(`Bank file configuration incomplete — set ${missing.join(', ')} in the server environment.`);
+  err.code = 'BANK_CONFIG_MISSING';
+  err.missing = missing;
+  return err;
+}
+
 /** Config the ISO 20022 file cannot be built without. Returns a list of env var names. */
 function missingIsoConfig(cfg, needsForeignFields) {
   const missing = [];
@@ -334,9 +345,7 @@ function buildIsoFile(entries) {
   const cfg = senderConfig();
   const needsForeignFields = entries.some(e => resolveRemittanceType(e.emp) === FOREIGN);
   const missingConfig = missingIsoConfig(cfg, needsForeignFields);
-  if (missingConfig.length) {
-    throw new Error(`Bank file configuration incomplete — set ${missingConfig.join(', ')} in the server environment.`);
-  }
+  if (missingConfig.length) throw configError(missingConfig);
   const sheetData = [ISO_HEADERS, ...entries.map(e => buildIsoRow(e, cfg))];
   return {
     content: writeWorkbook(sheetData, 'Sheet 1', 'biff8', 1),
@@ -348,9 +357,7 @@ function buildIsoFile(entries) {
 /** TAMA file — matches the bank's *.xlsx template. */
 function buildTamaFile(entries) {
   const cfg = senderConfig();
-  if (!cfg.corporateCode) {
-    throw new Error('Bank file configuration incomplete — set BANK_CORPORATE_CODE in the server environment.');
-  }
+  if (!cfg.corporateCode) throw configError(['BANK_CORPORATE_CODE']);
   const sheetData = [TAMA_HEADERS, ...entries.map(e => buildTamaRow(e, cfg))];
   return {
     content: writeWorkbook(sheetData, 'Sheet1', 'xlsx', 6),
