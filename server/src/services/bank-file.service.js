@@ -137,10 +137,36 @@ function resolvePurposeCode(emp, currency) {
   return isCny ? DEFAULT_CNY_PURPOSE_CODE : DEFAULT_PURPOSE_CODE;
 }
 
+/**
+ * Parse BANK_SOURCE_ACCOUNTS ("PHP:0011234567890,USD:0029876543210") into
+ * { PHP: '0011234567890', USD: '0029876543210' }. Metrobank requires the sender
+ * account's currency to match the transfer currency, and column D is per row, so
+ * one file can draw on several accounts.
+ */
+function parseAccountMap(raw) {
+  const map = {};
+  for (const part of String(raw || '').split(',')) {
+    const idx = part.indexOf(':');
+    if (idx < 0) continue;
+    const currency = part.slice(0, idx).trim().toUpperCase();
+    const account  = accountNumber(part.slice(idx + 1), 13);
+    if (currency && account) map[currency] = account;
+  }
+  return map;
+}
+
+/** The sender account to debit for a given transfer currency. */
+function accountFor(cfg, currency) {
+  const code = String(currency || '').trim().toUpperCase();
+  return cfg.accounts[code] || cfg.account || '';
+}
+
 /** Sender/company details shared by every row, read from the environment. */
 function senderConfig() {
   const chargeTypeRaw = String(process.env.BANK_CHARGE_TYPE ?? '0').trim();
   return {
+    accounts:   parseAccountMap(process.env.BANK_SOURCE_ACCOUNTS),
+    // Single-account fallback, used for any currency not listed above.
     account:    accountNumber(process.env.BANK_SOURCE_ACCOUNT, 13),
     townCity:   sanitize(process.env.BANK_SENDER_CITY || process.env.PAYOR_CITY, 35),
     postalCode: sanitize(process.env.BANK_SENDER_POSTAL_CODE || process.env.PAYOR_ZIP_CODE, 16),
@@ -162,10 +188,22 @@ function configError(missing) {
   return err;
 }
 
-/** Config the ISO 20022 file cannot be built without. Returns a list of env var names. */
-function missingIsoConfig(cfg, needsForeignFields) {
+/**
+ * Config the ISO 20022 file cannot be built without. Returns a list of env var
+ * names. Every currency in the batch needs a sender account of that currency —
+ * the bank rejects the transfer otherwise, however correct the rest of the row.
+ */
+function missingIsoConfig(cfg, entries, needsForeignFields) {
   const missing = [];
-  if (!cfg.account) missing.push('BANK_SOURCE_ACCOUNT');
+  const currencies = new Set(
+    entries.map(e => String(e.emp.currency || '').trim().toUpperCase()).filter(Boolean)
+  );
+  for (const currency of [...currencies].sort()) {
+    if (!accountFor(cfg, currency)) {
+      missing.push(`BANK_SOURCE_ACCOUNTS (no ${currency} account configured)`);
+    }
+  }
+  if (!currencies.size && !cfg.account) missing.push('BANK_SOURCE_ACCOUNT');
   if (needsForeignFields) {
     if (!cfg.townCity)   missing.push('BANK_SENDER_CITY');
     if (!cfg.country)    missing.push('BANK_SENDER_COUNTRY');
@@ -254,7 +292,7 @@ function buildIsoRow({ emp, netAmount, reference, remarks }, cfg) {
   set(0, remittanceType);
   set(1, amount(netAmount));
   set(2, currency);
-  set(3, cfg.account);
+  set(3, accountFor(cfg, currency));
   set(7, accountNumber(emp.bank_account_number, 34));
   set(12, cfg.country);
   set(15, 0);                                     // Beneficiary Customer Type: 0 = Individual
@@ -344,7 +382,7 @@ function writeWorkbook(sheetData, sheetName, bookType, amountColumn) {
 function buildIsoFile(entries) {
   const cfg = senderConfig();
   const needsForeignFields = entries.some(e => resolveRemittanceType(e.emp) === FOREIGN);
-  const missingConfig = missingIsoConfig(cfg, needsForeignFields);
+  const missingConfig = missingIsoConfig(cfg, entries, needsForeignFields);
   if (missingConfig.length) throw configError(missingConfig);
   const sheetData = [ISO_HEADERS, ...entries.map(e => buildIsoRow(e, cfg))];
   return {
@@ -378,6 +416,7 @@ module.exports = {
   accountNumber,
   resolveRemittanceType,
   resolvePurposeCode,
+  accountFor,
   isMetrobankAccount,
   missingIsoFields,
   missingTamaFields,
