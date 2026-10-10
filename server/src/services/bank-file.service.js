@@ -96,9 +96,22 @@ function sanitize(value, maxLength = null, { email = false } = {}) {
   return out;
 }
 
-/** Amount as a number with 2 decimals — MBOS wants a dot separator and no thousands comma. */
+/** Amount rounded to centavos, as a number — for range checks, not for the file. */
 function amount(value) {
   return Math.round((parseFloat(value) || 0) * 100) / 100;
+}
+
+/**
+ * Amount as MBOS validates it: a STRING carrying exactly two decimals, a dot
+ * separator and no thousands comma ("5170.00", not 5170).
+ *
+ * A numeric cell cannot express this — 5170.00 and 5170 are the same double, and
+ * a display format like '0.00' only changes what Excel shows, not what a parser
+ * reads. MBOS reads this column as text and answers "Amount field has an invalid
+ * money format" for anything that is not <digits>.<2 digits>.
+ */
+function amountText(value) {
+  return amount(value).toFixed(2);
 }
 
 /** Account numbers: digits only, no spaces and no dashes. */
@@ -290,7 +303,7 @@ function buildIsoRow({ emp, netAmount, reference, remarks }, cfg) {
   };
 
   set(0, remittanceType);
-  set(1, amount(netAmount));
+  set(1, amountText(netAmount));
   set(2, currency);
   set(3, accountFor(cfg, currency));
   set(7, accountNumber(emp.bank_account_number, 34));
@@ -353,25 +366,16 @@ function buildTamaRow({ emp, netAmount, reference, remarks }, cfg) {
     sanitize(emp.first_name, 255),
     sanitize(emp.middle_name, 100) || null,
     accountNumber(emp.bank_account_number, 13),
-    amount(netAmount),
+    amountText(netAmount),
     sanitize(remarks, 255) || null,
     sanitize(emp.email, 255, { email: true }) || null,
   ];
 }
 
-/**
- * Serialize rows to a workbook buffer. bookType 'biff8' produces a real *.xls.
- * Amounts are numeric cells forced to two decimals so they never render as
- * "12345.6" or pick up a thousands separator.
- */
-function writeWorkbook(sheetData, sheetName, bookType, amountColumn) {
-  const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  for (let r = 1; r < sheetData.length; r++) {
-    const cell = ws[XLSX.utils.encode_cell({ r, c: amountColumn })];
-    if (cell && cell.t === 'n') cell.z = '0.00';
-  }
+/** Serialize rows to a workbook buffer. bookType 'biff8' produces a real *.xls. */
+function writeWorkbook(sheetData, sheetName, bookType) {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), sheetName);
   return XLSX.write(wb, { type: 'buffer', bookType });
 }
 
@@ -386,7 +390,7 @@ function buildIsoFile(entries) {
   if (missingConfig.length) throw configError(missingConfig);
   const sheetData = [ISO_HEADERS, ...entries.map(e => buildIsoRow(e, cfg))];
   return {
-    content: writeWorkbook(sheetData, 'Sheet 1', 'biff8', 1),
+    content: writeWorkbook(sheetData, 'Sheet 1', 'biff8'),
     extension: 'xls',
     contentType: 'application/vnd.ms-excel',
   };
@@ -398,7 +402,7 @@ function buildTamaFile(entries) {
   if (!cfg.corporateCode) throw configError(['BANK_CORPORATE_CODE']);
   const sheetData = [TAMA_HEADERS, ...entries.map(e => buildTamaRow(e, cfg))];
   return {
-    content: writeWorkbook(sheetData, 'Sheet1', 'xlsx', 6),
+    content: writeWorkbook(sheetData, 'Sheet1', 'xlsx'),
     extension: 'xlsx',
     contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
@@ -413,6 +417,7 @@ module.exports = {
   SUPPORTED_CURRENCIES,
   sanitize,
   amount,
+  amountText,
   accountNumber,
   resolveRemittanceType,
   resolvePurposeCode,
