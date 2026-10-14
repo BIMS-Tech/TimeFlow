@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { resolvePermissions, redactAmounts, MONEY_KEYS } = require('../utils/permissions');
+const { resolvePermissions, redactAmounts, MONEY_KEYS, OVERTIME_CONTROL_KEYS } = require('../utils/permissions');
 
 async function authMiddleware(req, res, next) {
   try {
@@ -79,6 +79,20 @@ function stripMoneyFromBody(req, res, next) {
 }
 
 /**
+ * Drops the overtime pay controls from a write unless the caller is a super
+ * admin. Overtime is unpaid by default; turning it on is an owner decision, so
+ * the restriction holds even against a direct API call.
+ */
+function stripOvertimeControlsFromBody(req, res, next) {
+  if (req.user?.role !== 'super_admin' && req.body && typeof req.body === 'object') {
+    for (const key of Object.keys(req.body)) {
+      if (OVERTIME_CONTROL_KEYS.has(key)) delete req.body[key];
+    }
+  }
+  next();
+}
+
+/**
  * Strips every money-bearing key from JSON responses for users whose amounts
  * are hidden, so the restriction holds even against a direct API call.
  */
@@ -94,4 +108,5 @@ module.exports.requireRole = requireRole;
 module.exports.requirePage = requirePage;
 module.exports.denyIfAmountsHidden = denyIfAmountsHidden;
 module.exports.stripMoneyFromBody = stripMoneyFromBody;
+module.exports.stripOvertimeControlsFromBody = stripOvertimeControlsFromBody;
 module.exports.redactAmountsMiddleware = redactAmountsMiddleware;

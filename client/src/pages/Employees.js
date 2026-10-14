@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   Grid, MenuItem, Select, FormControl, InputLabel, FormHelperText, CircularProgress, Avatar,
-  Autocomplete,
+  Autocomplete, Switch, FormControlLabel,
 } from '@mui/material';
 import { loadBankCodes, searchSwift, searchLocal } from '../utils/bankCodes';
 import AddIcon from '@mui/icons-material/Add';
@@ -50,7 +50,7 @@ function deriveHireCategory(employeeType) {
 
 const EMPTY_FORM = {
   employee_id: '', name: '', email: '', department: '', position: '',
-  hourly_rate: 500, currency: 'PHP', employee_type: '', employment_type: 'full_time', hire_category: 'local',
+  hourly_rate: 500, overtime_pay_enabled: false, overtime_rate: '', currency: 'PHP', employee_type: '', employment_type: 'full_time', hire_category: 'local',
   wrike_user_id: '', hire_date: '',
   // Government IDs (PH)
   sss_number: '', philhealth_number: '', pagibig_number: '', payee_tin: '',
@@ -132,7 +132,8 @@ function parseCSVClient(text) {
 }
 
 export default function Employees() {
-  const { hideAmounts } = useAuth();
+  const { hideAmounts, user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -185,7 +186,10 @@ export default function Employees() {
     setForm(emp ? {
       employee_id: emp.employee_id, name: emp.name, email: emp.email,
       department: emp.department || '', position: emp.position || '',
-      hourly_rate: emp.hourly_rate, currency: emp.currency || 'PHP',
+      hourly_rate: emp.hourly_rate,
+      overtime_pay_enabled: Boolean(emp.overtime_pay_enabled),
+      overtime_rate: emp.overtime_rate ?? '',
+      currency: emp.currency || 'PHP',
       employee_type: emp.employee_type || '',
       employment_type: emp.employment_type || 'full_time',
       hire_category: emp.hire_category || 'local',
@@ -537,6 +541,38 @@ export default function Employees() {
             {/* Row 3: Rate · Currency · Employee Type */}
             {!hideAmounts && (
               <Grid item xs={3}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            )}
+            {isSuperAdmin && (
+              <Grid item xs={12}>
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Overtime Pay</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mb: 1.5 }}>
+                    Overtime is unpaid unless it is switched on here <strong>and</strong> an overtime rate is set.
+                    Overtime hours are still recorded and shown on the payslip either way.
+                  </Typography>
+                  <Grid container spacing={2} sx={{ alignItems: 'center' }}>
+                    <Grid item xs={5}>
+                      <FormControlLabel
+                        control={<Switch checked={Boolean(form.overtime_pay_enabled)} size="small"
+                          onChange={e => setForm(f => ({ ...f, overtime_pay_enabled: e.target.checked }))} />}
+                        label={<Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          {form.overtime_pay_enabled ? 'Overtime paid' : 'Overtime unpaid'}
+                        </Typography>}
+                      />
+                    </Grid>
+                    <Grid item xs={4}>
+                      <TextField fullWidth label="Overtime Hourly Rate" type="number" size="small"
+                        value={form.overtime_rate}
+                        onChange={e => setForm(f => ({ ...f, overtime_rate: e.target.value }))}
+                        disabled={!form.overtime_pay_enabled}
+                        helperText={form.overtime_pay_enabled && !(parseFloat(form.overtime_rate) > 0)
+                          ? 'Set a rate above 0, or overtime stays unpaid'
+                          : `Amount per overtime hour (${form.currency})`}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
             )}
             <Grid item xs={2}>
               <FormControl fullWidth size="small">

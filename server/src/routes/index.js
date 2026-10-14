@@ -8,7 +8,7 @@ const webhookController = require('../controllers/webhook.controller');
 const authController = require('../controllers/auth.controller');
 const wrikeController = require('../controllers/wrike.controller');
 const authMiddleware = require('../middleware/auth.middleware');
-const { requireRole, requirePage, denyIfAmountsHidden, stripMoneyFromBody, redactAmountsMiddleware } = require('../middleware/auth.middleware');
+const { requireRole, requirePage, denyIfAmountsHidden, stripMoneyFromBody, stripOvertimeControlsFromBody, redactAmountsMiddleware } = require('../middleware/auth.middleware');
 const portalController = require('../controllers/portal.controller');
 const verificationController = require('../controllers/verification.controller');
 const adminController = require('../controllers/admin.controller');
@@ -310,7 +310,7 @@ router.get('/employees', employeeController.getAll.bind(employeeController));
  * @desc Create new employee
  */
 router.post('/employees/bulk', requireHROrAbove, requirePage('employees'), csvUpload.single('file'), employeeController.bulkUpload.bind(employeeController));
-router.post('/employees', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, employeeController.create.bind(employeeController));
+router.post('/employees', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, stripOvertimeControlsFromBody, employeeController.create.bind(employeeController));
 
 /**
  * @route GET /api/employees/:id
@@ -322,7 +322,7 @@ router.get('/employees/:id', employeeController.getById.bind(employeeController)
  * @route PUT /api/employees/:id
  * @desc Update employee
  */
-router.put('/employees/:id', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, employeeController.update.bind(employeeController));
+router.put('/employees/:id', requireHROrAbove, requirePage('employees'), stripMoneyFromBody, stripOvertimeControlsFromBody, employeeController.update.bind(employeeController));
 
 /**
  * @route DELETE /api/employees/:id

@@ -768,15 +768,21 @@ export default function TimesheetGenerator() {
                   </Grid>
                   {showRates && preview.overtimeHours > 0 && (
                     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderTopColor: 'divider', display: 'flex', gap: 3 }}>
+                      {/* Overtime is unpaid unless an admin enabled it for this employee —
+                          show what the server actually computed, never a assumed multiplier. */}
                       {showHourlyRate && (
                         <Box>
                           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Rate</Typography>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate * 1.5, currency)}/hr</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                            {preview.overtimePaid ? `${fmt(preview.overtimeRate, currency)}/hr` : '—'}
+                          </Typography>
                         </Box>
                       )}
                       <Box>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Pay</Typography>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#f59e0b' }}>{fmt(preview.overtimeHours * preview.hourlyRate * 1.5, currency)}</Typography>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: preview.overtimePaid ? '#f59e0b' : 'text.disabled' }}>
+                          {preview.overtimePaid ? fmt(preview.overtimeAmount, currency) : 'Unpaid'}
+                        </Typography>
                       </Box>
                     </Box>
                   )}

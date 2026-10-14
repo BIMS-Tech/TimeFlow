@@ -120,7 +120,7 @@ function sanitizeOverride(input) {
  * absent — a user with amounts hidden still sees the time they are checking.
  */
 const MONEY_KEYS = new Set([
-  'hourly_rate', 'daily_rate', 'monthly_rate', 'rate',
+  'hourly_rate', 'daily_rate', 'monthly_rate', 'rate', 'overtime_rate',
   'gross_amount', 'net_amount', 'basic_pay', 'allowance', 'salary',
   'cash_advance', 'tax_deductions', 'other_deductions', 'deductions',
   'sss_ee', 'sss_er', 'sss_mpf',
@@ -143,8 +143,15 @@ function redactAmounts(value) {
   return value;
 }
 
+/**
+ * Switching overtime pay on, or setting its rate, is a super admin's call —
+ * HR maintaining an employee record must not be able to start paying overtime.
+ */
+const OVERTIME_CONTROL_KEYS = new Set(['overtime_pay_enabled', 'overtime_rate']);
+
 module.exports = {
   PAGES, PAGE_KEYS, FLAGS, FLAG_KEYS,
+  OVERTIME_CONTROL_KEYS,
   ROLE_PAGES, ROLE_FLAGS,
   resolvePermissions, sanitizeOverride,
   MONEY_KEYS, redactAmounts,

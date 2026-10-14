@@ -58,7 +58,12 @@ class PDFService {
         const regularMinutes  = summary.regular_minutes  != null ? parseInt(summary.regular_minutes, 10)  : hoursToMinutes(summary.regular_hours);
         const overtimeMinutes = summary.overtime_minutes != null ? parseInt(summary.overtime_minutes, 10) : hoursToMinutes(summary.overtime_hours);
         const grossAmount   = parseFloat(summary.gross_amount)   || 0;
-        const overtimeRate  = hourlyRate * 1.5;
+        // Overtime is unpaid unless a super admin enabled it for this employee, so
+        // derive what was ACTUALLY paid from the stored gross rather than assuming a
+        // multiplier. This also keeps legacy payslips honest about what they paid.
+        const regularPay    = payForMinutes(regularMinutes, hourlyRate);
+        const overtimePay   = Math.max(0, grossAmount - regularPay);
+        const overtimeRate  = overtimeMinutes > 0 ? overtimePay / (overtimeMinutes / 60) : 0;
         const money = (n) => `${cur} ${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
         // ── Helper: draw one page header ─────────────────────────────────────
@@ -166,8 +171,8 @@ class PDFService {
         const payTiles = [
           ['Hourly Rate',    money(hourlyRate)],
           overtimeMinutes > 0
-            ? ['Overtime Rate', money(overtimeRate)]
-            : ['Regular Pay',   money(payForMinutes(regularMinutes, hourlyRate))],
+            ? ['Overtime Rate', overtimePay > 0 ? money(overtimeRate) : 'Unpaid']
+            : ['Regular Pay',   money(regularPay)],
           ['Gross Amount',   money(grossAmount)],
         ];
         payTiles.forEach(([label, value], i) => {
@@ -292,10 +297,12 @@ class PDFService {
         const govtDed       = sssEE + sssMPF + philhealthEE + pagibigEE;
         const totalDed      = govtDed + birTax + cashAdvance;
         const netAmount     = parseFloat(summary.net_amount)      || Math.max(0, grossAmount - totalDed);
-        const overtimeRate  = hourlyRate * 1.5;
         // Pay computed from exact minutes, not from rounded hours
         const regularPay    = payForMinutes(regularMinutes,  hourlyRate);
-        const overtimePay   = payForMinutes(overtimeMinutes, hourlyRate, 1.5);
+        // Overtime is unpaid unless enabled per employee — derive what was actually
+        // paid from the stored gross instead of assuming a multiplier.
+        const overtimePay   = Math.max(0, grossAmount - regularPay);
+        const overtimeRate  = overtimeMinutes > 0 ? overtimePay / (overtimeMinutes / 60) : 0;
         const totalMinutes  = regularMinutes + overtimeMinutes;
         const fmt2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -526,7 +533,8 @@ class PDFService {
 
         const earningsRows = [
           ['Regular',           '', fmt2(hourlyRate),  formatHM(regularMinutes),  fmt2(regularPay)  ],
-          ['Overtime',          '', fmt2(overtimeRate), formatHM(overtimeMinutes), fmt2(overtimePay) ],
+          ['Overtime' + (overtimeMinutes > 0 && overtimePay === 0 ? ' (unpaid)' : ''),
+                                '', fmt2(overtimeRate), formatHM(overtimeMinutes), fmt2(overtimePay) ],
           ['Communication',     '', '', '', ''],
           ['Medical Allowance', '', '', '', ''],
           ['Bonus/Non-Taxable', '', '', '', ''],

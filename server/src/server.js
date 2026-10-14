@@ -134,6 +134,10 @@ async function runMigrations() {
     // Seed admin user (INSERT IGNORE skips silently if email already exists)
     `INSERT IGNORE INTO users (username, email, password_hash, role, is_active) VALUES ('dam', 'dam@bims.tech', '$2a$10$o/Mq7JOam81/UrSQn6T91ei1RrYVgAqn4HVboXCkzlJ1GBaue5.UG', 'admin', 1)`,
 
+    // Overtime pay: off for everyone until a super admin enables it per employee
+    `ALTER TABLE employees ADD COLUMN overtime_pay_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE employees ADD COLUMN overtime_rate DECIMAL(10,2) DEFAULT NULL`,
+
     // Philippine payroll deduction fields
     `ALTER TABLE employees ADD COLUMN employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL') DEFAULT NULL`,
     `ALTER TABLE employees ADD COLUMN sss_number VARCHAR(20) DEFAULT NULL`,

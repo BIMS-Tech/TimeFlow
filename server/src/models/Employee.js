@@ -76,6 +76,8 @@ class Employee {
       department: data.department || null,
       position: data.position || null,
       hourly_rate: data.hourly_rate || 500.00,
+      overtime_pay_enabled: data.overtime_pay_enabled ? 1 : 0,
+      overtime_rate: data.overtime_rate != null && data.overtime_rate !== '' ? data.overtime_rate : null,
       currency: data.currency || 'USD',
       employee_type: employeeType,
       employment_type: data.employment_type || 'full_time',

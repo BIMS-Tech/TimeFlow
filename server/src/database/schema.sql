@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS employees (
     department VARCHAR(100),
     position VARCHAR(100),
     hourly_rate DECIMAL(10, 2) DEFAULT 500.00,
+    -- Overtime is UNPAID unless a super admin switches it on and sets a rate.
+    overtime_pay_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    overtime_rate DECIMAL(10, 2) DEFAULT NULL,
     currency VARCHAR(10) DEFAULT 'USD',
     employee_type ENUM('FTE-LCL','FTE-INTL','PTE-WB','PTE-WOB','PTE-INTL','PB-LCL','PB-INTL','IC-LCL','IC-INTL') DEFAULT NULL,
     employment_type ENUM('full_time','part_time','contractor') NOT NULL DEFAULT 'full_time',

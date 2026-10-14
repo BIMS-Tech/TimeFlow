@@ -179,7 +179,7 @@ class TimesheetService {
     const hourlyRate = employee.hourly_rate || parseFloat(process.env.DEFAULT_HOURLY_RATE || 500);
 
     // Calculate minutes breakdown + gross (money rounded exactly once, inside)
-    const breakdown = await this.calculateHoursBreakdown(employee.id, period, totalMinutes, hourlyRate);
+    const breakdown = await this.calculateHoursBreakdown(employee, period, totalMinutes, hourlyRate);
 
     // Compute PH government deductions based on employee type
     const ded = computeDeductions(employee.employee_type, breakdown.grossAmount, period);
@@ -245,23 +245,31 @@ class TimesheetService {
   /**
    * Split exact total minutes into regular/overtime and price them.
    *
+   * Overtime is UNPAID by default. It is only paid when a super admin has both
+   * switched `overtime_pay_enabled` on for that employee AND set an
+   * `overtime_rate` above zero; the rate is the hourly amount paid for overtime,
+   * not a multiplier. Overtime minutes are still recorded and shown either way,
+   * so unpaid overtime stays visible rather than disappearing.
+   *
    * Money is computed from minutes at full precision and rounded exactly ONCE, on the
    * final gross. Rounding hours first (or rounding each component) is what leaks pennies.
    *
+   * @param {object} employee     - needs overtime_pay_enabled / overtime_rate
    * @param {number} totalMinutes - exact integer minutes
    */
-  async calculateHoursBreakdown(employeeId, period, totalMinutes, hourlyRate) {
-    const { workingHoursPerDay, overtimeMultiplier } = await this.getSettings();
+  async calculateHoursBreakdown(employee, period, totalMinutes, hourlyRate) {
+    const { workingHoursPerDay } = await this.getSettings();
     const workingDays = this.countWorkingDays(new Date(period.start_date), new Date(period.end_date));
     const maxRegularMinutes = workingHoursPerDay * 60 * workingDays;
 
     const regularMinutes  = Math.min(totalMinutes, maxRegularMinutes);
     const overtimeMinutes = Math.max(0, totalMinutes - maxRegularMinutes);
 
-    const grossAmount = roundMoney(
-      payForMinutes(regularMinutes, hourlyRate) +
-      payForMinutes(overtimeMinutes, hourlyRate, overtimeMultiplier)
-    );
+    const overtimeRate  = parseFloat(employee?.overtime_rate) || 0;
+    const overtimePaid  = Boolean(employee?.overtime_pay_enabled) && overtimeRate > 0;
+    const overtimePay   = overtimePaid ? payForMinutes(overtimeMinutes, overtimeRate) : 0;
+
+    const grossAmount = roundMoney(payForMinutes(regularMinutes, hourlyRate) + overtimePay);
 
     return {
       totalMinutes, regularMinutes, overtimeMinutes,
@@ -269,6 +277,9 @@ class TimesheetService {
       totalHours: minutesToHours(totalMinutes),
       regularHours: minutesToHours(regularMinutes),
       overtimeHours: minutesToHours(overtimeMinutes),
+      overtimePaid,
+      overtimeRate: overtimePaid ? overtimeRate : 0,
+      overtimeAmount: roundMoney(overtimePay),
       grossAmount,
     };
   }
@@ -643,7 +654,7 @@ class TimesheetService {
       }
     }
 
-    const breakdown = await this.calculateHoursBreakdown(employee.id, fakeperiod, totalMinutes, hourlyRate);
+    const breakdown = await this.calculateHoursBreakdown(employee, fakeperiod, totalMinutes, hourlyRate);
 
     return {
       employee: {
@@ -671,6 +682,9 @@ class TimesheetService {
       regularHours:  breakdown.regularHours,
       overtimeHours: breakdown.overtimeHours,
       hourlyRate,
+      overtimePaid:   breakdown.overtimePaid,
+      overtimeRate:   breakdown.overtimeRate,
+      overtimeAmount: breakdown.overtimeAmount,
       grossAmount:   breakdown.grossAmount
     };
   }

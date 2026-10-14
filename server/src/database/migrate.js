@@ -94,6 +94,14 @@ async function applyMigrations() {
               ADD COLUMN bank_uploaded_by INT NULL DEFAULT NULL`
       },
       {
+        name: 'add_overtime_pay_controls_to_employees',
+        check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'overtime_pay_enabled'`,
+        sql: `ALTER TABLE employees
+              ADD COLUMN overtime_pay_enabled BOOLEAN NOT NULL DEFAULT FALSE AFTER hourly_rate,
+              ADD COLUMN overtime_rate DECIMAL(10,2) DEFAULT NULL AFTER overtime_pay_enabled`
+      },
+      {
         name: 'add_iso20022_beneficiary_address_parts_to_employees',
         check: `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'beneficiary_building_no'`,
