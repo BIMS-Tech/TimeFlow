@@ -6,20 +6,20 @@ import {
   IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel, Alert,
   FormControlLabel, Switch,
 } from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PeopleIcon from '@mui/icons-material/People';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeftOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
+import RefreshIcon from '@mui/icons-material/RefreshOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLessOutlined';
+import AccessTimeIcon from '@mui/icons-material/AccessTimeOutlined';
+import PeopleIcon from '@mui/icons-material/PeopleOutlined';
 import { wrikeAPI, employeesAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHoursAsHM } from '../utils/time';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import DateRangeIcon from '@mui/icons-material/DateRange';
-import CalendarViewMonthIcon from '@mui/icons-material/CalendarViewMonth';
+import DateRangeIcon from '@mui/icons-material/DateRangeOutlined';
+import CalendarViewMonthIcon from '@mui/icons-material/CalendarViewMonthOutlined';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
@@ -47,7 +47,7 @@ function formatCurrency(amount, currency) {
   return `${sym}${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 1.5 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 1.5 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 1.5 };
 
 function getMonthOf(dateStr) {
@@ -139,24 +139,24 @@ export default function WrikeTimesheets() {
           <FormControlLabel
             control={
               <Switch checked={approvedOnly} onChange={e => setApprovedOnly(e.target.checked)} size="small"
-                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#10b981' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10b981' } }} />
+                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#2e9466' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#2e9466' } }} />
             }
-            label={<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: approvedOnly ? '#10b981' : 'text.secondary' }}>Approved Only</Typography>}
+            label={<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: approvedOnly ? '#2e9466' : 'text.secondary' }}>Approved Only</Typography>}
           />
           {viewMode === 'weekly' ? (
             <Button variant="outlined" onClick={() => setWeekStart(getMondayOf(new Date().toISOString().split('T')[0]))}
-              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
               This Week
             </Button>
           ) : (
             <Button variant="outlined" onClick={() => setMonth(getMonthOf(new Date().toISOString()))}
-              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
               This Month
             </Button>
           )}
           <Tooltip title="Refresh">
             <IconButton onClick={fetchTimelogs} disabled={loading}
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#6366f1', borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', color: 'text.secondary', '&:hover': { color: '#2a7f96', borderColor: '#2a7f96', bgcolor: 'rgba(42,127,150,0.04)' } }}>
               <RefreshIcon sx={{ fontSize: 18, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             </IconButton>
           </Tooltip>
@@ -171,7 +171,7 @@ export default function WrikeTimesheets() {
             : setMonth(p => { const d = new Date(p + '-15'); d.setMonth(d.getMonth() - 1); return d.toISOString().substring(0,7); })
           }
           size="small"
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
         <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -179,7 +179,7 @@ export default function WrikeTimesheets() {
             <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary' }}>
               {viewMode === 'weekly' ? weekLabel : monthLabel}
             </Typography>
-            {approvedOnly && <Chip label="Approved only" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
+            {approvedOnly && <Chip label="Approved only" size="small" sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.68rem' }} />}
           </Box>
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>
             {viewMode === 'weekly' ? `Week of ${weekStart}` : `Monthly view — ${month}`}
@@ -191,11 +191,11 @@ export default function WrikeTimesheets() {
             : setMonth(p => { const d = new Date(p + '-15'); d.setMonth(d.getMonth() + 1); return d.toISOString().substring(0,7); })
           }
           size="small"
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
           <ChevronRightIcon fontSize="small" />
         </IconButton>
         <Chip icon={<AccessTimeIcon />} label={`${formatHoursAsHM(totalHours)} total`} size="small"
-          sx={{ ml: 'auto', bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, '& .MuiChip-icon': { fontSize: 14, color: '#6366f1' } }} />
+          sx={{ ml: 'auto', bgcolor: '#6366f115', color: '#2a7f96', fontWeight: 700, '& .MuiChip-icon': { fontSize: 14, color: '#2a7f96' } }} />
       </Paper>
 
       {/* Warnings */}
@@ -210,7 +210,7 @@ export default function WrikeTimesheets() {
       {/* Loading */}
       {loading && (
         <Paper elevation={0} sx={{ p: 6, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
-          <CircularProgress size={32} sx={{ color: '#6366f1', mb: 2 }} />
+          <CircularProgress size={32} sx={{ color: '#2a7f96', mb: 2 }} />
           <Typography sx={{ fontSize: '0.875rem' }}>Fetching timelogs from Wrike…</Typography>
         </Paper>
       )}
@@ -226,12 +226,12 @@ export default function WrikeTimesheets() {
                   {viewMode === 'weekly' ? days.map((d, i) => (
                     <TableCell key={d} sx={{ ...TH, textAlign: 'center', minWidth: 72 }}>
                       <div>{DAY_LABELS[i]}</div>
-                      <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
+                      <div style={{ fontWeight: 400, color: '#8da3a9', fontSize: '0.68rem' }}>{fmtDay(d)}</div>
                     </TableCell>
                   )) : weeks.map((w, i) => (
                     <TableCell key={w.start} sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>
                       <div>Wk {i + 1}</div>
-                      <div style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.68rem' }}>{fmtDay(w.start)}</div>
+                      <div style={{ fontWeight: 400, color: '#8da3a9', fontSize: '0.68rem' }}>{fmtDay(w.start)}</div>
                     </TableCell>
                   ))}
                   <TableCell sx={{ ...TH, textAlign: 'center', minWidth: 80 }}>Total</TableCell>
@@ -251,7 +251,7 @@ export default function WrikeTimesheets() {
                         <TableCell sx={TD}>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>{emp.name}</Typography>
                           <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{emp.department || emp.employee_id}</Typography>
-                          {!emp.wrike_user_id && <Typography sx={{ fontSize: '0.65rem', color: '#f59e0b', mt: 0.25 }}>No Wrike ID linked</Typography>}
+                          {!emp.wrike_user_id && <Typography sx={{ fontSize: '0.65rem', color: '#d08c1e', mt: 0.25 }}>No Wrike ID linked</Typography>}
                         </TableCell>
                         {viewMode === 'weekly' ? days.map(d => {
                           const h = row.dailyHours?.[d] || 0;
@@ -261,9 +261,9 @@ export default function WrikeTimesheets() {
                                 <Chip label={formatHoursAsHM(h)} size="small" sx={{
                                   height: 24, fontWeight: 700, fontSize: '0.75rem',
                                   bgcolor: h >= 8 ? '#10b98115' : h >= 4 ? '#6366f115' : '#f59e0b15',
-                                  color: h >= 8 ? '#10b981' : h >= 4 ? '#6366f1' : '#f59e0b',
+                                  color: h >= 8 ? '#2e9466' : h >= 4 ? '#2a7f96' : '#d08c1e',
                                 }} />
-                              ) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                              ) : <span style={{ color: '#c5d2d4' }}>—</span>}
                             </TableCell>
                           );
                         }) : (row.weekHours || []).map((h, i) => (
@@ -272,9 +272,9 @@ export default function WrikeTimesheets() {
                               <Chip label={formatHoursAsHM(h)} size="small" sx={{
                                 height: 24, fontWeight: 700, fontSize: '0.75rem',
                                 bgcolor: h >= 40 ? '#10b98115' : h >= 20 ? '#6366f115' : '#f59e0b15',
-                                color: h >= 40 ? '#10b981' : h >= 20 ? '#6366f1' : '#f59e0b',
+                                color: h >= 40 ? '#2e9466' : h >= 20 ? '#2a7f96' : '#d08c1e',
                               }} />
-                            ) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                            ) : <span style={{ color: '#c5d2d4' }}>—</span>}
                           </TableCell>
                         ))}
                         <TableCell sx={{ ...TD, textAlign: 'center', fontWeight: 700 }}>
@@ -282,7 +282,7 @@ export default function WrikeTimesheets() {
                         </TableCell>
                         {showPay && (
                           <TableCell sx={{ ...TD, textAlign: 'right' }}>
-                            <Typography sx={{ fontWeight: 700, color: hasLogs ? '#10b981' : 'text.disabled', fontSize: '0.875rem' }}>
+                            <Typography sx={{ fontWeight: 700, color: hasLogs ? '#2e9466' : 'text.disabled', fontSize: '0.875rem' }}>
                               {hasLogs ? formatCurrency(row.pay, emp.currency) : '—'}
                             </Typography>
                             <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
@@ -316,7 +316,7 @@ export default function WrikeTimesheets() {
                                   {row.taskDetails.map((t, i) => (
                                     <TableRow key={i}>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, whiteSpace: 'nowrap' }}>{fmtDay(t.date)}</TableCell>
-                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: '#6366f1', maxWidth: 200 }}>{t.taskTitle}</TableCell>
+                                      <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: '#2a7f96', maxWidth: 200 }}>{t.taskTitle}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, color: 'text.disabled', maxWidth: 200 }}>{t.comment || '—'}</TableCell>
                                       <TableCell sx={{ fontSize: '0.8rem', py: 0.75, fontWeight: 700, textAlign: 'right' }}>{formatHoursAsHM(t.hours)}</TableCell>
                                     </TableRow>

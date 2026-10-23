@@ -6,19 +6,19 @@ import {
   Tab, Tabs, Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Tooltip, Alert, Grid
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import SendIcon from '@mui/icons-material/Send';
-import ReplayIcon from '@mui/icons-material/Replay';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import RefreshIcon from '@mui/icons-material/RefreshOutlined';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmptyOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import SendIcon from '@mui/icons-material/SendOutlined';
+import ReplayIcon from '@mui/icons-material/ReplayOutlined';
+import AttachFileIcon from '@mui/icons-material/AttachFileOutlined';
+import OpenInNewIcon from '@mui/icons-material/OpenInNewOutlined';
 import { timesheetAPI } from '../api';
 import { formatHoursAsHM } from '../utils/time';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function InfoRow({ label, value }) {
@@ -76,7 +76,7 @@ export default function PendingApprovals() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-        <CircularProgress sx={{ color: '#6366f1' }} />
+        <CircularProgress sx={{ color: '#2a7f96' }} />
       </Box>
     );
   }
@@ -92,23 +92,23 @@ export default function PendingApprovals() {
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchAll}
-          sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: 'rgba(99,102,241,0.04)' } }}>
+          sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96', bgcolor: 'rgba(42,127,150,0.04)' } }}>
           Refresh
         </Button>
       </Box>
 
       {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTabs-indicator': { bgcolor: '#6366f1' }, '& .Mui-selected': { color: '#6366f1 !important' } }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTabs-indicator': { bgcolor: '#2a7f96' }, '& .Mui-selected': { color: '#2a7f96 !important' } }}>
         <Tab label={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <HourglassEmptyIcon sx={{ fontSize: 18 }} /> Pending
-            {pending.length > 0 && <Chip label={pending.length} size="small" sx={{ bgcolor: '#f59e0b', color: 'white', fontWeight: 700, height: 20, fontSize: '0.72rem' }} />}
+            {pending.length > 0 && <Chip label={pending.length} size="small" sx={{ bgcolor: '#d08c1e', color: 'white', fontWeight: 700, height: 20, fontSize: '0.72rem' }} />}
           </Box>
         } sx={{ textTransform: 'none', fontWeight: 600 }} />
         <Tab label={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <WarningAmberIcon sx={{ fontSize: 18 }} /> Rejected by Employee
-            {rejected.length > 0 && <Chip label={rejected.length} size="small" sx={{ bgcolor: '#ef4444', color: 'white', fontWeight: 700, height: 20, fontSize: '0.72rem' }} />}
+            {rejected.length > 0 && <Chip label={rejected.length} size="small" sx={{ bgcolor: '#d04a40', color: 'white', fontWeight: 700, height: 20, fontSize: '0.72rem' }} />}
           </Box>
         } sx={{ textTransform: 'none', fontWeight: 600 }} />
       </Tabs>
@@ -117,7 +117,7 @@ export default function PendingApprovals() {
       {tab === 0 && (
         pending.length === 0 ? (
           <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
-            <CheckCircleIcon sx={{ fontSize: 56, color: '#10b981', opacity: 0.4, mb: 1.5 }} />
+            <CheckCircleIcon sx={{ fontSize: 56, color: '#2e9466', opacity: 0.4, mb: 1.5 }} />
             <Typography sx={{ fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>All Caught Up!</Typography>
             <Typography sx={{ fontSize: '0.875rem' }}>No pending approvals at the moment</Typography>
           </Paper>
@@ -142,13 +142,13 @@ export default function PendingApprovals() {
                       <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                       <TableCell sx={TD}>
                         <Chip label={`${s.days_since_updated || 0} days`} size="small"
-                          sx={{ bgcolor: (s.days_since_updated || 0) > 3 ? '#ef444415' : '#f59e0b15', color: (s.days_since_updated || 0) > 3 ? '#ef4444' : '#f59e0b', fontWeight: 600, fontSize: '0.72rem' }} />
+                          sx={{ bgcolor: (s.days_since_updated || 0) > 3 ? '#ef444415' : '#f59e0b15', color: (s.days_since_updated || 0) > 3 ? '#d04a40' : '#d08c1e', fontWeight: 600, fontSize: '0.72rem' }} />
                       </TableCell>
                       <TableCell sx={TD}>
                         {s.approval_task_id && (
                           <Tooltip title="View in Wrike">
                             <IconButton size="small" component="a" href={`https://www.wrike.com/workspace.htm#task=${s.approval_task_id}`} target="_blank" rel="noopener noreferrer"
-                              sx={{ color: '#0ea5e9', '&:hover': { bgcolor: '#0ea5e915' } }}>
+                              sx={{ color: '#4f67c9', '&:hover': { bgcolor: '#0ea5e915' } }}>
                               <OpenInNewIcon sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
@@ -156,7 +156,7 @@ export default function PendingApprovals() {
                       </TableCell>
                       <TableCell sx={TD}>
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="View Details"><IconButton size="small" onClick={() => setSelectedSummary(s)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                          <Tooltip title="View Details"><IconButton size="small" onClick={() => setSelectedSummary(s)} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           <Tooltip title="Resend"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#64748b15' } }}><SendIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                         </Box>
                       </TableCell>
@@ -173,7 +173,7 @@ export default function PendingApprovals() {
       {tab === 1 && (
         rejected.length === 0 ? (
           <Paper elevation={0} sx={{ p: 8, borderRadius: 0, border: '1px solid', borderColor: 'divider', textAlign: 'center', color: 'text.disabled' }}>
-            <CheckCircleIcon sx={{ fontSize: 56, color: '#10b981', opacity: 0.4, mb: 1.5 }} />
+            <CheckCircleIcon sx={{ fontSize: 56, color: '#2e9466', opacity: 0.4, mb: 1.5 }} />
             <Typography sx={{ fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>No Rejected Timesheets</Typography>
             <Typography sx={{ fontSize: '0.875rem' }}>Employees haven't raised any disputes</Typography>
           </Paper>
@@ -204,10 +204,10 @@ export default function PendingApprovals() {
                         <TableCell sx={TD}>{formatHoursAsHM(s.total_hours)}</TableCell>
                         <TableCell sx={TD}>{s.currency || ''} {s.gross_amount?.toLocaleString()}</TableCell>
                         <TableCell sx={TD}>
-                          <Chip label={`${s.days_since_updated || 0} days`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 600, fontSize: '0.72rem' }} />
+                          <Chip label={`${s.days_since_updated || 0} days`} size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 600, fontSize: '0.72rem' }} />
                         </TableCell>
                         <TableCell sx={{ ...TD, maxWidth: 180 }}>
-                          <Typography sx={{ fontSize: '0.8rem', color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Typography sx={{ fontSize: '0.8rem', color: '#d04a40', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {s.rejection_reason || '—'}
                           </Typography>
                           {files.length > 0 && (
@@ -219,8 +219,8 @@ export default function PendingApprovals() {
                         </TableCell>
                         <TableCell sx={TD}>
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <Tooltip title="View Details"><IconButton size="small" onClick={() => setShowRejectionDetail({ ...s, parsedFiles: files })} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                            <Tooltip title="Resubmit"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><ReplayIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                            <Tooltip title="View Details"><IconButton size="small" onClick={() => setShowRejectionDetail({ ...s, parsedFiles: files })} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}><VisibilityIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                            <Tooltip title="Resubmit"><IconButton size="small" onClick={() => handleResend(s.id)} disabled={processingId === s.id} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}><ReplayIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -240,10 +240,10 @@ export default function PendingApprovals() {
         <DialogContent>
           {selectedSummary && (
             <Grid container spacing={2} sx={{ mt: 0 }}>
-              <Grid item xs={6}><InfoRow label="Employee" value={selectedSummary.employee_name} /></Grid>
-              <Grid item xs={6}><InfoRow label="Period" value={selectedSummary.period_name} /></Grid>
-              <Grid item xs={6}><InfoRow label="Total Hours" value={`${formatHoursAsHM(selectedSummary.total_hours)}`} /></Grid>
-              <Grid item xs={6}><InfoRow label="Gross Amount" value={`${selectedSummary.currency || ''} ${selectedSummary.gross_amount?.toLocaleString()}`} /></Grid>
+              <Grid size={{ xs: 6 }}><InfoRow label="Employee" value={selectedSummary.employee_name} /></Grid>
+              <Grid size={{ xs: 6 }}><InfoRow label="Period" value={selectedSummary.period_name} /></Grid>
+              <Grid size={{ xs: 6 }}><InfoRow label="Total Hours" value={`${formatHoursAsHM(selectedSummary.total_hours)}`} /></Grid>
+              <Grid size={{ xs: 6 }}><InfoRow label="Gross Amount" value={`${selectedSummary.currency || ''} ${selectedSummary.gross_amount?.toLocaleString()}`} /></Grid>
             </Grid>
           )}
         </DialogContent>
@@ -260,16 +260,16 @@ export default function PendingApprovals() {
           {showRejectionDetail && (
             <>
               <Grid container spacing={2} sx={{ mt: 0, mb: 2 }}>
-                <Grid item xs={6}><InfoRow label="Employee" value={showRejectionDetail.employee_name} /></Grid>
-                <Grid item xs={6}><InfoRow label="Period" value={showRejectionDetail.period_name} /></Grid>
-                <Grid item xs={6}><InfoRow label="Total Hours" value={`${formatHoursAsHM(showRejectionDetail.total_hours)}`} /></Grid>
-                <Grid item xs={6}><InfoRow label="Gross Amount" value={`${showRejectionDetail.currency || ''} ${showRejectionDetail.gross_amount?.toLocaleString()}`} /></Grid>
+                <Grid size={{ xs: 6 }}><InfoRow label="Employee" value={showRejectionDetail.employee_name} /></Grid>
+                <Grid size={{ xs: 6 }}><InfoRow label="Period" value={showRejectionDetail.period_name} /></Grid>
+                <Grid size={{ xs: 6 }}><InfoRow label="Total Hours" value={`${formatHoursAsHM(showRejectionDetail.total_hours)}`} /></Grid>
+                <Grid size={{ xs: 6 }}><InfoRow label="Gross Amount" value={`${showRejectionDetail.currency || ''} ${showRejectionDetail.gross_amount?.toLocaleString()}`} /></Grid>
               </Grid>
-              <Box sx={{ bgcolor: '#fff8e1', borderRadius: 0, p: 2, mb: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#92400e', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <Box sx={{ bgcolor: '#fdf6e7', borderRadius: 0, p: 2, mb: 2 }}>
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#7a4a0c', mb: 0.75 }}>
                   Employee's Rejection Reason
                 </Typography>
-                <Typography sx={{ color: '#92400e', fontSize: '0.875rem' }}>
+                <Typography sx={{ color: '#7a4a0c', fontSize: '0.875rem' }}>
                   {showRejectionDetail.rejection_reason || 'No reason provided'}
                 </Typography>
               </Box>
@@ -294,7 +294,7 @@ export default function PendingApprovals() {
           <Button variant="outlined" startIcon={<ReplayIcon />}
             onClick={() => { handleResend(showRejectionDetail.id); setShowRejectionDetail(null); }}
             disabled={processingId === showRejectionDetail?.id}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#6366f1', color: '#6366f1' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#2a7f96', color: '#2a7f96' }}>
             Resubmit
           </Button>
         </DialogActions>

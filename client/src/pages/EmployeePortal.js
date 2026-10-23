@@ -1,53 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
 import { portalAPI } from '../api';
-import { useThemeMode } from '../context/ThemeContext';
+import AppShell from '../components/AppShell';
+import { tokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Box, Typography, Button, CircularProgress, Grid, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Avatar, Divider, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
-  InputLabel, LinearProgress, TextField, Chip,
-  AppBar, Toolbar
+  Avatar, IconButton, Tooltip, Alert, Select, MenuItem, FormControl,
+  InputLabel, LinearProgress, TextField, Skeleton,
 } from '@mui/material';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import KeyIcon from '@mui/icons-material/Key';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import LogoutIcon from '@mui/icons-material/Logout';
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import MenuIcon from '@mui/icons-material/Menu';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboardOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import LockResetIcon from '@mui/icons-material/LockResetOutlined';
+import BadgeIcon from '@mui/icons-material/BadgeOutlined';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForwardOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { getMissingBankFields } from '../utils/employeeProfile';
 import { formatHM, formatHoursAsHM } from '../utils/time';
 
-const DRAWER_W = 260;
-
 const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.25, px: 2, bgcolor: 'action.hover' };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.25, px: 2, bgcolor: 'action.hover' };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
 
 const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Dashboard',       icon: <DashboardIcon /> },
+  { key: 'dashboard', label: 'Dashboard',       icon: <SpaceDashboardIcon /> },
   { key: 'payslips',  label: 'My Payslips',     icon: <ReceiptLongIcon /> },
-  { key: 'profile',   label: 'My Profile',      icon: <AccountCircleIcon /> },
-  { key: 'settings',  label: 'Change Password', icon: <KeyIcon /> },
+  { key: 'profile',   label: 'My Profile',      icon: <BadgeIcon /> },
+  { key: 'settings',  label: 'Change Password', icon: <LockResetIcon /> },
 ];
 
-const CATEGORY_COLORS = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+const CATEGORY_COLORS = ['#2a7f96','#4f67c9','#2e9466','#d08c1e','#d04a40','#8a63b8','#c25a87','#2f9c94'];
 
 // ─── CATEGORY HOURS ───────────────────────────────────────────────────────────
 function PortalCategoryHoursPanel({ timesheets }) {
@@ -133,15 +123,15 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
       {employee && (
         <Paper elevation={0} sx={{
           mb: 2.5, borderRadius: '16px', overflow: 'hidden',
-          background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-          boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
+          background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)',
+          boxShadow: '0 8px 24px rgba(42,127,150,0.25)',
         }}>
           <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ width: 52, height: 52, bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 800, fontSize: '1.1rem', borderRadius: '14px' }}>
               {employee.name?.slice(0, 2).toUpperCase()}
             </Avatar>
             <Box>
-              <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Welcome back</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)' }}>Welcome back</Typography>
               <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: 'white', lineHeight: 1.2 }}>{employee.name}</Typography>
               <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', mt: 0.25 }}>
                 {employee.employee_id} · {employee.department || 'N/A'} · {employee.position || 'N/A'}
@@ -153,16 +143,16 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
 
       {/* Incomplete profile warning */}
       {missingFields.length > 0 && (
-        <Paper elevation={0} sx={{ mb: 2, borderRadius: '14px', border: '1px solid #fbbf2460', bgcolor: '#fffbeb', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Paper elevation={0} sx={{ mb: 2, borderRadius: '14px', border: '1px solid #fbbf2460', bgcolor: '#fdf6e7', p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-            <WarningAmberIcon sx={{ color: '#f59e0b', fontSize: 20, mt: 0.1, flexShrink: 0 }} />
+            <WarningAmberIcon sx={{ color: '#d08c1e', fontSize: 20, mt: 0.1, flexShrink: 0 }} />
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Bank profile is incomplete</Typography>
-              <Typography sx={{ fontSize: '0.75rem', color: '#b45309' }}>Missing: {missingFields.join(', ')}</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#7a4a0c' }}>Bank profile is incomplete</Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: '#94600f' }}>Missing: {missingFields.join(', ')}</Typography>
             </Box>
           </Box>
           <Button size="small" variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('profile')}
-            sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, boxShadow: 'none', flexShrink: 0, borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
+            sx={{ bgcolor: '#d08c1e', '&:hover': { bgcolor: '#b5730f' }, boxShadow: 'none', flexShrink: 0, borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
             Update Profile
           </Button>
         </Paper>
@@ -171,15 +161,15 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
       {/* Stats */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         {[
-          { label: 'Total Payslips', value: payslips.length,                                                    sub: 'generated',    color: '#10b981', bg: '#10b98112' },
-          { label: 'Total Earned',   value: `${cur} ${totalEarned.toLocaleString()}`,                          sub: 'net pay',      color: '#6366f1', bg: '#6366f112' },
-          { label: 'Total Hours',    value: formatHM(totalMinutes),                                        sub: 'all periods',  color: '#0ea5e9', bg: '#0ea5e912' },
+          { label: 'Total Payslips', value: payslips.length,                                                    sub: 'generated',    color: '#2e9466', bg: '#10b98112' },
+          { label: 'Total Earned',   value: `${cur} ${totalEarned.toLocaleString()}`,                          sub: 'net pay',      color: '#2a7f96', bg: '#6366f112' },
+          { label: 'Total Hours',    value: formatHM(totalMinutes),                                        sub: 'all periods',  color: '#4f67c9', bg: '#0ea5e912' },
           { label: 'Latest Payslip', value: payslips[0] ? `${cur} ${parseFloat(payslips[0].net_amount||0).toLocaleString()}` : '—',
-            sub: payslips[0]?.period_name || 'no payslips yet', color: '#f59e0b', bg: '#f59e0b12' },
+            sub: payslips[0]?.period_name || 'no payslips yet', color: '#d08c1e', bg: '#f59e0b12' },
         ].map(({ label, value, sub, color, bg }) => (
-          <Grid item xs={6} sm={3} key={label}>
+          <Grid size={{ xs: 6, sm: 3 }} key={label}>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', p: 2, bgcolor: bg }}>
-              <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{label}</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 0.5 }}>{label}</Typography>
               <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color, lineHeight: 1.1 }}>{value}</Typography>
               <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', mt: 0.25 }}>{sub}</Typography>
             </Paper>
@@ -194,7 +184,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
             <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Recent Payslips</Typography>
             {payslips.length > 3 && (
               <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => onNavigate('payslips')}
-                sx={{ color: '#6366f1', fontSize: '0.75rem', textTransform: 'none' }}>
+                sx={{ color: '#2a7f96', fontSize: '0.75rem', textTransform: 'none' }}>
                 View all
               </Button>
             )}
@@ -206,7 +196,7 @@ function DashboardSection({ employee, timesheets, payslips, onNavigate }) {
                 <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: 'monospace' }}>{p.payslip_number}</Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography sx={{ fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{employee?.currency || ''} {parseFloat(p.net_amount || 0).toLocaleString()}</Typography>
+                <Typography sx={{ fontWeight: 800, color: '#2e9466', fontSize: '1rem' }}>{employee?.currency || ''} {parseFloat(p.net_amount || 0).toLocaleString()}</Typography>
                 <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>net pay</Typography>
               </Box>
             </Box>
@@ -250,18 +240,18 @@ function PayslipsSection({ payslips, currency }) {
           <TableBody>
             {payslips.map(p => (
               <TableRow key={p.id} sx={{ '&:hover td': { bgcolor: 'action.hover' } }}>
-                <TableCell sx={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem', color: '#6366f1', fontWeight: 600 }}>{p.payslip_number}</TableCell>
+                <TableCell sx={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem', color: '#2a7f96', fontWeight: 600 }}>{p.payslip_number}</TableCell>
                 <TableCell sx={TD}>
                   <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.period_name}</Typography>
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{fmt(p.start_date)} – {fmt(p.end_date)}</Typography>
                 </TableCell>
                 <TableCell sx={TD}>{formatHoursAsHM(p.total_hours || 0)}</TableCell>
                 <TableCell sx={TD}>{cur} {parseFloat(p.gross_amount || 0).toLocaleString()}</TableCell>
-                <TableCell sx={{ ...TD, fontWeight: 800, color: '#10b981', fontSize: '1rem' }}>{cur} {parseFloat(p.net_amount || 0).toLocaleString()}</TableCell>
+                <TableCell sx={{ ...TD, fontWeight: 800, color: '#2e9466', fontSize: '1rem' }}>{cur} {parseFloat(p.net_amount || 0).toLocaleString()}</TableCell>
                 <TableCell sx={TD}>
                   <Tooltip title="Open PDF in new tab">
                     <IconButton size="small" onClick={() => handleOpenPDF(p)}
-                      sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}>
+                      sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}>
                       <PictureAsPdfIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
@@ -280,7 +270,7 @@ const EMP_TYPE_LABELS = { full_time: 'Full-Time', part_time: 'Part-Time', contra
 const HIRE_CAT_LABELS = { local: 'Local', foreign: 'Foreign' };
 
 const F = ({ label, field, form, setForm, xs = 12, sm = 6, multiline = false }) => (
-  <Grid item xs={xs} sm={sm}>
+  <Grid size={{ xs: xs, sm: sm }}>
     <TextField fullWidth label={label} size="small" multiline={multiline} rows={multiline ? 2 : 1}
       value={form[field] || ''}
       onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
@@ -289,9 +279,9 @@ const F = ({ label, field, form, setForm, xs = 12, sm = 6, multiline = false }) 
 );
 
 const R = ({ label, value, xs = 12, sm = 6 }) => (
-  <Grid item xs={xs} sm={sm}>
+  <Grid size={{ xs: xs, sm: sm }}>
     <Box>
-      <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{label}</Typography>
+      <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 0.25 }}>{label}</Typography>
       <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: value ? 'text.primary' : 'text.disabled' }}>{value || '—'}</Typography>
     </Box>
   </Grid>
@@ -340,22 +330,22 @@ function ProfileSection({ employee, onUpdated }) {
 
       {missingFields.length > 0 ? (
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, bgcolor: '#f59e0b10', border: '1px solid #f59e0b40', borderRadius: '12px', p: 1.75 }}>
-          <WarningAmberIcon sx={{ fontSize: 18, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
+          <WarningAmberIcon sx={{ fontSize: 18, color: '#d08c1e', mt: 0.1, flexShrink: 0 }} />
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e' }}>Banking profile incomplete</Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>Missing: {missingFields.join(', ')} — contact your administrator to update.</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#7a4a0c' }}>Banking profile incomplete</Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#94600f' }}>Missing: {missingFields.join(', ')} — contact your administrator to update.</Typography>
           </Box>
         </Box>
       ) : (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#10b98110', border: '1px solid #10b98140', borderRadius: '12px', p: 1.75 }}>
-          <CheckCircleIcon sx={{ fontSize: 18, color: '#10b981' }} />
-          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#065f46' }}>Bank profile is complete</Typography>
+          <CheckCircleIcon sx={{ fontSize: 18, color: '#2e9466' }} />
+          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#1b5e40' }}>Bank profile is complete</Typography>
         </Box>
       )}
 
       {/* Employment Info (read-only) */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
-        <CardHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Employment Details" />
+        <CardHeader icon={<BadgeIcon sx={{ color: '#2a7f96', fontSize: 20 }} />} title="Employment Details" />
         <Box sx={{ p: 2.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           {[
             ['Employee ID',     employee?.employee_id],
@@ -368,7 +358,7 @@ function ProfileSection({ employee, onUpdated }) {
             ['Currency',        employee?.currency || '—'],
           ].map(([label, val]) => (
             <Box key={label}>
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{label}</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 0.25 }}>{label}</Typography>
               <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{val}</Typography>
             </Box>
           ))}
@@ -377,7 +367,7 @@ function ProfileSection({ employee, onUpdated }) {
 
       {/* Name Details */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
-        <CardHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Name Details" sub="used in bank transfer files" />
+        <CardHeader icon={<BadgeIcon sx={{ color: '#2a7f96', fontSize: 20 }} />} title="Name Details" sub="used in bank transfer files" />
         <Box sx={{ p: 2.5 }}>
           <Grid container spacing={2}>
             <F label="First Name *"  field="first_name"  form={form} setForm={setForm} />
@@ -390,10 +380,10 @@ function ProfileSection({ employee, onUpdated }) {
       {/* Address — local employees only */}
       {!isForeign && (
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
-          <CardHeader icon={<AccountCircleIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Address Details" />
+          <CardHeader icon={<BadgeIcon sx={{ color: '#2a7f96', fontSize: 20 }} />} title="Address Details" />
           <Box sx={{ p: 2.5 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField fullWidth label="Employee Address" multiline rows={2} size="small"
                   placeholder="House/Unit no., Street, Barangay, City, Province, ZIP"
                   value={form.employee_address || ''}
@@ -407,7 +397,7 @@ function ProfileSection({ employee, onUpdated }) {
 
       {/* Bank Details — read-only */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
-        <CardHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="Bank Details" sub="managed by admin" />
+        <CardHeader icon={<AccountBalanceIcon sx={{ color: '#2a7f96', fontSize: 20 }} />} title="Bank Details" sub="managed by admin" />
         <Box sx={{ px: 2.5, py: 1.25, bgcolor: 'action.hover', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
             Banking information is managed by your administrator. Contact admin if any details need updating.
@@ -428,7 +418,7 @@ function ProfileSection({ employee, onUpdated }) {
       {/* International Fields (foreign only) */}
       {isForeign && (
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
-          <CardHeader icon={<AccountBalanceIcon sx={{ color: '#6366f1', fontSize: 20 }} />} title="International Transfer Details" sub="managed by admin" />
+          <CardHeader icon={<AccountBalanceIcon sx={{ color: '#2a7f96', fontSize: 20 }} />} title="International Transfer Details" sub="managed by admin" />
           <Box sx={{ p: 2.5 }}>
             <Grid container spacing={2}>
               <R label="Remittance Type"       value={form.remittance_type} />
@@ -447,7 +437,7 @@ function ProfileSection({ employee, onUpdated }) {
               <R label="Payee Foreign ZIP"     value={form.payee_foreign_zip_code} />
               <R label="Tax Code"              value={form.tax_code} />
             </Grid>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mt: 2.5, mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mt: 2.5, mb: 1 }}>
               Intermediary Bank
             </Typography>
             <Grid container spacing={2}>
@@ -461,8 +451,8 @@ function ProfileSection({ employee, onUpdated }) {
 
       <Button variant="contained" onClick={handleSave} disabled={saving}
         sx={{ alignSelf: 'flex-start', borderRadius: '12px', textTransform: 'none', fontWeight: 700,
-          background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-          boxShadow: '0 4px 12px rgba(99,102,241,0.3)', px: 3, py: 1.25 }}>
+          background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)',
+          boxShadow: '0 4px 12px rgba(42,127,150,0.3)', px: 3, py: 1.25 }}>
         {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Profile'}
       </Button>
     </Box>
@@ -494,7 +484,7 @@ function SettingsSection({ user }) {
     <Box sx={{ maxWidth: 460 }}>
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <KeyIcon sx={{ color: '#6366f1', fontSize: 20 }} />
+          <LockResetIcon sx={{ color: '#2a7f96', fontSize: 20 }} />
           <Typography sx={{ fontWeight: 700 }}>Change Password</Typography>
         </Box>
         <Box sx={{ p: 2.5 }}>
@@ -526,8 +516,8 @@ function SettingsSection({ user }) {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             <Button type="submit" variant="contained" disabled={loading} fullWidth
               sx={{ py: 1.25, fontWeight: 700, borderRadius: '12px', textTransform: 'none',
-                background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-                boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
+                background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)',
+                boxShadow: '0 4px 12px rgba(42,127,150,0.25)' }}>
               {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Change Password'}
             </Button>
           </Box>
@@ -545,11 +535,7 @@ function SettingsSection({ user }) {
 // ─── MAIN PORTAL ──────────────────────────────────────────────────────────────
 export default function EmployeePortal() {
   const { user, logout } = useAuth();
-  const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [section, setSection] = useState('dashboard');
   const [employee, setEmployee] = useState(null);
   const [timesheets, setTimesheets] = useState([]);
@@ -567,7 +553,7 @@ export default function EmployeePortal() {
       setPayslips(psRes.data || []);
     } catch (err) {
       const status = err?.response?.status;
-      if (status !== 403 && status !== 404) toast.error('Failed to load portal data');
+      if (status !== 403 && status !== 404) toast.error('Couldn’t load your portal. Check your connection and reload the page.');
     }
     finally { setLoading(false); }
   }, []);
@@ -575,200 +561,53 @@ export default function EmployeePortal() {
   useEffect(() => { load(); }, [load]);
 
   const handleLogout = () => { logout(); toast.success('Logged out'); navigate('/login'); };
-  const handleNavigate = (key) => { setSection(key); setMobileOpen(false); };
 
   const sectionTitle = NAV_ITEMS.find(n => n.key === section)?.label || '';
-  const initials = employee?.name?.slice(0, 2).toUpperCase() || user?.username?.slice(0, 2).toUpperCase() || 'ME';
-
-  const drawerContent = (
-    <>
-      {/* Logo */}
-      <Box sx={{ px: 2.5, pt: 3, pb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <Box sx={{
-            width: 40, height: 40, borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
-          }}>
-            <AccessTimeFilledIcon sx={{ color: 'white', fontSize: 22 }} />
-          </Box>
-          <Box>
-            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.2rem', lineHeight: 1.1 }}>Timeflow</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Employee Portal
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
-
-      {/* Nav */}
-      <Box sx={{ flex: 1, py: 1.5, overflowY: 'auto' }}>
-        <Typography sx={{ px: 3, py: 0.75, fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          My Portal
-        </Typography>
-        <List sx={{ px: 1.5 }}>
-          {NAV_ITEMS.map(({ key, label, icon }) => {
-            const active = section === key;
-            return (
-              <ListItem key={key} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton onClick={() => handleNavigate(key)} sx={{
-                  borderRadius: '12px', px: 2, py: 1.1,
-                  color: active ? 'white' : 'rgba(255,255,255,0.6)',
-                  background: active ? 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(129,140,248,0.8) 100%)' : 'transparent',
-                  boxShadow: active ? '0 4px 15px rgba(99,102,241,0.4)' : 'none',
-                  transition: 'all 0.2s',
-                  '&:hover:not(.active)': { bgcolor: 'rgba(255,255,255,0.08)', color: 'white' },
-                }}>
-                  <ListItemIcon sx={{ color: active ? 'white' : 'rgba(255,255,255,0.5)', minWidth: 38 }}>
-                    {icon}
-                  </ListItemIcon>
-                  <ListItemText primary={label} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: active ? 700 : 500 }} />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
-      </Box>
-
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: 2 }} />
-
-      {/* User card */}
-      <Box sx={{ p: 2 }}>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
-          borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.07)',
-        }}>
-          <Avatar sx={{
-            width: 36, height: 36, fontSize: '0.875rem', fontWeight: 700,
-            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
-          }}>
-            {initials}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ color: 'white', fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {employee?.name || user?.username}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-              <Chip label="Employee" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#06b6d420', color: '#06b6d4', '& .MuiChip-label': { px: 0.75 } }} />
-            </Box>
-          </Box>
-          <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
-            <IconButton onClick={toggleTheme} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#818cf8', bgcolor: 'rgba(99,102,241,0.15)' } }}>
-              {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Logout" arrow>
-            <IconButton onClick={handleLogout} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' } }}>
-              <LogoutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-    </>
-  );
-
-  const drawerSx = {
-    width: DRAWER_W, flexShrink: 0,
-    '& .MuiDrawer-paper': {
-      width: DRAWER_W,
-      background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)',
-      border: 'none',
-      boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-    },
-  };
+  const groups = [{
+    label: null,
+    items: NAV_ITEMS.map(({ key, label, icon }) => ({ key, label, icon, active: section === key, onClick: () => setSection(key) })),
+  }];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-
-      {/* Mobile top bar */}
-      {isMobile && (
-        <AppBar position="fixed" elevation={0} sx={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-          zIndex: theme.zIndex.drawer + 1,
-        }}>
-          <Toolbar sx={{ gap: 1, minHeight: { xs: 56 } }}>
-            <IconButton edge="start" onClick={() => setMobileOpen(v => !v)} sx={{ color: 'white' }}>
-              <MenuIcon />
-            </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-              <Box sx={{ width: 30, height: 30, borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AccessTimeFilledIcon sx={{ color: 'white', fontSize: 17 }} />
-              </Box>
-              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1rem' }}>Timeflow</Typography>
-            </Box>
-            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} arrow>
-              <IconButton onClick={toggleTheme} size="small" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Logout" arrow>
-              <IconButton onClick={handleLogout} size="small" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                <LogoutIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Toolbar>
-        </AppBar>
-      )}
-
-      {/* Sidebar */}
-      {isMobile ? (
-        <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }} sx={drawerSx}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)' }}>
-            {drawerContent}
-          </Box>
-        </Drawer>
-      ) : (
-        <Drawer variant="permanent" sx={drawerSx}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)' }}>
-            {drawerContent}
-          </Box>
-        </Drawer>
-      )}
-
-      {/* Main content */}
-      <Box component="main" sx={{ flex: 1, p: { xs: 2, md: 3 }, pt: { xs: 9, md: 3 }, minWidth: 0, overflowY: 'auto' }}>
-        <Box sx={{ maxWidth: 920, mx: 'auto' }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>
-              {sectionTitle}
-            </Typography>
-          </Box>
-
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
-              <CircularProgress sx={{ color: '#6366f1' }} />
-            </Box>
-          ) : !employee && section !== 'settings' ? (
-            <Paper elevation={0} sx={{ p: 6, borderRadius: '16px', border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-              <WarningAmberIcon sx={{ fontSize: 48, color: '#f59e0b', mb: 2 }} />
-              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 1 }}>Account Not Linked</Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 3 }}>
-                Your account hasn't been linked to an employee profile yet.<br />
-                Please contact your administrator to link your account.
-              </Typography>
-              {section === 'settings' ? null : (
-                <Button variant="outlined" onClick={() => setSection('settings')}
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}>
-                  Go to Change Password
-                </Button>
-              )}
-            </Paper>
-          ) : (
-            <>
-              {section === 'dashboard' && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
-              {section === 'payslips'  && <PayslipsSection  payslips={payslips} currency={employee?.currency} />}
-              {section === 'profile'   && <ProfileSection   employee={employee} onUpdated={setEmployee} />}
-              {section === 'settings'  && <SettingsSection  user={user} />}
-            </>
-          )}
-        </Box>
+    <AppShell
+      groups={groups}
+      subtitle="Employee portal"
+      user={{ name: employee?.name || user?.username, role: 'Employee' }}
+      onLogout={handleLogout}
+      transitionKey={section}
+      maxWidth={920}
+    >
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" component="h1" sx={{ color: 'text.primary' }}>
+          {sectionTitle}
+        </Typography>
       </Box>
-    </Box>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Skeleton variant="rounded" height={132} />
+          <Skeleton variant="rounded" height={88} />
+          <Skeleton variant="rounded" height={240} />
+        </Box>
+      ) : !employee && section !== 'settings' ? (
+        <Paper variant="outlined" sx={{ p: { xs: 3, sm: 6 }, textAlign: 'center' }}>
+          <WarningAmberIcon sx={{ fontSize: 44, color: 'warning.main', mb: 1.5 }} />
+          <Typography sx={{ fontFamily: tokens.fonts.display, fontWeight: 700, fontSize: '1.15rem', mb: 1 }}>Your account isn’t linked yet</Typography>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 3, maxWidth: 420, mx: 'auto' }}>
+            Payslips and timesheets show up once your administrator links this login to your employee profile. You can still change your password.
+          </Typography>
+          <Button variant="outlined" onClick={() => setSection('settings')}>
+            Change password
+          </Button>
+        </Paper>
+      ) : (
+        <>
+          {section === 'dashboard' && <DashboardSection employee={employee} timesheets={timesheets} payslips={payslips} onNavigate={setSection} />}
+          {section === 'payslips'  && <PayslipsSection  payslips={payslips} currency={employee?.currency} />}
+          {section === 'profile'   && <ProfileSection   employee={employee} onUpdated={setEmployee} />}
+          {section === 'settings'  && <SettingsSection  user={user} />}
+        </>
+      )}
+    </AppShell>
   );
 }

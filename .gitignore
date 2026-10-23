@@ -46,3 +46,6 @@ client/build/
 *.pid
 *.seed
 *.pid.lock
+# Database TLS certificates
+ca.pem
+*.ca.pem

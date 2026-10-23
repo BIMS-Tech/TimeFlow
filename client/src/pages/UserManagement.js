@@ -7,36 +7,36 @@ import {
   Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert,
   InputAdornment, Checkbox, FormControlLabel, Switch, Divider,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import LockResetIcon from '@mui/icons-material/LockReset';
-import PersonOffIcon from '@mui/icons-material/PersonOff';
-import PersonIcon from '@mui/icons-material/Person';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import TuneIcon from '@mui/icons-material/Tune';
+import AddIcon from '@mui/icons-material/AddOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import LockResetIcon from '@mui/icons-material/LockResetOutlined';
+import PersonOffIcon from '@mui/icons-material/PersonOffOutlined';
+import PersonIcon from '@mui/icons-material/PersonOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
+import Visibility from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOff from '@mui/icons-material/VisibilityOffOutlined';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccountsOutlined';
+import TuneIcon from '@mui/icons-material/TuneOutlined';
 import { usersAPI } from '../api';
 import { PAGES, ROLE_PAGES, ROLE_FLAGS, FLAG_LABELS } from '../permissions';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_META = {
-  super_admin:        { label: 'Super Admin',        bg: '#6366f115', color: '#6366f1' },
-  hr:                 { label: 'HR',                 bg: '#10b98115', color: '#10b981' },
-  payroll_officer:    { label: 'Payroll Officer',    bg: '#f59e0b15', color: '#f59e0b' },
-  accounting_manager: { label: 'Accounting Manager', bg: '#8b5cf615', color: '#8b5cf6' },
-  timekeeper:         { label: 'Timekeeper',         bg: '#0ea5e915', color: '#0ea5e9' },
-  employee:           { label: 'Employee',            bg: '#06b6d415', color: '#06b6d4' },
+  super_admin:        { label: 'Super Admin',        bg: '#6366f115', color: '#2a7f96' },
+  hr:                 { label: 'HR',                 bg: '#10b98115', color: '#2e9466' },
+  payroll_officer:    { label: 'Payroll Officer',    bg: '#f59e0b15', color: '#d08c1e' },
+  accounting_manager: { label: 'Accounting Manager', bg: '#8b5cf615', color: '#8a63b8' },
+  timekeeper:         { label: 'Timekeeper',         bg: '#0ea5e915', color: '#4f67c9' },
+  employee:           { label: 'Employee',            bg: '#06b6d415', color: '#3a93a8' },
 };
 
 const ASSIGNABLE_ROLES = ['super_admin', 'hr', 'payroll_officer', 'accounting_manager', 'timekeeper'];
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', py: 1.5, px: 2 };
 
 function RoleChip({ role }) {
-  const meta = ROLE_META[role] || { label: role, bg: '#64748b15', color: '#64748b' };
+  const meta = ROLE_META[role] || { label: role, bg: '#64748b15', color: '#5a7178' };
   return <Chip label={meta.label} size="small" sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, fontSize: '0.72rem' }} />;
 }
 
@@ -263,7 +263,7 @@ export default function UserManagement() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <ManageAccountsIcon sx={{ color: '#6366f1', fontSize: 28 }} />
+          <ManageAccountsIcon sx={{ color: '#2a7f96', fontSize: 28 }} />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               User Management
@@ -277,7 +277,7 @@ export default function UserManagement() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={openAdd}
-          sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}
+          sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)', boxShadow: '0 4px 12px rgba(42,127,150,0.35)' }}
         >
           Add User
         </Button>
@@ -292,7 +292,7 @@ export default function UserManagement() {
       <Paper elevation={0} sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
         {loading ? (
           <Box sx={{ p: 6, textAlign: 'center' }}>
-            <CircularProgress size={32} sx={{ color: '#6366f1' }} />
+            <CircularProgress size={32} sx={{ color: '#2a7f96' }} />
           </Box>
         ) : (
           <TableContainer>
@@ -322,18 +322,18 @@ export default function UserManagement() {
                       <TableCell sx={TD}>
                         <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{u.username}</Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{u.email}</Typography>
-                        {isSelf && <Typography sx={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 700 }}>— You</Typography>}
+                        {isSelf && <Typography sx={{ fontSize: '0.65rem', color: '#2a7f96', fontWeight: 700 }}>— You</Typography>}
                       </TableCell>
                       <TableCell sx={TD}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                           <RoleChip role={u.role} />
                           {u.permissions?.customised && (
                             <Chip label="Custom" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700,
-                              bgcolor: '#0ea5e915', color: '#0ea5e9' }} />
+                              bgcolor: '#0ea5e915', color: '#4f67c9' }} />
                           )}
                           {u.permissions?.flags?.hide_amounts && (
                             <Chip label="No amounts" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700,
-                              bgcolor: '#64748b15', color: '#64748b' }} />
+                              bgcolor: '#64748b15', color: '#5a7178' }} />
                           )}
                         </Box>
                       </TableCell>
@@ -343,7 +343,7 @@ export default function UserManagement() {
                           size="small"
                           sx={{
                             bgcolor: u.is_active ? '#10b98115' : '#ef444415',
-                            color:   u.is_active ? '#10b981'   : '#ef4444',
+                            color:   u.is_active ? '#2e9466'   : '#d04a40',
                             fontWeight: 700, fontSize: '0.7rem',
                           }}
                         />
@@ -352,34 +352,34 @@ export default function UserManagement() {
                       <TableCell sx={{ ...TD, color: 'text.secondary', fontSize: '0.8rem' }}>{fmtDate(u.created_at)}</TableCell>
                       <TableCell sx={{ ...TD, textAlign: 'right' }}>
                         <Tooltip title="Edit user">
-                          <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
+                          <IconButton size="small" onClick={() => openEdit(u)} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f110' } }}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={u.role === 'super_admin' ? 'A super admin always has full access' : 'Customise pages & visible data'}>
                           <span>
                             <IconButton size="small" disabled={u.role === 'super_admin'} onClick={() => openPerms(u)}
-                              sx={{ color: '#0ea5e9', '&:hover': { bgcolor: '#0ea5e910' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
+                              sx={{ color: '#4f67c9', '&:hover': { bgcolor: '#0ea5e910' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
                               <TuneIcon fontSize="small" />
                             </IconButton>
                           </span>
                         </Tooltip>
                         <Tooltip title="Reset password">
-                          <IconButton size="small" onClick={() => openReset(u)} sx={{ color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b10' } }}>
+                          <IconButton size="small" onClick={() => openReset(u)} sx={{ color: '#d08c1e', '&:hover': { bgcolor: '#f59e0b10' } }}>
                             <LockResetIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         {u.is_active ? (
                           <Tooltip title={isSelf ? 'Cannot deactivate yourself' : 'Deactivate user'}>
                             <span>
-                              <IconButton size="small" disabled={isSelf} onClick={() => handleDeactivate(u)} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444410' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
+                              <IconButton size="small" disabled={isSelf} onClick={() => handleDeactivate(u)} sx={{ color: '#d04a40', '&:hover': { bgcolor: '#ef444410' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
                                 <PersonOffIcon fontSize="small" />
                               </IconButton>
                             </span>
                           </Tooltip>
                         ) : (
                           <Tooltip title="Activate user">
-                            <IconButton size="small" onClick={() => handleActivate(u)} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+                            <IconButton size="small" onClick={() => handleActivate(u)} sx={{ color: '#2e9466', '&:hover': { bgcolor: '#10b98110' } }}>
                               <PersonIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -387,7 +387,7 @@ export default function UserManagement() {
                         <Tooltip title={isSelf ? 'Cannot delete yourself' : 'Delete user'}>
                           <span>
                             <IconButton size="small" disabled={isSelf} onClick={() => setDeleteUser(u)}
-                              sx={{ color: '#dc2626', '&:hover': { bgcolor: '#dc262610' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
+                              sx={{ color: '#b83a31', '&:hover': { bgcolor: '#dc262610' }, '&.Mui-disabled': { color: 'action.disabled' } }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </span>
@@ -443,7 +443,7 @@ export default function UserManagement() {
           <Button onClick={() => setAddOpen(false)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleAdd} disabled={addSaving}
             startIcon={addSaving ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)' }}>
             {addSaving ? 'Creating…' : 'Create User'}
           </Button>
         </DialogActions>
@@ -485,7 +485,7 @@ export default function UserManagement() {
           <Button onClick={() => setEditUser(null)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleEdit} disabled={editSaving}
             startIcon={editSaving ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)' }}>
             {editSaving ? 'Saving…' : 'Save Changes'}
           </Button>
         </DialogActions>
@@ -504,7 +504,7 @@ export default function UserManagement() {
           <Button onClick={() => setDeleteUser(null)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleDelete} disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon fontSize="small" />}
-            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#b83a31', '&:hover': { bgcolor: '#9a2e27' } }}>
             {deleteLoading ? 'Deleting…' : 'Delete'}
           </Button>
         </DialogActions>
@@ -529,7 +529,7 @@ export default function UserManagement() {
           <Button onClick={() => setResetUser(null)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleReset} disabled={resetSaving}
             startIcon={resetSaving ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#d08c1e', '&:hover': { bgcolor: '#b5730f' } }}>
             {resetSaving ? 'Updating…' : 'Reset Password'}
           </Button>
         </DialogActions>
@@ -609,7 +609,7 @@ export default function UserManagement() {
             sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={() => savePerms(false)} disabled={permSaving}
             startIcon={permSaving ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#0ea5e9', '&:hover': { bgcolor: '#0284c7' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#4f67c9', '&:hover': { bgcolor: '#3b52b0' } }}>
             {permSaving ? 'Saving…' : 'Save Access'}
           </Button>
         </DialogActions>

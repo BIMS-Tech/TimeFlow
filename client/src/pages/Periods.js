@@ -7,38 +7,38 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment,
   CircularProgress, IconButton, FormControl, InputLabel, Select, MenuItem, Tabs, Tab, Tooltip,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import PublicIcon from '@mui/icons-material/Public';
-import HomeIcon from '@mui/icons-material/Home';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import PeopleIcon from '@mui/icons-material/People';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import SearchIcon from '@mui/icons-material/Search';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
+import AddIcon from '@mui/icons-material/AddOutlined';
+import EditCalendarIcon from '@mui/icons-material/EditCalendarOutlined';
+import PublicIcon from '@mui/icons-material/PublicOutlined';
+import HomeIcon from '@mui/icons-material/HomeOutlined';
+import RefreshIcon from '@mui/icons-material/RefreshOutlined';
+import PeopleIcon from '@mui/icons-material/PeopleOutlined';
+import AccessTimeIcon from '@mui/icons-material/AccessTimeOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import TrendingUpIcon from '@mui/icons-material/TrendingUpOutlined';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
+import LockIcon from '@mui/icons-material/LockOutlined';
+import LockOpenIcon from '@mui/icons-material/LockOpenOutlined';
 import { timesheetAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHM, formatHoursAsHM } from '../utils/time';
 
 const STATUS_META = {
-  open:             { label: 'Open',             color: '#6366f1', bg: '#6366f115' },
-  processing:       { label: 'Processing',        color: '#f59e0b', bg: '#f59e0b15' },
-  pending_approval: { label: 'Pending Approval',  color: '#f59e0b', bg: '#f59e0b15' },
-  approved:         { label: 'Approved',           color: '#10b981', bg: '#10b98115' },
-  completed:        { label: 'Completed',          color: '#10b981', bg: '#10b98115' },
-  paid:             { label: 'Paid',               color: '#10b981', bg: '#10b98115' },
+  open:             { label: 'Open',             color: '#2a7f96', bg: '#6366f115' },
+  processing:       { label: 'Processing',        color: '#d08c1e', bg: '#f59e0b15' },
+  pending_approval: { label: 'Pending Approval',  color: '#d08c1e', bg: '#f59e0b15' },
+  approved:         { label: 'Approved',           color: '#2e9466', bg: '#10b98115' },
+  completed:        { label: 'Completed',          color: '#2e9466', bg: '#10b98115' },
+  paid:             { label: 'Paid',               color: '#2e9466', bg: '#10b98115' },
 };
 const STATUS_OPTIONS = ['open', 'processing', 'pending_approval', 'approved', 'paid'];
 const PAYSLIP_CHIP = {
-  approved: { label: 'Generated',     color: '#10b981', bg: '#10b98118' },
-  pending:  { label: 'Not Generated', color: '#94a3b8', bg: '#94a3b818' },
-  rejected: { label: 'Failed',        color: '#ef4444', bg: '#ef444418' },
+  approved: { label: 'Generated',     color: '#2e9466', bg: '#10b98118' },
+  pending:  { label: 'Not Generated', color: '#8da3a9', bg: '#94a3b818' },
+  rejected: { label: 'Failed',        color: '#d04a40', bg: '#ef444418' },
 };
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 // A processed period is locked, unless a super admin has lifted it. The
@@ -46,7 +46,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 // decides whether a period is currently editable.
 const isPeriodLocked = (p) => p && p.status !== 'open' && !p.unlocked_at;
 const isUnlocked     = (p) => p && p.status !== 'open' && !!p.unlocked_at;
-const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function StatusChip({ status }) {
@@ -102,11 +102,11 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, onToggleLock, can
               <Tooltip title={canToggleLock ? 'Payroll processed — period is locked. Click to unlock.' : 'Payroll processed — period is locked'}>
                 {canToggleLock ? (
                   <IconButton size="small" onClick={e => { e.stopPropagation(); onToggleLock(p); }}
-                    sx={{ p: 0.3, color: '#94a3b8', '&:hover': { color: '#f59e0b', bgcolor: '#f59e0b10' } }}>
+                    sx={{ p: 0.3, color: '#8da3a9', '&:hover': { color: '#d08c1e', bgcolor: '#f59e0b10' } }}>
                     <LockIcon sx={{ fontSize: 12 }} />
                   </IconButton>
                 ) : (
-                  <LockIcon sx={{ fontSize: 11, color: '#94a3b8', ml: 0.25 }} />
+                  <LockIcon sx={{ fontSize: 11, color: '#8da3a9', ml: 0.25 }} />
                 )}
               </Tooltip>
             )}
@@ -114,11 +114,11 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, onToggleLock, can
               <Tooltip title={`Unlocked${p.unlocked_by_name ? ` by ${p.unlocked_by_name}` : ''} — editing is temporarily allowed${canToggleLock ? '. Click to re-lock.' : ''}`}>
                 {canToggleLock ? (
                   <IconButton size="small" onClick={e => { e.stopPropagation(); onToggleLock(p); }}
-                    sx={{ p: 0.3, color: '#f59e0b', '&:hover': { bgcolor: '#f59e0b15' } }}>
+                    sx={{ p: 0.3, color: '#d08c1e', '&:hover': { bgcolor: '#f59e0b15' } }}>
                     <LockOpenIcon sx={{ fontSize: 12 }} />
                   </IconButton>
                 ) : (
-                  <LockOpenIcon sx={{ fontSize: 11, color: '#f59e0b', ml: 0.25 }} />
+                  <LockOpenIcon sx={{ fontSize: 11, color: '#d08c1e', ml: 0.25 }} />
                 )}
               </Tooltip>
             )}
@@ -129,7 +129,7 @@ function PeriodCard({ p, selected, onSelect, onEdit, onDelete, onToggleLock, can
                   <EditIcon sx={{ fontSize: 12 }} />
                 </IconButton>
                 <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(p); }}
-                  sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: '#ef4444', bgcolor: '#ef444410' } }}>
+                  sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: '#d04a40', bgcolor: '#ef444410' } }}>
                   <DeleteOutlineIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </>
@@ -301,15 +301,15 @@ export default function Periods() {
   const editDur   = durDays(editForm.start_date, editForm.end_date);
 
   const activePeriods = tab === 0 ? localPeriods : foreignPeriods;
-  const accentColor   = tab === 0 ? '#6366f1' : '#0ea5e9';
+  const accentColor   = tab === 0 ? '#2a7f96' : '#4f67c9';
 
   return (
     <Box>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CalendarMonthIcon sx={{ color: 'white', fontSize: 18 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <EditCalendarIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Pay Periods</Typography>
@@ -320,15 +320,15 @@ export default function Periods() {
 
       {/* Stat cards */}
       <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5, flexWrap: 'wrap' }}>
-        <StatCard icon={<CalendarMonthIcon />} label="Total Periods"    value={allPeriods.length}   color="#6366f1" bg="rgba(99,102,241,0.04)"  />
-        <StatCard icon={<HomeIcon />}          label="Local"            value={localPeriods.length}  color="#6366f1" bg="rgba(99,102,241,0.04)"  />
-        <StatCard icon={<PublicIcon />}        label="International"    value={foreignPeriods.length} color="#0ea5e9" bg="rgba(14,165,233,0.04)" />
-        <StatCard icon={<TrendingUpIcon />}    label="Open Periods"     value={openCount}            color="#10b981" bg="rgba(16,185,129,0.04)"  />
+        <StatCard icon={<EditCalendarIcon />} label="Total Periods"    value={allPeriods.length}   color="#2a7f96" bg="rgba(42,127,150,0.04)"  />
+        <StatCard icon={<HomeIcon />}          label="Local"            value={localPeriods.length}  color="#2a7f96" bg="rgba(42,127,150,0.04)"  />
+        <StatCard icon={<PublicIcon />}        label="International"    value={foreignPeriods.length} color="#4f67c9" bg="rgba(79,103,201,0.04)" />
+        <StatCard icon={<TrendingUpIcon />}    label="Open Periods"     value={openCount}            color="#2e9466" bg="rgba(46,148,102,0.04)"  />
       </Box>
 
       <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
         {/* Period list panel */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Tabs */}
             <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', px: 1 }}>
@@ -341,14 +341,14 @@ export default function Periods() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <HomeIcon sx={{ fontSize: 15 }} />
                     Local
-                    <Chip label={localPeriods.length} size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 700, bgcolor: tab === 0 ? '#6366f120' : 'action.hover', color: tab === 0 ? '#6366f1' : 'text.secondary', px: 0.25 }} />
+                    <Chip label={localPeriods.length} size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 700, bgcolor: tab === 0 ? '#6366f120' : 'action.hover', color: tab === 0 ? '#2a7f96' : 'text.secondary', px: 0.25 }} />
                   </Box>
                 } />
                 <Tab label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <PublicIcon sx={{ fontSize: 15 }} />
                     International
-                    <Chip label={foreignPeriods.length} size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 700, bgcolor: tab === 1 ? '#0ea5e920' : 'action.hover', color: tab === 1 ? '#0ea5e9' : 'text.secondary', px: 0.25 }} />
+                    <Chip label={foreignPeriods.length} size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 700, bgcolor: tab === 1 ? '#0ea5e920' : 'action.hover', color: tab === 1 ? '#4f67c9' : 'text.secondary', px: 0.25 }} />
                   </Box>
                 } />
               </Tabs>
@@ -385,7 +385,7 @@ export default function Periods() {
                 </Box>
               ) : activePeriods.length === 0 ? (
                 <Box sx={{ py: 8, textAlign: 'center', color: 'text.disabled' }}>
-                  <CalendarMonthIcon sx={{ fontSize: 36, opacity: 0.2, mb: 1 }} />
+                  <EditCalendarIcon sx={{ fontSize: 36, opacity: 0.2, mb: 1 }} />
                   <Typography sx={{ fontSize: '0.82rem' }}>No {tab === 0 ? 'local' : 'international'} periods yet</Typography>
                   <Typography sx={{ fontSize: '0.72rem', mt: 0.5 }}>Use Quick Month to generate</Typography>
                 </Box>
@@ -400,12 +400,12 @@ export default function Periods() {
         </Grid>
 
         {/* Detail panel */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {!selectedPeriod ? (
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, color: 'text.disabled' }}>
                 <Box sx={{ width: 64, height: 64, borderRadius: '20px', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                  <CalendarMonthIcon sx={{ fontSize: 32, opacity: 0.3 }} />
+                  <EditCalendarIcon sx={{ fontSize: 32, opacity: 0.3 }} />
                 </Box>
                 <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>No Period Selected</Typography>
                 <Typography sx={{ fontSize: '0.8rem' }}>Click a period on the left to view details</Typography>
@@ -416,8 +416,8 @@ export default function Periods() {
                 <Box sx={{
                   px: 3, py: 2.5,
                   background: selectedPeriod.period_type === 'foreign'
-                    ? 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(56,189,248,0.04) 100%)'
-                    : 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(129,140,248,0.04) 100%)',
+                    ? 'linear-gradient(135deg, rgba(79,103,201,0.08) 0%, rgba(113,134,218,0.04) 100%)'
+                    : 'linear-gradient(135deg, rgba(42,127,150,0.08) 0%, rgba(77,163,186,0.04) 100%)',
                   borderBottom: '1px solid', borderColor: 'divider',
                 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
@@ -428,7 +428,7 @@ export default function Periods() {
                           label={selectedPeriod.period_type === 'foreign' ? 'International' : 'Local'} size="small"
                           sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700,
                             bgcolor: selectedPeriod.period_type === 'foreign' ? '#0ea5e918' : '#6366f118',
-                            color: selectedPeriod.period_type === 'foreign' ? '#0ea5e9' : '#6366f1' }} />
+                            color: selectedPeriod.period_type === 'foreign' ? '#4f67c9' : '#2a7f96' }} />
                         <StatusChip status={selectedPeriod.status} />
                       </Box>
                       <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -440,21 +440,21 @@ export default function Periods() {
                         {isPeriodLocked(selectedPeriod) ? (
                           <>
                             <Chip icon={<LockIcon sx={{ fontSize: '12px !important' }} />} label="Locked" size="small"
-                              sx={{ bgcolor: '#94a3b815', color: '#94a3b8', fontWeight: 700, fontSize: '0.68rem' }} />
+                              sx={{ bgcolor: '#94a3b815', color: '#8da3a9', fontWeight: 700, fontSize: '0.68rem' }} />
                             <Button size="small" variant="outlined" startIcon={<ReceiptLongIcon sx={{ fontSize: '14px !important' }} />}
                               onClick={() => navigate('/payslips')}
-                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: '#2a7f96', color: '#2a7f96', '&:hover': { bgcolor: '#6366f110' } }}>
                               View Payslips
                             </Button>
                           </>
                         ) : (
                           <>
                             <Button size="small" variant="outlined" startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />} onClick={() => openEdit(selectedPeriod)}
-                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
                               Edit
                             </Button>
                             <Button size="small" variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: '14px !important' }} />} onClick={handleProcess}
-                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#10b981', color: '#10b981' } }}>
+                              sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.78rem', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2e9466', color: '#2e9466' } }}>
                               Process
                             </Button>
                           </>
@@ -466,9 +466,9 @@ export default function Periods() {
                   {/* Mini stats */}
                   <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
                     {[
-                      { icon: <PeopleIcon />, label: 'Employees',    value: summaries.length,                                                                                      color: '#6366f1' },
-                      { icon: <AccessTimeIcon />, label: 'Total Hours', value: formatHM(summaries.reduce((s, r) => s + (r.total_minutes != null ? parseInt(r.total_minutes,10) : Math.round((parseFloat(r.total_hours)||0)*60)), 0)), color: '#f59e0b' },
-                      { icon: <ReceiptLongIcon />, label: 'Payslips',  value: summaries.filter(s => s.approval_status === 'approved').length,                                    color: '#10b981' },
+                      { icon: <PeopleIcon />, label: 'Employees',    value: summaries.length,                                                                                      color: '#2a7f96' },
+                      { icon: <AccessTimeIcon />, label: 'Total Hours', value: formatHM(summaries.reduce((s, r) => s + (r.total_minutes != null ? parseInt(r.total_minutes,10) : Math.round((parseFloat(r.total_hours)||0)*60)), 0)), color: '#d08c1e' },
+                      { icon: <ReceiptLongIcon />, label: 'Payslips',  value: summaries.filter(s => s.approval_status === 'approved').length,                                    color: '#2e9466' },
                     ].map(stat => (
                       <Box key={stat.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, bgcolor: 'background.paper', px: 1.5, py: 1, borderRadius: '10px', border: '1px solid', borderColor: 'divider' }}>
                         {React.cloneElement(stat.icon, { sx: { fontSize: 15, color: stat.color } })}
@@ -513,7 +513,7 @@ export default function Periods() {
                               <TableCell sx={TD}>
                                 <Chip label={s.approval_status || 'pending'} size="small" sx={{ textTransform: 'capitalize', fontSize: '0.68rem', fontWeight: 600,
                                   bgcolor: s.approval_status === 'approved' ? '#10b98115' : s.approval_status === 'rejected' ? '#ef444415' : '#94a3b815',
-                                  color:   s.approval_status === 'approved' ? '#10b981'   : s.approval_status === 'rejected' ? '#ef4444'   : '#94a3b8' }} />
+                                  color:   s.approval_status === 'approved' ? '#2e9466'   : s.approval_status === 'rejected' ? '#d04a40'   : '#8da3a9' }} />
                               </TableCell>
                               <TableCell sx={TD}>
                                 <Chip label={chip.label} size="small" sx={{ bgcolor: chip.bg, color: chip.color, fontWeight: 700, fontSize: '0.68rem' }} />
@@ -542,12 +542,12 @@ export default function Periods() {
             helperText="Optional — auto-generated from dates if blank" size="small"
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
           <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth label="Start Date *" type="date" value={createForm.start_date}
                 onChange={e => setCreateForm(f => ({ ...f, start_date: e.target.value }))}
                 size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth label="End Date *" type="date" value={createForm.end_date}
                 onChange={e => setCreateForm(f => ({ ...f, end_date: e.target.value }))}
                 size="small" slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: createForm.start_date } }}
@@ -555,8 +555,8 @@ export default function Periods() {
             </Grid>
           </Grid>
           {createDur && (
-            <Box sx={{ bgcolor: `${createForm.period_type === 'foreign' ? '#0ea5e9' : '#6366f1'}10`, px: 2, py: 1.25, borderRadius: '10px', border: '1px solid', borderColor: `${createForm.period_type === 'foreign' ? '#0ea5e9' : '#6366f1'}20` }}>
-              <Typography sx={{ fontSize: '0.875rem', color: createForm.period_type === 'foreign' ? '#0ea5e9' : '#6366f1', fontWeight: 700 }}>
+            <Box sx={{ bgcolor: `${createForm.period_type === 'foreign' ? '#4f67c9' : '#2a7f96'}10`, px: 2, py: 1.25, borderRadius: '10px', border: '1px solid', borderColor: `${createForm.period_type === 'foreign' ? '#4f67c9' : '#2a7f96'}20` }}>
+              <Typography sx={{ fontSize: '0.875rem', color: createForm.period_type === 'foreign' ? '#4f67c9' : '#2a7f96', fontWeight: 700 }}>
                 {createDur} day{createDur !== 1 ? 's' : ''}
               </Typography>
             </Box>
@@ -566,7 +566,7 @@ export default function Periods() {
           <Button onClick={() => setShowCreateModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleCreate} variant="contained" disabled={createSaving}
             sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 130,
-              background: createForm.period_type === 'foreign' ? 'linear-gradient(135deg, #0ea5e9, #38bdf8)' : 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              background: createForm.period_type === 'foreign' ? 'linear-gradient(135deg, #4f67c9, #7186da)' : 'linear-gradient(135deg, #2a7f96, #4da3ba)' }}>
             {createSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Create Period'}
           </Button>
         </DialogActions>
@@ -580,7 +580,7 @@ export default function Periods() {
             {quickType === 'foreign' ? 'Creates one full-month international payroll period.' : 'Creates two 15-day local payroll periods (1st–15th and 16th–end).'}
           </Typography>
           <Grid container spacing={1.5}>
-            <Grid item xs={7}>
+            <Grid size={{ xs: 7 }}>
               <FormControl fullWidth size="small">
                 <InputLabel shrink>Month</InputLabel>
                 <Select label="Month" value={quickMonth} onChange={e => setQuickMonth(e.target.value)} notched sx={{ borderRadius: '10px' }}>
@@ -588,7 +588,7 @@ export default function Periods() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={5}>
+            <Grid size={{ xs: 5 }}>
               <TextField fullWidth label="Year" type="number" value={quickYear}
                 onChange={e => setQuickYear(parseInt(e.target.value))}
                 size="small" slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: 2020, max: 2099 } }}
@@ -600,7 +600,7 @@ export default function Periods() {
           <Button onClick={() => setShowQuickModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleQuickGenerate} variant="contained" disabled={quickSaving}
             sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 120,
-              background: quickType === 'foreign' ? 'linear-gradient(135deg, #0ea5e9, #38bdf8)' : 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              background: quickType === 'foreign' ? 'linear-gradient(135deg, #4f67c9, #7186da)' : 'linear-gradient(135deg, #2a7f96, #4da3ba)' }}>
             {quickSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Generate'}
           </Button>
         </DialogActions>
@@ -614,12 +614,12 @@ export default function Periods() {
             onChange={e => setEditForm(f => ({ ...f, period_name: e.target.value }))}
             size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
           <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth label="Start Date" type="date" value={editForm.start_date}
                 onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))}
                 size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth label="End Date" type="date" value={editForm.end_date}
                 onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))}
                 size="small" slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: editForm.start_date } }}
@@ -627,7 +627,7 @@ export default function Periods() {
             </Grid>
           </Grid>
           <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select label="Status" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -635,7 +635,7 @@ export default function Periods() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Type</InputLabel>
                 <Select label="Type" value={editForm.period_type} onChange={e => setEditForm(f => ({ ...f, period_type: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -647,14 +647,14 @@ export default function Periods() {
           </Grid>
           {editDur && (
             <Box sx={{ bgcolor: '#6366f110', px: 2, py: 1.25, borderRadius: '10px', border: '1px solid #6366f120' }}>
-              <Typography sx={{ fontSize: '0.875rem', color: '#6366f1', fontWeight: 700 }}>{editDur} day{editDur !== 1 ? 's' : ''}</Typography>
+              <Typography sx={{ fontSize: '0.875rem', color: '#2a7f96', fontWeight: 700 }}>{editDur} day{editDur !== 1 ? 's' : ''}</Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setShowEditModal(false)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleEdit} variant="contained" disabled={editSaving}
-            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 120, background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 120, background: 'linear-gradient(135deg, #2a7f96, #4da3ba)' }}>
             {editSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Changes'}
           </Button>
         </DialogActions>
@@ -667,14 +667,14 @@ export default function Periods() {
           <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
             Are you sure you want to delete <strong>{deleteTarget?.period_name}</strong>?
           </Typography>
-          <Typography sx={{ color: '#ef4444', fontSize: '0.8rem', mt: 1 }}>
+          <Typography sx={{ color: '#d04a40', fontSize: '0.8rem', mt: 1 }}>
             This permanently deletes the period and all associated timesheet summaries. Payslips are not affected.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setDeleteTarget(null)} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleDelete} variant="contained" disabled={deleteLoading}
-            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#d04a40', '&:hover': { bgcolor: '#b83a31' } }}>
             {deleteLoading ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Delete'}
           </Button>
         </DialogActions>
@@ -689,7 +689,7 @@ export default function Periods() {
             <strong>{lockTarget?.period_name}</strong> is <strong>{STATUS_META[lockTarget?.status]?.label || lockTarget?.status}</strong>.
             Unlocking reopens it for Wrike syncing and re-verification.
           </Typography>
-          <Typography sx={{ color: '#f59e0b', fontSize: '0.8rem', mt: 1.5 }}>
+          <Typography sx={{ color: '#d08c1e', fontSize: '0.8rem', mt: 1.5 }}>
             If payslips were already generated for this period, changing hours now will
             leave them out of step with the figures employees may already have received.
             Regenerate any affected payslips afterwards.
@@ -703,7 +703,7 @@ export default function Periods() {
           <Button onClick={() => setLockTarget(null)} disabled={lockSaving}
             sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={() => applyLock(lockTarget, true)} variant="contained" disabled={lockSaving}
-            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', minWidth: 100, bgcolor: '#d08c1e', '&:hover': { bgcolor: '#b5730f' } }}>
             {lockSaving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Unlock'}
           </Button>
         </DialogActions>

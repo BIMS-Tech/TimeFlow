@@ -8,21 +8,21 @@ import {
   List, ListItem, ListItemText, LinearProgress,
   Menu, MenuItem, ListItemIcon,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PublishIcon from '@mui/icons-material/Publish';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import OpenInNewIcon from '@mui/icons-material/OpenInNewOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
+import PublishIcon from '@mui/icons-material/PublishOutlined';
 
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
-import DownloadIcon from '@mui/icons-material/Download';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PeopleIcon from '@mui/icons-material/People';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonthOutlined';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOnOutlined';
+import DownloadIcon from '@mui/icons-material/DownloadOutlined';
+import TableChartIcon from '@mui/icons-material/TableChartOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
+import PeopleIcon from '@mui/icons-material/PeopleOutlined';
 import { timesheetAPI, payslipsAPI, employeesAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHoursAsHM } from '../utils/time';
@@ -41,7 +41,7 @@ function pollJob(jobId, onProgress) {
   });
 }
 
-const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.5, px: 2 };
 
 function InfoRow({ label, value }) {
@@ -262,7 +262,7 @@ export default function Payslips() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ReceiptLongIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
@@ -294,7 +294,7 @@ export default function Payslips() {
               catch { toast.error('Failed to download summary'); }
               finally { setDlSummary(false); }
             }}>
-              <ListItemIcon><PictureAsPdfIcon sx={{ fontSize: 18, color: '#ef4444' }} /></ListItemIcon>
+              <ListItemIcon><PictureAsPdfIcon sx={{ fontSize: 18, color: '#d04a40' }} /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>PDF (.pdf)</ListItemText>
             </MenuItem>
             <MenuItem onClick={async () => {
@@ -304,7 +304,7 @@ export default function Payslips() {
               catch { toast.error('Failed to download summary'); }
               finally { setDlSummary(false); }
             }}>
-              <ListItemIcon><TableChartIcon sx={{ fontSize: 18, color: '#10b981' }} /></ListItemIcon>
+              <ListItemIcon><TableChartIcon sx={{ fontSize: 18, color: '#2e9466' }} /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Excel (.xlsx)</ListItemText>
             </MenuItem>
           </Menu>
@@ -363,8 +363,8 @@ export default function Payslips() {
             <Button variant="outlined" startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
                 onClick={() => setShowBulkPanel(v => !v)}
                 sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                  borderColor: showBulkPanel ? '#6366f1' : 'divider',
-                  color: showBulkPanel ? '#6366f1' : 'text.secondary',
+                  borderColor: showBulkPanel ? '#2a7f96' : 'divider',
+                  color: showBulkPanel ? '#2a7f96' : 'text.secondary',
                   bgcolor: showBulkPanel ? '#6366f108' : 'transparent' }}>
                 Generate Payslips
               </Button>
@@ -376,8 +376,8 @@ export default function Payslips() {
                   onClick={handleRelease}
                   disabled={releasing || !selectedPeriod || unreleased === 0 || !bankUploaded}
                   sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem',
-                    background: allReleased ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'linear-gradient(135deg, #10b981, #34d399)',
-                    boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: (allReleased || !bankUploaded) ? 0.6 : 1 }}>
+                    background: allReleased ? 'linear-gradient(135deg, #2a7f96, #4da3ba)' : 'linear-gradient(135deg, #2e9466, #4fb585)',
+                    boxShadow: '0 4px 12px rgba(46,148,102,0.3)', opacity: (allReleased || !bankUploaded) ? 0.6 : 1 }}>
                   {releasing ? 'Releasing…' : allReleased ? `All ${releasedCount} Released` : `Release All (${unreleased} pending)`}
                 </Button>
               </span>
@@ -389,10 +389,10 @@ export default function Payslips() {
       {/* Bulk Generate Panel */}
       {!isReadOnly && showBulkPanel && !payslipsLocked && (
         <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '16px', border: '1px solid', borderColor: '#6366f130', overflow: 'hidden' }}>
-          <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(99,102,241,0.03)' }}>
-            <AutoAwesomeIcon sx={{ color: '#6366f1', fontSize: 17 }} />
+          <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(42,127,150,0.03)' }}>
+            <AutoAwesomeIcon sx={{ color: '#2a7f96', fontSize: 17 }} />
             <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>Bulk Generate Payslips</Typography>
-            {selectedPeriod && <Chip label={selectedPeriod.period_name} size="small" sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 600, fontSize: '0.72rem' }} />}
+            {selectedPeriod && <Chip label={selectedPeriod.period_name} size="small" sx={{ bgcolor: '#6366f115', color: '#2a7f96', fontWeight: 600, fontSize: '0.72rem' }} />}
           </Box>
           <Box sx={{ p: 2.5 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 1 }}>
@@ -402,7 +402,7 @@ export default function Payslips() {
             <Box sx={{ maxHeight: 220, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '10px', overflow: 'hidden' }}>
               <List dense disablePadding>
                 <ListItem disablePadding sx={{ borderBottom: '1px solid', borderBottomColor: 'divider', bgcolor: 'action.hover', px: 1 }}>
-                  <Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                  <Checkbox checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} size="small" sx={{ color: '#2a7f96', '&.Mui-checked': { color: '#2a7f96' } }} />
                   <ListItemText
                     primary={<Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>All Employees ({bulkEmployees.length})</Typography>}
                     secondary={selectAll ? 'Will generate for all eligible employees' : 'Select specific employees below'}
@@ -418,7 +418,7 @@ export default function Payslips() {
                       '&:hover': { bgcolor: selectAll ? 'transparent' : '#6366f108' } }}>
                     <Checkbox checked={selectAll || selectedEmployeeIds.includes(emp.id)} disabled={selectAll}
                       onChange={() => handleToggleEmployee(emp.id)} size="small"
-                      sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }} />
+                      sx={{ color: '#2a7f96', '&.Mui-checked': { color: '#2a7f96' } }} />
                     <ListItemText primary={emp.name} secondary={emp.employee_id || emp.id}
                       sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem' }, '& .MuiListItemText-secondary': { fontSize: '0.72rem' } }} />
                   </ListItem>
@@ -430,14 +430,14 @@ export default function Payslips() {
                 startIcon={generating ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
                 onClick={handleBulkGenerate}
                 disabled={generating || !selectedPeriod || bulkEmployees.length === 0 || (!selectAll && selectedEmployeeIds.length === 0)}
-                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #6366f1, #818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', boxShadow: '0 4px 12px rgba(42,127,150,0.3)' }}>
                 {generating ? (genProgress?.total > 0 ? `${genProgress.done} / ${genProgress.total}…` : 'Generating…') : 'Generate Now'}
               </Button>
               {bulkResult && (
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip label={`${bulkResult.generated} generated`} size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
-                  {bulkResult.skipped > 0 && <Chip label={`${bulkResult.skipped} skipped`} size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700 }} />}
-                  {bulkResult.errors?.length > 0 && <Chip label={`${bulkResult.errors.length} errors`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+                  <Chip label={`${bulkResult.generated} generated`} size="small" sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700 }} />
+                  {bulkResult.skipped > 0 && <Chip label={`${bulkResult.skipped} skipped`} size="small" sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 700 }} />}
+                  {bulkResult.errors?.length > 0 && <Chip label={`${bulkResult.errors.length} errors`} size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 700 }} />}
                 </Box>
               )}
             </Box>
@@ -445,7 +445,7 @@ export default function Payslips() {
               <Box sx={{ mt: 1.5 }}>
                 <LinearProgress variant={genProgress?.total > 0 ? 'determinate' : 'indeterminate'}
                   value={genProgress?.total > 0 ? (genProgress.done / genProgress.total) * 100 : undefined}
-                  sx={{ height: 5, borderRadius: 3, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#6366f1', borderRadius: 3 } }} />
+                  sx={{ height: 5, borderRadius: 3, bgcolor: '#dce4e5', '& .MuiLinearProgress-bar': { bgcolor: '#2a7f96', borderRadius: 3 } }} />
                 {genProgress?.current && (
                   <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.5 }}>Processing: {genProgress.current}</Typography>
                 )}
@@ -457,7 +457,7 @@ export default function Payslips() {
 
       <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
         {/* Periods sidebar */}
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'text.primary', mb: 1 }}>Pay Periods</Typography>
@@ -465,9 +465,9 @@ export default function Payslips() {
                 {[{ label: 'All', value: 'all' }, { label: 'Local', value: 'local' }, { label: 'Intl', value: 'foreign' }].map(opt => (
                   <Chip key={opt.value} label={opt.label} size="small" onClick={() => handleFilterChange(opt.value)}
                     sx={{ height: 22, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-                      bgcolor: periodTypeFilter === opt.value ? '#6366f1' : 'action.hover',
+                      bgcolor: periodTypeFilter === opt.value ? '#2a7f96' : 'action.hover',
                       color:   periodTypeFilter === opt.value ? 'white' : 'text.secondary',
-                      '&:hover': { bgcolor: periodTypeFilter === opt.value ? '#5254d4' : 'action.selected' } }} />
+                      '&:hover': { bgcolor: periodTypeFilter === opt.value ? '#1f6e84' : 'action.selected' } }} />
                 ))}
               </Box>
             </Box>
@@ -481,7 +481,7 @@ export default function Payslips() {
 
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {loading ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#6366f1' }} /></Box>
+                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#2a7f96' }} /></Box>
               ) : filteredPeriods.length === 0 ? (
                 <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled', fontSize: '0.8rem' }}>
                   {periodSearch ? 'No periods match your search' : 'No periods'}
@@ -489,21 +489,21 @@ export default function Payslips() {
               ) : filteredPeriods.map(p => (
                 <Box key={p.id} onClick={() => handleSelectPeriod(p)}
                   sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer',
-                    bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.06)' : 'transparent',
-                    borderLeft: selectedPeriod?.id === p.id ? '3px solid #6366f1' : '3px solid transparent',
+                    bgcolor: selectedPeriod?.id === p.id ? 'rgba(42,127,150,0.06)' : 'transparent',
+                    borderLeft: selectedPeriod?.id === p.id ? '3px solid #2a7f96' : '3px solid transparent',
                     transition: 'all 0.15s',
-                    '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(99,102,241,0.08)' : 'action.hover' } }}>
+                    '&:hover': { bgcolor: selectedPeriod?.id === p.id ? 'rgba(42,127,150,0.08)' : 'action.hover' } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
-                    <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.8rem', color: selectedPeriod?.id === p.id ? '#6366f1' : 'text.primary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 0.5 }}>
+                    <Typography sx={{ fontWeight: selectedPeriod?.id === p.id ? 700 : 500, fontSize: '0.8rem', color: selectedPeriod?.id === p.id ? '#2a7f96' : 'text.primary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 0.5 }}>
                       {p.period_name}
                     </Typography>
                     <Chip label={p.period_type === 'foreign' ? 'Intl' : 'LCL'} size="small"
                       sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
                         bgcolor: p.period_type === 'foreign' ? '#0ea5e918' : '#6366f118',
-                        color:   p.period_type === 'foreign' ? '#0ea5e9'   : '#6366f1' }} />
+                        color:   p.period_type === 'foreign' ? '#4f67c9'   : '#2a7f96' }} />
                     {p.bank_uploaded_at
-                      ? <Tooltip title="Bank uploaded — ready to release" arrow><Box component="span" sx={{ fontSize: 12, color: '#10b981' }}>✓</Box></Tooltip>
-                      : <Tooltip title="Bank not yet uploaded" arrow><Box component="span" sx={{ fontSize: 12, color: '#f59e0b' }}>⚠</Box></Tooltip>}
+                      ? <Tooltip title="Bank uploaded — ready to release" arrow><Box component="span" sx={{ fontSize: 12, color: '#2e9466' }}>✓</Box></Tooltip>
+                      : <Tooltip title="Bank not yet uploaded" arrow><Box component="span" sx={{ fontSize: 12, color: '#d08c1e' }}>⚠</Box></Tooltip>}
                   </Box>
                   <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled', textTransform: 'capitalize' }}>{p.status}</Typography>
                 </Box>
@@ -513,7 +513,7 @@ export default function Payslips() {
         </Grid>
 
         {/* Main payslips area */}
-        <Grid item xs={12} md={9}>
+        <Grid size={{ xs: 12, md: 9 }}>
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {/* Table header */}
             <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
@@ -535,16 +535,16 @@ export default function Payslips() {
             {/* Bank upload gate warning */}
             {selectedPeriod && !bankUploaded && !isReadOnly && payslips.length > 0 && (
               <Box sx={{ px: 2.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#f59e0b0d', borderBottom: '1px solid #f59e0b30' }}>
-                <Box sx={{ fontSize: 15, color: '#f59e0b' }}>⚠</Box>
-                <Typography sx={{ fontSize: '0.8rem', color: '#b45309' }}>
+                <Box sx={{ fontSize: 15, color: '#d08c1e' }}>⚠</Box>
+                <Typography sx={{ fontSize: '0.8rem', color: '#94600f' }}>
                   Bank upload not yet confirmed for this period. Go to <strong>Generate Bank Upload</strong> → confirm upload before releasing payslips to employees.
                 </Typography>
               </Box>
             )}
             {selectedPeriod && bankUploaded && !allReleased && !isReadOnly && payslips.length > 0 && (
               <Box sx={{ px: 2.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#10b9810a', borderBottom: '1px solid #10b98125' }}>
-                <Box sx={{ fontSize: 14, color: '#10b981' }}>✓</Box>
-                <Typography sx={{ fontSize: '0.78rem', color: '#059669' }}>
+                <Box sx={{ fontSize: 14, color: '#2e9466' }}>✓</Box>
+                <Typography sx={{ fontSize: '0.78rem', color: '#237a53' }}>
                   Bank upload confirmed — you can now release payslips to employees.
                 </Typography>
               </Box>
@@ -554,9 +554,9 @@ export default function Payslips() {
             {filtered.length > 0 && (
               <Box sx={{ display: 'flex', gap: 0, borderBottom: '1px solid', borderBottomColor: 'divider', bgcolor: 'action.hover' }}>
                 {[
-                  { icon: <PeopleIcon />, label: 'Employees', value: filtered.length, color: '#6366f1' },
-                  { icon: <CalendarMonthIcon />, label: 'Period', value: selectedPeriod?.period_type === 'foreign' ? 'International' : 'Local', color: '#0ea5e9' },
-                  { icon: <MonetizationOnIcon />, label: 'Total Net', value: `${filtered[0]?.currency || ''} ${totalNet.toLocaleString()}`, color: '#10b981' },
+                  { icon: <PeopleIcon />, label: 'Employees', value: filtered.length, color: '#2a7f96' },
+                  { icon: <CalendarMonthIcon />, label: 'Period', value: selectedPeriod?.period_type === 'foreign' ? 'International' : 'Local', color: '#4f67c9' },
+                  { icon: <MonetizationOnIcon />, label: 'Total Net', value: `${filtered[0]?.currency || ''} ${totalNet.toLocaleString()}`, color: '#2e9466' },
                 ].map((s, i) => (
                   <Box key={i} sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, borderRight: i < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
                     {s.icon && <Box sx={{ color: s.color, display: 'flex', alignItems: 'center' }}>{s.icon}</Box>}
@@ -598,7 +598,7 @@ export default function Payslips() {
                   <TableBody>
                     {filtered.map(p => (
                       <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                        <TableCell sx={{ ...TD, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: '#6366f1' }}>
+                        <TableCell sx={{ ...TD, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: '#2a7f96' }}>
                           {p.payslip_number}
                         </TableCell>
                         <TableCell sx={TD}>
@@ -613,7 +613,7 @@ export default function Payslips() {
                             <TableCell sx={{ ...TD, color: 'text.secondary' }}>
                               {p.currency || ''} {p.gross_amount?.toLocaleString()}
                             </TableCell>
-                            <TableCell sx={{ ...TD, fontWeight: 700, color: '#10b981' }}>
+                            <TableCell sx={{ ...TD, fontWeight: 700, color: '#2e9466' }}>
                               {p.currency || ''} {p.net_amount?.toLocaleString()}
                             </TableCell>
                           </>
@@ -621,7 +621,7 @@ export default function Payslips() {
                         <TableCell sx={TD}>
                           <Chip label={p.status} size="small" sx={{
                             bgcolor: p.status === 'released' ? '#10b98115' : p.status === 'paid' ? '#6366f115' : '#f59e0b15',
-                            color:   p.status === 'released' ? '#10b981'   : p.status === 'paid' ? '#6366f1'   : '#f59e0b',
+                            color:   p.status === 'released' ? '#2e9466'   : p.status === 'paid' ? '#2a7f96'   : '#d08c1e',
                             fontWeight: 700, fontSize: '0.68rem', textTransform: 'capitalize',
                           }} />
                         </TableCell>
@@ -629,20 +629,20 @@ export default function Payslips() {
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
                             <Tooltip title="View Details" arrow>
                               <IconButton size="small" onClick={() => handleViewPayslip(p.id)}
-                                sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}>
+                                sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}>
                                 <VisibilityIcon sx={{ fontSize: 15 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Open PDF (print / download)" arrow>
                               <IconButton size="small" onClick={() => handleOpenPDF(p)}
-                                sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}>
+                                sx={{ color: '#2e9466', '&:hover': { bgcolor: '#10b98115' } }}>
                                 <PictureAsPdfIcon sx={{ fontSize: 15 }} />
                               </IconButton>
                             </Tooltip>
                             {p.drive_file_url && (
                               <Tooltip title="View in Google Drive" arrow>
                                 <IconButton size="small" component="a" href={p.drive_file_url} target="_blank" rel="noopener noreferrer"
-                                  sx={{ color: '#0ea5e9', '&:hover': { bgcolor: '#0ea5e915' } }}>
+                                  sx={{ color: '#4f67c9', '&:hover': { bgcolor: '#0ea5e915' } }}>
                                   <OpenInNewIcon sx={{ fontSize: 15 }} />
                                 </IconButton>
                               </Tooltip>
@@ -653,9 +653,9 @@ export default function Payslips() {
                                   <IconButton size="small"
                                     onClick={() => handleReleaseOne(p)}
                                     disabled={releasingId === p.id || !canRelease}
-                                    sx={{ color: canRelease ? '#10b981' : 'text.disabled', '&:hover': { bgcolor: canRelease ? '#10b98115' : 'transparent' } }}>
+                                    sx={{ color: canRelease ? '#2e9466' : 'text.disabled', '&:hover': { bgcolor: canRelease ? '#10b98115' : 'transparent' } }}>
                                     {releasingId === p.id
-                                      ? <CircularProgress size={13} sx={{ color: '#10b981' }} />
+                                      ? <CircularProgress size={13} sx={{ color: '#2e9466' }} />
                                       : <PublishIcon sx={{ fontSize: 15 }} />}
                                   </IconButton>
                                 </span>
@@ -664,7 +664,7 @@ export default function Payslips() {
                             {isSuperAdmin && (
                               <Tooltip title="Delete Payslip" arrow>
                                 <IconButton size="small" onClick={() => setDeleteTarget(p)}
-                                  sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}>
+                                  sx={{ color: '#d04a40', '&:hover': { bgcolor: '#ef444415' } }}>
                                   <DeleteIcon sx={{ fontSize: 15 }} />
                                 </IconButton>
                               </Tooltip>
@@ -687,8 +687,8 @@ export default function Payslips() {
         <DialogContent>
           {selected && (
             <>
-              <Box sx={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', borderRadius: '12px', p: 2.5, mb: 2.5 }}>
-                <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Payslip Number</Typography>
+              <Box sx={{ background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)', borderRadius: '12px', p: 2.5, mb: 2.5 }}>
+                <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', mb: 0.5 }}>Payslip Number</Typography>
                 <Typography sx={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1.2rem', color: 'white', letterSpacing: '0.04em' }}>{selected.payslip_number}</Typography>
               </Box>
               <InfoRow label="Employee"    value={selected.employee_name} />
@@ -701,8 +701,8 @@ export default function Payslips() {
                   <InfoRow label="Deductions"  value={`${selected.currency || ''} ${((selected.tax_deductions || 0) + (selected.other_deductions || 0)).toLocaleString()}`} />
                   <Divider sx={{ my: 1.5 }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#10b98110', border: '1px solid #10b98130', borderRadius: '12px', px: 2.5, py: 1.75 }}>
-                    <Typography sx={{ fontWeight: 700, color: '#10b981' }}>Net Amount</Typography>
-                    <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#10b981' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#2e9466' }}>Net Amount</Typography>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#2e9466' }}>
                       {selected.currency || ''} {selected.net_amount?.toLocaleString()}
                     </Typography>
                   </Box>
@@ -714,7 +714,7 @@ export default function Payslips() {
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           {selected && (
             <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={() => handleOpenPDF(selected)}
-              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#2e9466', color: '#2e9466', '&:hover': { bgcolor: '#10b98110' } }}>
               Open PDF
             </Button>
           )}
@@ -738,7 +738,7 @@ export default function Payslips() {
           </Button>
           <Button variant="contained" onClick={handleDeleteConfirm} disabled={deleting}
             startIcon={deleting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <DeleteIcon />}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' }, boxShadow: 'none' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, bgcolor: '#d04a40', '&:hover': { bgcolor: '#b83a31' }, boxShadow: 'none' }}>
             {deleting ? 'Deleting…' : 'Delete'}
           </Button>
         </DialogActions>

@@ -6,21 +6,21 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Alert, Collapse, Chip, Checkbox, Divider, LinearProgress, InputAdornment, TextField,
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import AddIcon from '@mui/icons-material/Add';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import SearchIcon from '@mui/icons-material/Search';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import PeopleIcon from '@mui/icons-material/PeopleOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonthOutlined';
+import CalculateIcon from '@mui/icons-material/CalculateOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import AccessTimeIcon from '@mui/icons-material/AccessTimeOutlined';
+import TrendingUpIcon from '@mui/icons-material/TrendingUpOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLessOutlined';
+import RestartAltIcon from '@mui/icons-material/RestartAltOutlined';
+import AddIcon from '@mui/icons-material/AddOutlined';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlineOutlined';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 import { employeesAPI, timesheetAPI, timesheetGeneratorAPI, jobsAPI, verificationsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHoursAsHM } from '../utils/time';
@@ -54,9 +54,9 @@ function fmtDay(dateStr) {
 }
 
 const PERIOD_STATUS_LABEL = { open: 'Open', pending_approval: 'Pending Approval', approved: 'Approved', completed: 'Completed', paid: 'Paid' };
-const PERIOD_STATUS_COLOR = { open: '#6366f1', pending_approval: '#f59e0b', approved: '#10b981', completed: '#10b981', paid: '#10b981' };
+const PERIOD_STATUS_COLOR = { open: '#2a7f96', pending_approval: '#d08c1e', approved: '#2e9466', completed: '#2e9466', paid: '#2e9466' };
 
-const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.85rem', color: 'text.primary', py: 1.25, px: 2 };
 
 function StepIndicator({ steps, current }) {
@@ -71,21 +71,21 @@ function StepIndicator({ steps, current }) {
               <Box sx={{
                 width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontWeight: 800, fontSize: '0.8rem', flexShrink: 0, transition: 'all 0.25s',
-                background: done   ? '#10b981' :
-                            active ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'transparent',
+                background: done   ? '#2e9466' :
+                            active ? 'linear-gradient(135deg, #2a7f96, #4da3ba)' : 'transparent',
                 border: done || active ? 'none' : '2px solid',
                 borderColor: 'divider',
                 color: done || active ? 'white' : 'text.disabled',
-                boxShadow: active ? '0 4px 14px rgba(99,102,241,0.4)' : 'none',
+                boxShadow: active ? '0 4px 14px rgba(42,127,150,0.4)' : 'none',
               }}>
                 {done ? <CheckCircleIcon sx={{ fontSize: 15 }} /> : i + 1}
               </Box>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: active ? 700 : 400, color: active ? '#6366f1' : done ? '#10b981' : 'text.disabled', whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: active ? 700 : 400, color: active ? '#2a7f96' : done ? '#2e9466' : 'text.disabled', whiteSpace: 'nowrap' }}>
                 {label}
               </Typography>
             </Box>
             {i < steps.length - 1 && (
-              <Box sx={{ flex: 1, height: 2, mx: 1.5, borderRadius: 2, bgcolor: i < current ? '#10b981' : 'divider', transition: 'background 0.3s', minWidth: 20 }} />
+              <Box sx={{ flex: 1, height: 2, mx: 1.5, borderRadius: 2, bgcolor: i < current ? '#2e9466' : 'divider', transition: 'background 0.3s', minWidth: 20 }} />
             )}
           </React.Fragment>
         );
@@ -101,7 +101,7 @@ function SummaryCard({ icon, label, value, color }) {
         <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {React.cloneElement(icon, { sx: { fontSize: 15, color } })}
         </Box>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'text.secondary' }}>{label}</Typography>
+        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary' }}>{label}</Typography>
       </Box>
       <Typography sx={{ fontSize: '1.3rem', fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>{value}</Typography>
     </Paper>
@@ -318,8 +318,8 @@ export default function TimesheetGenerator() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #10b981, #34d399)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ReceiptIcon sx={{ color: 'white', fontSize: 18 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #2e9466, #4fb585)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CalculateIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Process Payroll</Typography>
@@ -328,7 +328,7 @@ export default function TimesheetGenerator() {
         </Box>
         {(selectedPeriod || hasSelection) && (
           <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={handleReset}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#ef4444', color: '#ef4444' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#d04a40', color: '#d04a40' } }}>
             Start Over
           </Button>
         )}
@@ -338,7 +338,7 @@ export default function TimesheetGenerator() {
 
       <Grid container spacing={2} sx={{ alignItems: 'start' }}>
         {/* ── Left panel ─────────────────────────────────────────────────── */}
-        <Grid item xs={12} md={showRight ? 4 : 5}>
+        <Grid size={{ xs: 12, md: showRight ? 4 : 5 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
             {/* ── Step 1: Period select (always active) ── */}
@@ -346,12 +346,12 @@ export default function TimesheetGenerator() {
               <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CalendarMonthIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                    <CalendarMonthIcon sx={{ fontSize: 14, color: '#2a7f96' }} />
                   </Box>
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Pay Period</Typography>
                 </Box>
                 <Button size="small" component={Link} to="/periods" startIcon={<AddIcon sx={{ fontSize: '13px !important' }} />}
-                  sx={{ textTransform: 'none', fontSize: '0.72rem', fontWeight: 600, color: '#6366f1', borderRadius: '8px', py: 0.4, px: 1, bgcolor: '#6366f110', '&:hover': { bgcolor: '#6366f120' } }}>
+                  sx={{ textTransform: 'none', fontSize: '0.72rem', fontWeight: 600, color: '#2a7f96', borderRadius: '8px', py: 0.4, px: 1, bgcolor: '#6366f110', '&:hover': { bgcolor: '#6366f120' } }}>
                   New
                 </Button>
               </Box>
@@ -360,9 +360,9 @@ export default function TimesheetGenerator() {
                 <Box sx={{ px: 1.5, pt: 1.25, pb: 1, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     {[
-                      { value: 'all',     label: 'All',           color: '#6366f1' },
-                      { value: 'local',   label: 'Local',         color: '#6366f1' },
-                      { value: 'foreign', label: 'International',  color: '#0ea5e9' },
+                      { value: 'all',     label: 'All',           color: '#2a7f96' },
+                      { value: 'local',   label: 'Local',         color: '#2a7f96' },
+                      { value: 'foreign', label: 'International',  color: '#4f67c9' },
                     ].map(t => {
                       const active = periodTypeFilter === t.value;
                       return (
@@ -395,12 +395,12 @@ export default function TimesheetGenerator() {
               )}
 
               {periodsLoading ? (
-                <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={20} sx={{ color: '#6366f1' }} /></Box>
+                <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={20} sx={{ color: '#2a7f96' }} /></Box>
               ) : periods.length === 0 ? (
                 <Box sx={{ py: 4, textAlign: 'center', px: 2 }}>
                   <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mb: 1.5 }}>No pay periods yet.</Typography>
                   <Button variant="outlined" size="small" component={Link} to="/periods" startIcon={<AddIcon />}
-                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#6366f1', color: '#6366f1', fontSize: '0.75rem' }}>
+                    sx={{ textTransform: 'none', borderRadius: '8px', borderColor: '#2a7f96', color: '#2a7f96', fontSize: '0.75rem' }}>
                     Create a Period
                   </Button>
                 </Box>
@@ -412,9 +412,9 @@ export default function TimesheetGenerator() {
                     </Box>
                   ) : visiblePeriods.map((p, idx) => {
                     const sel       = selectedPeriod?.id === p.id;
-                    const typeColor = p.period_type === 'foreign' ? '#0ea5e9' : '#6366f1';
+                    const typeColor = p.period_type === 'foreign' ? '#4f67c9' : '#2a7f96';
                     const statusLabel = PERIOD_STATUS_LABEL[p.status] || p.status;
-                    const statusColor = PERIOD_STATUS_COLOR[p.status] || '#6366f1';
+                    const statusColor = PERIOD_STATUS_COLOR[p.status] || '#2a7f96';
                     return (
                       <Box key={p.id}
                         onClick={() => handleSelectPeriod(p)}
@@ -452,19 +452,19 @@ export default function TimesheetGenerator() {
               <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#10b98115', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <PeopleIcon sx={{ fontSize: 14, color: '#10b981' }} />
+                    <PeopleIcon sx={{ fontSize: 14, color: '#2e9466' }} />
                   </Box>
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Employees</Typography>
                   {selectedPeriod && (
                     <Chip label={selectedPeriod.period_type === 'foreign' ? 'International' : 'Local'} size="small"
                       sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700,
                         bgcolor: selectedPeriod.period_type === 'foreign' ? '#0ea5e918' : '#10b98118',
-                        color:   selectedPeriod.period_type === 'foreign' ? '#0ea5e9'   : '#10b981' }} />
+                        color:   selectedPeriod.period_type === 'foreign' ? '#4f67c9'   : '#2e9466' }} />
                   )}
                 </Box>
                 {selectedIds.size > 0 && (
                   <Chip label={`${selectedIds.size} selected`} size="small"
-                    sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+                    sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
                 )}
               </Box>
 
@@ -474,20 +474,20 @@ export default function TimesheetGenerator() {
                   <Typography sx={{ fontSize: '0.82rem' }}>Select a pay period first</Typography>
                 </Box>
               ) : verLoading || empLoading ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#10b981' }} /></Box>
+                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#2e9466' }} /></Box>
               ) : doneEmployees.length === allPeriodEmployees.length && allPeriodEmployees.length > 0 ? (
                 // All employees already have payslips
                 <Box sx={{ py: 5, px: 2.5, textAlign: 'center' }}>
                   <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: '#10b98115', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
-                    <CheckCircleIcon sx={{ fontSize: 22, color: '#10b981' }} />
+                    <CheckCircleIcon sx={{ fontSize: 22, color: '#2e9466' }} />
                   </Box>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#065f46', mb: 0.5 }}>All Payslips Generated</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1b5e40', mb: 0.5 }}>All Payslips Generated</Typography>
                   <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2 }}>
                     All {doneEmployees.length} {periodCategory} employees already have payslips for this period.
                     To regenerate, delete the existing payslips first from the Payslips page.
                   </Typography>
                   <Chip label={`${doneEmployees.length} payslips exist`} size="small" icon={<CheckCircleIcon sx={{ fontSize: '13px !important' }} />}
-                    sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, '& .MuiChip-icon': { color: '#10b981' } }} />
+                    sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, '& .MuiChip-icon': { color: '#2e9466' } }} />
                 </Box>
               ) : allPeriodEmployees.length === 0 ? (
                 <Box sx={{ py: 6, textAlign: 'center', px: 2 }}>
@@ -503,24 +503,24 @@ export default function TimesheetGenerator() {
                   <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                     <Chip icon={<CheckCircleIcon sx={{ fontSize: '13px !important' }} />}
                       label={`${doneEmployees.length} payslip${doneEmployees.length !== 1 ? 's' : ''} generated`}
-                      size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.7rem', '& .MuiChip-icon': { color: '#10b981' } }} />
+                      size="small" sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.7rem', '& .MuiChip-icon': { color: '#2e9466' } }} />
                     {pendingEmployees.length > 0 && (
                       <Chip label={`${pendingEmployees.length} not yet verified`}
-                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem' }} />
+                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 700, fontSize: '0.7rem' }} />
                     )}
                     {rejectedEmployees.length > 0 && (
                       <Chip label={`${rejectedEmployees.length} rejected`}
-                        size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
+                        size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 700, fontSize: '0.7rem' }} />
                     )}
                   </Box>
                   <Box sx={{ bgcolor: '#10b9810a', border: '1px solid #10b98130', borderRadius: '12px', p: 2, mb: 2 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <CheckCircleIcon sx={{ fontSize: 18, color: '#10b981', mt: 0.1, flexShrink: 0 }} />
+                      <CheckCircleIcon sx={{ fontSize: 18, color: '#2e9466', mt: 0.1, flexShrink: 0 }} />
                       <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#065f46', mb: 0.4 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#1b5e40', mb: 0.4 }}>
                           Payroll partially processed
                         </Typography>
-                        <Typography sx={{ fontSize: '0.78rem', color: '#065f46', lineHeight: 1.5 }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#1b5e40', lineHeight: 1.5 }}>
                           {doneEmployees.length} payslip{doneEmployees.length !== 1 ? 's have' : ' has'} already been generated.
                           {pendingEmployees.length > 0 && ` ${pendingEmployees.length} remaining employee${pendingEmployees.length !== 1 ? 's' : ''} need${pendingEmployees.length === 1 ? 's' : ''} timesheet verification before they can be processed.`}
                         </Typography>
@@ -530,7 +530,7 @@ export default function TimesheetGenerator() {
                   {(pendingEmployees.length > 0 || rejectedEmployees.length > 0) && (
                     <Button component={Link} to="/wrike" variant="outlined" size="small" startIcon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
                       sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem',
-                        borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110', borderColor: '#6366f1' } }}>
+                        borderColor: '#2a7f96', color: '#2a7f96', '&:hover': { bgcolor: '#6366f110', borderColor: '#2a7f96' } }}>
                       Verify Remaining Employees
                     </Button>
                   )}
@@ -541,32 +541,32 @@ export default function TimesheetGenerator() {
                   <Box sx={{ display: 'flex', gap: 1, mb: 2.5, flexWrap: 'wrap' }}>
                     <Chip icon={<PeopleIcon sx={{ fontSize: '13px !important' }} />}
                       label={`${allPeriodEmployees.length} total employee${allPeriodEmployees.length !== 1 ? 's' : ''}`}
-                      size="small" sx={{ bgcolor: '#6366f115', color: '#6366f1', fontWeight: 700, fontSize: '0.7rem' }} />
+                      size="small" sx={{ bgcolor: '#6366f115', color: '#2a7f96', fontWeight: 700, fontSize: '0.7rem' }} />
                     {pendingEmployees.length > 0 && (
                       <Chip label={`${pendingEmployees.length} not verified`}
-                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem' }} />
+                        size="small" sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 700, fontSize: '0.7rem' }} />
                     )}
                     {rejectedEmployees.length > 0 && (
                       <Chip label={`${rejectedEmployees.length} rejected`}
-                        size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
+                        size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 700, fontSize: '0.7rem' }} />
                     )}
                   </Box>
                   {/* Guidance */}
                   <Box sx={{ bgcolor: '#f59e0b0a', border: '1px solid #f59e0b30', borderRadius: '12px', p: 2, mb: 2 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <VerifiedUserIcon sx={{ fontSize: 18, color: '#f59e0b', mt: 0.1, flexShrink: 0 }} />
+                      <VerifiedUserIcon sx={{ fontSize: 18, color: '#d08c1e', mt: 0.1, flexShrink: 0 }} />
                       <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#92400e', mb: 0.4 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#7a4a0c', mb: 0.4 }}>
                           No verified employees for this period
                         </Typography>
-                        <Typography sx={{ fontSize: '0.78rem', color: '#92400e', lineHeight: 1.5 }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#7a4a0c', lineHeight: 1.5 }}>
                           {allPeriodEmployees.length} {selectedPeriod.period_type === 'foreign' ? 'international' : 'local'} employee{allPeriodEmployees.length !== 1 ? 's are' : ' is'} set up but {allPeriodEmployees.length !== 1 ? 'none have' : 'has not'} been verified for this pay period yet.
                           You need to verify timesheets first before processing payroll.
                         </Typography>
                       </Box>
                     </Box>
                   </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', mb: 1.5, fontWeight: 600 }}>
                     Follow these steps:
                   </Typography>
                   {[
@@ -576,7 +576,7 @@ export default function TimesheetGenerator() {
                   ].map(({ step: n, label, sub, action }) => (
                     <Box key={n} sx={{ display: 'flex', gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
                       <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.1 }}>
-                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#6366f1' }}>{n}</Typography>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#2a7f96' }}>{n}</Typography>
                       </Box>
                       <Box>
                         <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>{label}</Typography>
@@ -586,7 +586,7 @@ export default function TimesheetGenerator() {
                   ))}
                   <Button component={Link} to="/wrike" variant="contained" size="small" startIcon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
                     sx={{ mt: 1, textTransform: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem',
-                      background: 'linear-gradient(135deg, #6366f1, #818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                      background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', boxShadow: '0 4px 12px rgba(42,127,150,0.3)' }}>
                     Go to Verify Timesheet
                   </Button>
                 </Box>
@@ -595,8 +595,8 @@ export default function TimesheetGenerator() {
                   {/* Partial payslip banner */}
                   {doneEmployees.length > 0 && doneEmployees.length < allPeriodEmployees.length && (
                     <Box sx={{ px: 2, py: 1, bgcolor: '#10b9810a', borderBottom: '1px solid #10b98125', display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981', flexShrink: 0 }} />
-                      <Typography sx={{ fontSize: '0.72rem', color: '#065f46' }}>
+                      <CheckCircleIcon sx={{ fontSize: 14, color: '#2e9466', flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.72rem', color: '#1b5e40' }}>
                         <strong>{doneEmployees.length}</strong> of {allPeriodEmployees.length} employees already have payslips — showing only the remaining {eligibleEmployees.length}.
                       </Typography>
                     </Box>
@@ -605,13 +605,13 @@ export default function TimesheetGenerator() {
                   {/* Partial verification banner */}
                   {(pendingEmployees.length > 0 || rejectedEmployees.length > 0) && (
                     <Box sx={{ px: 2, py: 1, bgcolor: '#f59e0b0a', borderBottom: '1px solid #f59e0b25', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontSize: '0.72rem', color: '#92400e', lineHeight: 1.4 }}>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#7a4a0c', lineHeight: 1.4 }}>
                         Showing <strong>{eligibleEmployees.length} verified</strong> of {allPeriodEmployees.length} employees.
                         {pendingEmployees.length > 0 && ` ${pendingEmployees.length} still need verification.`}
                         {rejectedEmployees.length > 0 && ` ${rejectedEmployees.length} rejected.`}
                       </Typography>
                       <Button component={Link} to="/wrike" size="small"
-                        sx={{ textTransform: 'none', fontSize: '0.68rem', fontWeight: 700, color: '#6366f1', flexShrink: 0, p: 0.5,
+                        sx={{ textTransform: 'none', fontSize: '0.68rem', fontWeight: 700, color: '#2a7f96', flexShrink: 0, p: 0.5,
                           '&:hover': { bgcolor: '#6366f110' } }}>
                         Verify more →
                       </Button>
@@ -627,11 +627,11 @@ export default function TimesheetGenerator() {
 
                   {/* Select All */}
                   <Box onClick={toggleAll}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, cursor: 'pointer', bgcolor: 'rgba(16,185,129,0.03)', borderBottom: '1px solid', borderBottomColor: 'divider', '&:hover': { bgcolor: 'rgba(16,185,129,0.06)' } }}>
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, cursor: 'pointer', bgcolor: 'rgba(46,148,102,0.03)', borderBottom: '1px solid', borderBottomColor: 'divider', '&:hover': { bgcolor: 'rgba(46,148,102,0.06)' } }}>
                     <Checkbox size="small" checked={allSelected} indeterminate={selectedIds.size > 0 && !allSelected}
                       onChange={toggleAll} onClick={e => e.stopPropagation()}
-                      sx={{ p: 0, color: '#10b981', '&.Mui-checked': { color: '#10b981' }, '&.MuiCheckbox-indeterminate': { color: '#10b981' } }} />
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#10b981' }}>
+                      sx={{ p: 0, color: '#2e9466', '&.Mui-checked': { color: '#2e9466' }, '&.MuiCheckbox-indeterminate': { color: '#2e9466' } }} />
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#2e9466' }}>
                       {allSelected ? 'Deselect All' : 'Select All'} ({eligibleEmployees.length} verified)
                     </Typography>
                   </Box>
@@ -645,18 +645,18 @@ export default function TimesheetGenerator() {
                           <Box onClick={() => toggleEmployee(emp.id)}
                             sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.1, cursor: 'pointer',
                               bgcolor: checked ? '#10b98108' : 'transparent',
-                              borderLeft: checked ? '3px solid #10b981' : '3px solid transparent',
+                              borderLeft: checked ? '3px solid #2e9466' : '3px solid transparent',
                               transition: 'all 0.15s',
                               '&:hover': { bgcolor: checked ? '#10b98110' : 'action.hover' } }}>
                             <Checkbox size="small" checked={checked} onChange={() => toggleEmployee(emp.id)} onClick={e => e.stopPropagation()}
-                              sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#10b981' } }} />
+                              sx={{ p: 0, color: 'text.disabled', '&.Mui-checked': { color: '#2e9466' } }} />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                                 <Typography sx={{ fontWeight: checked ? 700 : 500, fontSize: '0.85rem', color: 'text.primary', lineHeight: 1.3 }}>
                                   {emp.name}
                                 </Typography>
                                 <Chip label="Verified" size="small"
-                                  sx={{ height: 14, fontSize: '0.55rem', fontWeight: 700, bgcolor: '#10b98115', color: '#10b981' }} />
+                                  sx={{ height: 14, fontSize: '0.55rem', fontWeight: 700, bgcolor: '#10b98115', color: '#2e9466' }} />
                               </Box>
                               <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled' }}>
                                 {emp.employee_id}{emp.department ? ` · ${emp.department}` : ''}{showHourlyRate ? ` · ${emp.currency || 'USD'} ${emp.hourly_rate}/hr` : ''}
@@ -676,12 +676,12 @@ export default function TimesheetGenerator() {
             {!isDone && !isReadOnly && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Button variant="contained" fullWidth size="large"
-                  startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <ReceiptIcon />}
+                  startIcon={generating ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <CalculateIcon />}
                   onClick={handleGenerate}
                   disabled={!hasSelection || !selectedPeriod || generating}
                   sx={{ py: 1.4, borderRadius: '12px', textTransform: 'none', fontSize: '0.95rem', fontWeight: 700,
-                    background: 'linear-gradient(135deg, #10b981, #34d399)',
-                    boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+                    background: 'linear-gradient(135deg, #2e9466, #4fb585)',
+                    boxShadow: '0 4px 16px rgba(46,148,102,0.4)',
                     '&:disabled': { opacity: 0.5, boxShadow: 'none' } }}>
                   {generating
                     ? (isSingle ? 'Processing…' : `Processing ${progress.done} / ${progress.total}…`)
@@ -695,12 +695,12 @@ export default function TimesheetGenerator() {
                       <Typography sx={{ fontSize: '0.8rem', fontWeight: 700 }}>
                         {currentGenEmp ? `Processing: ${currentGenEmp}` : 'Generating payslips…'}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: '#10b981' }}>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: '#2e9466' }}>
                         {Math.round((progress.done / progress.total) * 100)}%
                       </Typography>
                     </Box>
                     <LinearProgress variant="determinate" value={(progress.done / progress.total) * 100}
-                      sx={{ height: 7, borderRadius: 4, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: '#10b981', borderRadius: 4 } }} />
+                      sx={{ height: 7, borderRadius: 4, bgcolor: '#dce4e5', '& .MuiLinearProgress-bar': { bgcolor: '#2e9466', borderRadius: 4 } }} />
                     <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.75 }}>{progress.done} of {progress.total} done</Typography>
                   </Paper>
                 )}
@@ -711,7 +711,7 @@ export default function TimesheetGenerator() {
 
         {/* ── Right panel — single employee preview ──────────────────────── */}
         {isSingle && preview && (
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
               <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
@@ -733,15 +733,15 @@ export default function TimesheetGenerator() {
 
                 {/* Summary cards */}
                 <Grid container spacing={1.5}>
-                  <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<AccessTimeIcon />}  label="Total Hours"   value={formatHoursAsHM(preview.totalHours)}                              color="#6366f1" />
+                  <Grid size={{ xs: showRates ? 4 : 6 }}>
+                    <SummaryCard icon={<AccessTimeIcon />}  label="Total Hours"   value={formatHoursAsHM(preview.totalHours)}                              color="#2a7f96" />
                   </Grid>
-                  <Grid item xs={showRates ? 4 : 6}>
-                    <SummaryCard icon={<TrendingUpIcon />}  label="Regular / OT"  value={`${formatHoursAsHM(preview.regularHours)} / ${formatHoursAsHM(preview.overtimeHours)}`} color="#f59e0b" />
+                  <Grid size={{ xs: showRates ? 4 : 6 }}>
+                    <SummaryCard icon={<TrendingUpIcon />}  label="Regular / OT"  value={`${formatHoursAsHM(preview.regularHours)} / ${formatHoursAsHM(preview.overtimeHours)}`} color="#d08c1e" />
                   </Grid>
                   {showRates && (
-                    <Grid item xs={4}>
-                      <SummaryCard icon={<ReceiptLongIcon />} label="Gross Pay"   value={fmt(preview.grossAmount, currency)}                     color="#10b981" />
+                    <Grid size={{ xs: 4 }}>
+                      <SummaryCard icon={<ReceiptLongIcon />} label="Gross Pay"   value={fmt(preview.grossAmount, currency)}                     color="#2e9466" />
                     </Grid>
                   )}
                 </Grid>
@@ -749,18 +749,18 @@ export default function TimesheetGenerator() {
                 {/* Rate breakdown */}
                 <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid', borderColor: 'divider' }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={showHourlyRate ? 4 : 6}>
+                    <Grid size={{ xs: showHourlyRate ? 4 : 6 }}>
                       <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Period</Typography>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmtDate(startDate)} – {fmtDate(endDate)}</Typography>
                     </Grid>
                     {showHourlyRate && (
-                      <Grid item xs={4}>
+                      <Grid size={{ xs: 4 }}>
                         <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Hourly Rate</Typography>
                         <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.hourlyRate, currency)}/hr</Typography>
                       </Grid>
                     )}
                     {showRates && (
-                      <Grid item xs={showHourlyRate ? 4 : 6}>
+                      <Grid size={{ xs: showHourlyRate ? 4 : 6 }}>
                         <Typography sx={{ color: 'text.secondary', fontSize: '0.72rem', mb: 0.5 }}>Regular Pay</Typography>
                         <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{fmt(preview.regularHours * preview.hourlyRate, currency)}</Typography>
                       </Grid>
@@ -780,7 +780,7 @@ export default function TimesheetGenerator() {
                       )}
                       <Box>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.25 }}>OT Pay</Typography>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: preview.overtimePaid ? '#f59e0b' : 'text.disabled' }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: preview.overtimePaid ? '#d08c1e' : 'text.disabled' }}>
                           {preview.overtimePaid ? fmt(preview.overtimeAmount, currency) : 'Unpaid'}
                         </Typography>
                       </Box>
@@ -811,13 +811,13 @@ export default function TimesheetGenerator() {
                               <TableRow key={date} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <TableCell sx={TD}>{fmtDay(date)}</TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{formatHoursAsHM(hours)}</TableCell>
-                                {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>}
+                                {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#2e9466' }}>{fmt(hours * preview.hourlyRate, currency)}</TableCell>}
                               </TableRow>
                             ))}
                             <TableRow sx={{ bgcolor: 'action.hover' }}>
                               <TableCell sx={{ ...TD, fontWeight: 800 }}>Total</TableCell>
                               <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800 }}>{formatHoursAsHM(preview.totalHours)}</TableCell>
-                              {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800, color: '#10b981' }}>{fmt(preview.grossAmount, currency)}</TableCell>}
+                              {showRates && <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 800, color: '#2e9466' }}>{fmt(preview.grossAmount, currency)}</TableCell>}
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -858,7 +858,7 @@ export default function TimesheetGenerator() {
                             {sortedTasks.map((t, i) => (
                               <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
-                                <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem' }}>{t.taskTitle}</TableCell>
+                                <TableCell sx={{ ...TD, color: '#2a7f96', fontSize: '0.78rem' }}>{t.taskTitle}</TableCell>
                                 <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem' }}>{t.comment || '—'}</TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{formatHoursAsHM(t.hours)}</TableCell>
                               </TableRow>
@@ -896,7 +896,7 @@ export default function TimesheetGenerator() {
                             {sortedTasks.map((t, i) => (
                               <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <TableCell sx={{ ...TD, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{fmtDay(t.date)}</TableCell>
-                                <TableCell sx={{ ...TD, color: '#6366f1', fontSize: '0.78rem', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.taskTitle}</TableCell>
+                                <TableCell sx={{ ...TD, color: '#2a7f96', fontSize: '0.78rem', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.taskTitle}</TableCell>
                                 <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.78rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.comment || '—'}</TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'right', fontWeight: 700, fontSize: '0.78rem' }}>{formatHoursAsHM(t.hours)}</TableCell>
                               </TableRow>
@@ -914,16 +914,16 @@ export default function TimesheetGenerator() {
 
         {/* ── Right panel — bulk results ──────────────────────────────────── */}
         {!isSingle && bulkResults && (
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
               <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                 <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Generation Results</Typography>
                 <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Generated',     count: bulkResults.filter(r => r.status === 'generated').length, color: '#10b981' },
-                    { label: 'Already Exist', count: bulkResults.filter(r => r.status === 'exists').length,    color: '#6366f1' },
-                    { label: 'No Hours',      count: bulkResults.filter(r => r.status === 'no_hours').length,  color: '#f59e0b' },
-                    { label: 'Errors',        count: bulkResults.filter(r => r.status === 'error').length,     color: '#ef4444' },
+                    { label: 'Generated',     count: bulkResults.filter(r => r.status === 'generated').length, color: '#2e9466' },
+                    { label: 'Already Exist', count: bulkResults.filter(r => r.status === 'exists').length,    color: '#2a7f96' },
+                    { label: 'No Hours',      count: bulkResults.filter(r => r.status === 'no_hours').length,  color: '#d08c1e' },
+                    { label: 'Errors',        count: bulkResults.filter(r => r.status === 'error').length,     color: '#d04a40' },
                   ].filter(s => s.count > 0).map(s => (
                     <Chip key={s.label} label={`${s.count} ${s.label}`} size="small"
                       sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 700, fontSize: '0.72rem' }} />
@@ -940,10 +940,10 @@ export default function TimesheetGenerator() {
                   <TableBody>
                     {bulkResults.map((r, i) => {
                       const statusMap = {
-                        generated: { label: 'Generated',              color: '#10b981', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
-                        exists:    { label: 'Already Exists',          color: '#6366f1', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
-                        no_hours:  { label: r.noApprovedHours ? 'Not Approved in Wrike' : 'No Hours', color: '#f59e0b', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
-                        error:     { label: 'Error',                   color: '#ef4444', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
+                        generated: { label: 'Generated',              color: '#2e9466', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        exists:    { label: 'Already Exists',          color: '#2a7f96', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
+                        no_hours:  { label: r.noApprovedHours ? 'Not Approved in Wrike' : 'No Hours', color: '#d08c1e', icon: <RemoveCircleOutlineIcon sx={{ fontSize: 14 }} /> },
+                        error:     { label: 'Error',                   color: '#d04a40', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> },
                       };
                       const s = statusMap[r.status];
                       return (

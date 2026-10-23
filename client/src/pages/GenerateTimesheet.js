@@ -5,17 +5,17 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Alert, IconButton, Tooltip, InputAdornment,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import PendingIcon from '@mui/icons-material/HourglassEmpty';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import VerifiedIcon from '@mui/icons-material/VerifiedUser';
-import EditIcon from '@mui/icons-material/Edit';
-import CloseIcon from '@mui/icons-material/Close';
-import SyncIcon from '@mui/icons-material/Sync';
-import SearchIcon from '@mui/icons-material/Search';
-import HomeIcon from '@mui/icons-material/Home';
-import PublicIcon from '@mui/icons-material/Public';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import CancelIcon from '@mui/icons-material/CancelOutlined';
+import PendingIcon from '@mui/icons-material/HourglassEmptyOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonthOutlined';
+import FactCheckIcon from '@mui/icons-material/FactCheckOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
+import SyncIcon from '@mui/icons-material/SyncOutlined';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
+import HomeIcon from '@mui/icons-material/HomeOutlined';
+import PublicIcon from '@mui/icons-material/PublicOutlined';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHM, parseToMinutes } from '../utils/time';
@@ -26,7 +26,7 @@ const verMinutes = (ver) => ver?.verified_minutes != null
   ? ver.verified_minutes
   : (ver?.verified_hours != null ? Math.round(parseFloat(ver.verified_hours) * 60) : null);
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
@@ -42,9 +42,9 @@ function fmtDate(d) {
 
 function StatusChip({ status }) {
   const map = {
-    verified: { label: 'Verified', color: '#10b981', bg: '#10b98115', icon: <CheckCircleIcon sx={{ fontSize: 13 }} /> },
-    rejected: { label: 'Rejected', color: '#ef4444', bg: '#ef444415', icon: <CancelIcon      sx={{ fontSize: 13 }} /> },
-    pending:  { label: 'Pending',  color: '#f59e0b', bg: '#f59e0b15', icon: <PendingIcon      sx={{ fontSize: 13 }} /> },
+    verified: { label: 'Verified', color: '#2e9466', bg: '#10b98115', icon: <CheckCircleIcon sx={{ fontSize: 13 }} /> },
+    rejected: { label: 'Rejected', color: '#d04a40', bg: '#ef444415', icon: <CancelIcon      sx={{ fontSize: 13 }} /> },
+    pending:  { label: 'Pending',  color: '#d08c1e', bg: '#f59e0b15', icon: <PendingIcon      sx={{ fontSize: 13 }} /> },
   };
   const s = map[status] || map.pending;
   return (
@@ -97,13 +97,13 @@ function EditRow({ row, periodId, onSaved }) {
       <TextField label="Notes" size="small" value={notes} onChange={e => setNotes(e.target.value)} sx={{ width: 200 }} />
       <Button size="small" variant="contained" disabled={saving} onClick={() => save('verified')}
         startIcon={saving ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <CheckCircleIcon />}
-        sx={{ textTransform: 'none', bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, borderRadius: '8px', fontSize: '0.78rem' }}>
+        sx={{ textTransform: 'none', bgcolor: '#2e9466', '&:hover': { bgcolor: '#237a53' }, borderRadius: '8px', fontSize: '0.78rem' }}>
         Verify
       </Button>
       <Button size="small" variant="outlined" disabled={saving} onClick={() => save('rejected')}
         startIcon={<CancelIcon />}
-        sx={{ textTransform: 'none', borderColor: '#ef4444', color: '#ef4444', borderRadius: '8px', fontSize: '0.78rem',
-          '&:hover': { borderColor: '#dc2626', bgcolor: '#ef444410' } }}>
+        sx={{ textTransform: 'none', borderColor: '#d04a40', color: '#d04a40', borderRadius: '8px', fontSize: '0.78rem',
+          '&:hover': { borderColor: '#b83a31', bgcolor: '#ef444410' } }}>
         Reject
       </Button>
     </Box>
@@ -210,8 +210,8 @@ export default function GenerateTimesheet() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <VerifiedIcon sx={{ color: 'white', fontSize: 18 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FactCheckIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
@@ -226,17 +226,17 @@ export default function GenerateTimesheet() {
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
               startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
-              sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#6366f1', color: '#6366f1',
-                '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+              sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#2a7f96', color: '#2a7f96',
+                '&:hover': { borderColor: '#1f6e84', bgcolor: '#6366f110' } }}>
               {syncing ? 'Syncing…' : 'Sync Wrike'}
             </Button>
             <Tooltip title={payslipEmpIds.size === data.length && data.length > 0 ? 'All payslips already generated — nothing to verify' : ''} arrow>
               <span>
                 <Button variant="outlined" onClick={handleBulkVerify}
                   disabled={bulking || !data.length || (payslipEmpIds.size === data.length && data.length > 0)}
-                  startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
-                  sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981',
-                    '&:hover': { borderColor: '#059669', bgcolor: '#10b98110' } }}>
+                  startIcon={bulking ? <CircularProgress size={14} /> : <FactCheckIcon />}
+                  sx={{ textTransform: 'none', borderRadius: '10px', fontSize: '0.82rem', borderColor: '#2e9466', color: '#2e9466',
+                    '&:hover': { borderColor: '#237a53', bgcolor: '#10b98110' } }}>
                   {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
                 </Button>
               </span>
@@ -248,13 +248,13 @@ export default function GenerateTimesheet() {
       <Grid container spacing={2} sx={{ alignItems: 'start' }}>
 
         {/* ── Left: Period list ──────────────────────────────────────────── */}
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
             {/* Tabs */}
             <Tabs value={periodTab} onChange={(_, v) => { setPeriodTab(v); setSelectedPeriod(null); setPeriodSearch(''); }}
               sx={{ borderBottom: '1px solid', borderColor: 'divider', minHeight: 44,
-                '& .MuiTabs-indicator': { bgcolor: '#6366f1', height: 3 },
+                '& .MuiTabs-indicator': { bgcolor: '#2a7f96', height: 3 },
                 '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, fontSize: '0.8rem', minHeight: 44, py: 0 } }}>
               <Tab label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -264,7 +264,7 @@ export default function GenerateTimesheet() {
                     <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', lineHeight: 1 }}>2× / month</Typography>
                   </Box>
                   <Chip label={localPeriods.length} size="small"
-                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: periodTab === 0 ? '#6366f115' : 'action.hover', color: periodTab === 0 ? '#6366f1' : 'text.secondary' }} />
+                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: periodTab === 0 ? '#6366f115' : 'action.hover', color: periodTab === 0 ? '#2a7f96' : 'text.secondary' }} />
                 </Box>
               } />
               <Tab label={
@@ -275,7 +275,7 @@ export default function GenerateTimesheet() {
                     <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', lineHeight: 1 }}>1× / month</Typography>
                   </Box>
                   <Chip label={foreignPeriods.length} size="small"
-                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: periodTab === 1 ? '#6366f115' : 'action.hover', color: periodTab === 1 ? '#6366f1' : 'text.secondary' }} />
+                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: periodTab === 1 ? '#6366f115' : 'action.hover', color: periodTab === 1 ? '#2a7f96' : 'text.secondary' }} />
                 </Box>
               } />
             </Tabs>
@@ -290,7 +290,7 @@ export default function GenerateTimesheet() {
             {/* Period list */}
             <Box sx={{ maxHeight: 520, overflowY: 'auto' }}>
               {periodsLoading ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#6366f1' }} /></Box>
+                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#2a7f96' }} /></Box>
               ) : filteredPeriods.length === 0 ? (
                 <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled', fontSize: '0.8rem' }}>
                   {periodSearch ? 'No periods match your search' : 'No periods'}
@@ -298,14 +298,14 @@ export default function GenerateTimesheet() {
               ) : filteredPeriods.map(p => {
                 const active = selectedPeriod?.id === p.id;
                 const statusLabel = { open: 'Open', pending_approval: 'Pending Approval', approved: 'Approved', completed: 'Completed', paid: 'Paid' }[p.status] || p.status;
-                const statusColor = { open: '#6366f1', pending_approval: '#f59e0b', approved: '#10b981', completed: '#10b981', paid: '#10b981' }[p.status] || '#6366f1';
+                const statusColor = { open: '#2a7f96', pending_approval: '#d08c1e', approved: '#2e9466', completed: '#2e9466', paid: '#2e9466' }[p.status] || '#2a7f96';
                 return (
                   <Box key={p.id} onClick={() => setSelectedPeriod(p)}
                     sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderBottomColor: 'divider', cursor: 'pointer',
-                      bgcolor: active ? 'rgba(99,102,241,0.06)' : 'transparent',
-                      borderLeft: active ? '3px solid #6366f1' : '3px solid transparent',
-                      transition: 'all 0.15s', '&:hover': { bgcolor: active ? 'rgba(99,102,241,0.08)' : 'action.hover' } }}>
-                    <Typography sx={{ fontWeight: active ? 700 : 500, fontSize: '0.8rem', color: active ? '#6366f1' : 'text.primary',
+                      bgcolor: active ? 'rgba(42,127,150,0.06)' : 'transparent',
+                      borderLeft: active ? '3px solid #2a7f96' : '3px solid transparent',
+                      transition: 'all 0.15s', '&:hover': { bgcolor: active ? 'rgba(42,127,150,0.08)' : 'action.hover' } }}>
+                    <Typography sx={{ fontWeight: active ? 700 : 500, fontSize: '0.8rem', color: active ? '#2a7f96' : 'text.primary',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mb: 0.25 }}>
                       {p.period_name}
                     </Typography>
@@ -322,7 +322,7 @@ export default function GenerateTimesheet() {
         </Grid>
 
         {/* ── Right: Employee table ──────────────────────────────────────── */}
-        <Grid item xs={12} md={9}>
+        <Grid size={{ xs: 12, md: 9 }}>
           {!selectedPeriod ? (
             <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', py: 14, textAlign: 'center', color: 'text.disabled' }}>
               <CalendarMonthIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1.5 }} />
@@ -331,7 +331,7 @@ export default function GenerateTimesheet() {
             </Paper>
           ) : loading ? (
             <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', py: 10, textAlign: 'center' }}>
-              <CircularProgress size={32} sx={{ color: '#6366f1', mb: 2 }} />
+              <CircularProgress size={32} sx={{ color: '#2a7f96', mb: 2 }} />
               <Typography sx={{ fontSize: '0.875rem', color: 'text.disabled' }}>Loading employee data…</Typography>
             </Paper>
           ) : (
@@ -348,9 +348,9 @@ export default function GenerateTimesheet() {
                 {data.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                     {[
-                      { label: `${verifiedCount} Verified`, color: '#10b981' },
-                      { label: `${pendingCount} Pending`,   color: '#f59e0b' },
-                      { label: `${rejectedCount} Rejected`, color: '#ef4444' },
+                      { label: `${verifiedCount} Verified`, color: '#2e9466' },
+                      { label: `${pendingCount} Pending`,   color: '#d08c1e' },
+                      { label: `${rejectedCount} Rejected`, color: '#d04a40' },
                     ].filter(s => {
                       const count = parseInt(s.label);
                       return count > 0;
@@ -367,8 +367,8 @@ export default function GenerateTimesheet() {
                 <Box sx={{ px: 2.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5,
                   bgcolor: payslipEmpIds.size === data.length ? '#10b9810a' : '#6366f10a',
                   borderBottom: '1px solid', borderBottomColor: payslipEmpIds.size === data.length ? '#10b98125' : '#6366f125' }}>
-                  <CheckCircleIcon sx={{ fontSize: 16, color: payslipEmpIds.size === data.length ? '#10b981' : '#6366f1', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: '0.8rem', color: payslipEmpIds.size === data.length ? '#065f46' : '#3730a3', flex: 1 }}>
+                  <CheckCircleIcon sx={{ fontSize: 16, color: payslipEmpIds.size === data.length ? '#2e9466' : '#2a7f96', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.8rem', color: payslipEmpIds.size === data.length ? '#1b5e40' : '#154c5c', flex: 1 }}>
                     {payslipEmpIds.size === data.length
                       ? <><strong>All payslips generated</strong> for this period. Editing is locked to protect generated payslips.</>
                       : <><strong>{payslipEmpIds.size} of {data.length} employees</strong> already have payslips — those rows are locked. Remaining employees can still be verified.</>
@@ -379,7 +379,7 @@ export default function GenerateTimesheet() {
 
               {data.length === 0 ? (
                 <Box sx={{ py: 10, textAlign: 'center', color: 'text.disabled' }}>
-                  <VerifiedIcon sx={{ fontSize: 36, opacity: 0.2, mb: 1.5 }} />
+                  <FactCheckIcon sx={{ fontSize: 36, opacity: 0.2, mb: 1.5 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>No Employees Found</Typography>
                   <Typography sx={{ fontSize: '0.8rem' }}>No employee timesheet data for this period. Try syncing from Wrike.</Typography>
                 </Box>
@@ -429,22 +429,22 @@ export default function GenerateTimesheet() {
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                   {hasHours
-                                    ? <Typography sx={{ fontWeight: 700, color: '#6366f1' }}>{formatHM(rowMinutes(row))}</Typography>
+                                    ? <Typography sx={{ fontWeight: 700, color: '#2a7f96' }}>{formatHM(rowMinutes(row))}</Typography>
                                     : <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>No data</Typography>}
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                   {verMinutes(ver) != null ? (
-                                    <Typography sx={{ fontWeight: 700, color: verMinutes(ver) !== rowMinutes(row) ? '#f59e0b' : 'text.primary' }}>
+                                    <Typography sx={{ fontWeight: 700, color: verMinutes(ver) !== rowMinutes(row) ? '#d08c1e' : 'text.primary' }}>
                                       {formatHM(verMinutes(ver))}
                                       {verMinutes(ver) !== rowMinutes(row) && (
-                                        <Typography component="span" sx={{ fontSize: '0.65rem', color: '#f59e0b', ml: 0.5 }}>override</Typography>
+                                        <Typography component="span" sx={{ fontSize: '0.65rem', color: '#d08c1e', ml: 0.5 }}>override</Typography>
                                       )}
                                     </Typography>
                                   ) : <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>—</Typography>}
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                   {ver?.cash_advance > 0
-                                    ? <Typography sx={{ fontWeight: 700, color: '#ef4444' }}>{fmt(ver.cash_advance, emp.currency)}</Typography>
+                                    ? <Typography sx={{ fontWeight: 700, color: '#d04a40' }}>{fmt(ver.cash_advance, emp.currency)}</Typography>
                                     : <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>—</Typography>}
                                 </TableCell>
                                 <TableCell sx={{ ...TD, textAlign: 'center' }}>
@@ -456,8 +456,8 @@ export default function GenerateTimesheet() {
                                       // Payslip already generated — lock this row
                                       <Tooltip title="Payslip already generated for this employee. Delete the payslip first to make changes." arrow>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981' }} />
-                                          <Typography sx={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
+                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#2e9466' }} />
+                                          <Typography sx={{ fontSize: '0.78rem', color: '#2e9466', fontWeight: 600 }}>
                                             Payslip Generated
                                           </Typography>
                                         </Box>
@@ -475,8 +475,8 @@ export default function GenerateTimesheet() {
                                     ) : row.status === 'verified' ? (
                                       <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#10b981' }} />
-                                          <Typography sx={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>Verified</Typography>
+                                          <CheckCircleIcon sx={{ fontSize: 14, color: '#2e9466' }} />
+                                          <Typography sx={{ fontSize: '0.78rem', color: '#2e9466', fontWeight: 600 }}>Verified</Typography>
                                         </Box>
                                         <Tooltip title="Reset to pending so it can be edited again" arrow>
                                           <Button size="small" variant="text"
@@ -486,7 +486,7 @@ export default function GenerateTimesheet() {
                                                 fetchVerifications(selectedPeriod.id);
                                               } catch { toast.error('Failed to reset'); }
                                             }}
-                                            sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#f59e0b' } }}>
+                                            sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#d08c1e' } }}>
                                             Reset
                                           </Button>
                                         </Tooltip>
@@ -498,8 +498,8 @@ export default function GenerateTimesheet() {
                                             startIcon={<EditIcon sx={{ fontSize: 14 }} />}
                                             onClick={() => setEditingId(emp.id)}
                                             sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
-                                              borderColor: '#6366f1', color: '#6366f1',
-                                              '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+                                              borderColor: '#2a7f96', color: '#2a7f96',
+                                              '&:hover': { borderColor: '#1f6e84', bgcolor: '#6366f110' } }}>
                                             Edit & Verify
                                           </Button>
                                         </span>
@@ -518,14 +518,14 @@ export default function GenerateTimesheet() {
                   {/* Summary footer */}
                   <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderTopColor: 'divider', bgcolor: 'action.hover', display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                     <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                      <strong style={{ color: '#10b981' }}>{verifiedCount}</strong> of {withHours} employees verified
+                      <strong style={{ color: '#2e9466' }}>{verifiedCount}</strong> of {withHours} employees verified
                     </Typography>
                     <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
                       <strong>{formatHM(data.filter(r => r.actual_hours > 0).reduce((s, r) => s + (verMinutes(r.verification) ?? rowMinutes(r)), 0))}</strong> total hours
                     </Typography>
                     {verifiedCount === withHours && withHours > 0 && (
                       <Chip label="All ready — go to Process Payroll" size="small" icon={<CheckCircleIcon />}
-                        sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.72rem', '& .MuiChip-icon': { color: '#10b981' } }} />
+                        sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.72rem', '& .MuiChip-icon': { color: '#2e9466' } }} />
                     )}
                   </Box>
                 </>

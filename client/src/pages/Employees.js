@@ -8,27 +8,27 @@ import {
   Autocomplete, Switch, FormControlLabel,
 } from '@mui/material';
 import { loadBankCodes, searchSwift, searchLocal } from '../utils/bankCodes';
-import AddIcon from '@mui/icons-material/Add';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import DownloadIcon from '@mui/icons-material/Download';
-import SearchIcon from '@mui/icons-material/Search';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PersonOffIcon from '@mui/icons-material/PersonOff';
-import PersonIcon from '@mui/icons-material/Person';
-import ShieldIcon from '@mui/icons-material/Shield';
+import AddIcon from '@mui/icons-material/AddOutlined';
+import UploadFileIcon from '@mui/icons-material/UploadFileOutlined';
+import DownloadIcon from '@mui/icons-material/DownloadOutlined';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
+import PersonOffIcon from '@mui/icons-material/PersonOffOutlined';
+import PersonIcon from '@mui/icons-material/PersonOutlined';
+import ShieldIcon from '@mui/icons-material/ShieldOutlined';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import KeyIcon from '@mui/icons-material/Key';
-import LinkIcon from '@mui/icons-material/Link';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import KeyIcon from '@mui/icons-material/KeyOutlined';
+import LinkIcon from '@mui/icons-material/LinkOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined';
 import { employeesAPI, wrikeAPI } from '../api';
 import { getMissingBankFields } from '../utils/employeeProfile';
 import { REMITTANCE_OPTIONS, purposeOptionsFor, MBOS_CURRENCIES } from '../utils/bankFormats';
 import { useAuth } from '../context/AuthContext';
 
-const TH = { fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.5, px: 2 };
 
 const EMPLOYEE_TYPES = [
@@ -375,15 +375,15 @@ export default function Employees() {
         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em' }}>Employees</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" startIcon={<DownloadIcon />} onClick={downloadTemplate}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#6366f1', color: '#6366f1' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: '#2a7f96', color: '#2a7f96' } }}>
             Template
           </Button>
           <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={openBulk}
-            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#2e9466', color: '#2e9466', '&:hover': { bgcolor: '#10b98110' } }}>
             Bulk Upload
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => openModal()}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)', boxShadow: '0 4px 12px rgba(42,127,150,0.35)' }}>
             Add Employee
           </Button>
         </Box>
@@ -414,7 +414,7 @@ export default function Employees() {
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#6366f1' }} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={32} sx={{ color: '#2a7f96' }} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={10} sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>No employees found</TableCell></TableRow>
               ) : filtered.map(emp => {
@@ -424,7 +424,7 @@ export default function Employees() {
                   <TableRow key={emp.id} sx={{ '&:hover': { bgcolor: 'action.hover' }, opacity: emp.is_active ? 1 : 0.6 }}>
                     <TableCell sx={TD}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar sx={{ width: 34, height: 34, fontSize: '0.8rem', fontWeight: 700, bgcolor: '#6366f115', color: '#6366f1' }}>
+                        <Avatar sx={{ width: 34, height: 34, fontSize: '0.8rem', fontWeight: 700, bgcolor: '#6366f115', color: '#2a7f96' }}>
                           {emp.name.slice(0, 2).toUpperCase()}
                         </Avatar>
                         <Box>
@@ -437,7 +437,7 @@ export default function Employees() {
                                 size="small"
                                 sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700,
                                   bgcolor: emp.hire_category === 'foreign' ? '#0ea5e918' : '#6366f118',
-                                  color: emp.hire_category === 'foreign' ? '#0ea5e9' : '#6366f1' }}
+                                  color: emp.hire_category === 'foreign' ? '#4f67c9' : '#2a7f96' }}
                               />
                             )}
                           </Box>
@@ -445,7 +445,7 @@ export default function Employees() {
                       </Box>
                     </TableCell>
                     <TableCell sx={TD}>{emp.email}</TableCell>
-                    <TableCell sx={TD}>{emp.department || <span style={{ color: '#94a3b8' }}>—</span>}</TableCell>
+                    <TableCell sx={TD}>{emp.department || <span style={{ color: '#8da3a9' }}>—</span>}</TableCell>
                     <TableCell sx={TD}>{emp.currency} {emp.hourly_rate}/hr</TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {emp.hire_category === 'local' ? (() => {
@@ -462,10 +462,10 @@ export default function Employees() {
                         ].filter(Boolean);
                         return filled === 4
                           ? <Chip label="Complete" size="small" icon={<CheckCircleIcon />}
-                              sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
+                              sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#2e9466' } }} />
                           : <Tooltip title={`Missing: ${missingIds.join(', ')}`} arrow>
                               <Chip label={`${filled}/4`} size="small" icon={<WarningAmberIcon />}
-                                sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#f59e0b' } }} />
+                                sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#d08c1e' } }} />
                             </Tooltip>;
                       })()
                       : <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>N/A</Typography>}
@@ -475,40 +475,40 @@ export default function Employees() {
                         const missing = getMissingBankFields(emp);
                         return missing.length === 0
                           ? <Chip label="Complete" size="small" icon={<CheckCircleIcon />}
-                              sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
+                              sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#2e9466' } }} />
                           : <Tooltip title={`Missing: ${missing.join(', ')}`} arrow>
                               <Chip label={`${missing.length} missing`} size="small" icon={<WarningAmberIcon />}
-                                sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#f59e0b' } }} />
+                                sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 600, fontSize: '0.72rem', cursor: 'help', '& .MuiChip-icon': { fontSize: 14, color: '#d08c1e' } }} />
                             </Tooltip>;
                       })()}
                     </TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {emp.wrike_user_id
-                        ? <Chip label="Linked" size="small" icon={<CheckCircleIcon />} sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#10b981' } }} />
-                        : <Chip label="Not set" size="small" icon={<WarningAmberIcon />} sx={{ bgcolor: '#f59e0b15', color: '#f59e0b', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#f59e0b' } }} />}
+                        ? <Chip label="Linked" size="small" icon={<CheckCircleIcon />} sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#2e9466' } }} />
+                        : <Chip label="Not set" size="small" icon={<WarningAmberIcon />} sx={{ bgcolor: '#f59e0b15', color: '#d08c1e', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-icon': { fontSize: 14, color: '#d08c1e' } }} />}
                     </TableCell>
                     <TableCell sx={{ ...TD, textAlign: 'center' }}>
                       {hasPortal
                         ? <Chip label={portalActive ? emp.portal_username : 'Revoked'} size="small"
-                            sx={{ bgcolor: portalActive ? '#10b98115' : '#ef444415', color: portalActive ? '#10b981' : '#ef4444', fontWeight: 600, fontSize: '0.72rem' }} />
+                            sx={{ bgcolor: portalActive ? '#10b98115' : '#ef444415', color: portalActive ? '#2e9466' : '#d04a40', fontWeight: 600, fontSize: '0.72rem' }} />
                         : <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>No account</Typography>}
                     </TableCell>
                     <TableCell sx={TD}>
                       <Chip label={emp.is_active ? 'Active' : 'Inactive'} size="small"
-                        sx={{ bgcolor: emp.is_active ? '#10b98115' : '#64748b15', color: emp.is_active ? '#10b981' : '#64748b', fontWeight: 600, fontSize: '0.72rem' }} />
+                        sx={{ bgcolor: emp.is_active ? '#10b98115' : '#64748b15', color: emp.is_active ? '#2e9466' : '#5a7178', fontWeight: 600, fontSize: '0.72rem' }} />
                     </TableCell>
                     <TableCell sx={TD}>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        <Tooltip title="Edit"><IconButton size="small" onClick={() => openModal(emp)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                        <Tooltip title={emp.is_active ? 'Deactivate' : 'Activate'}><IconButton size="small" onClick={() => handleToggleActive(emp)} sx={{ color: emp.is_active ? '#f59e0b' : '#10b981', '&:hover': { bgcolor: emp.is_active ? '#f59e0b15' : '#10b98115' } }}>{emp.is_active ? <PersonOffIcon sx={{ fontSize: 16 }} /> : <PersonIcon sx={{ fontSize: 16 }} />}</IconButton></Tooltip>
-                        {!hasPortal && <Tooltip title="Create portal account"><IconButton size="small" onClick={() => handleCreatePortal(emp)} sx={{ color: '#6366f1', '&:hover': { bgcolor: '#6366f115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
+                        <Tooltip title="Edit"><IconButton size="small" onClick={() => openModal(emp)} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                        <Tooltip title={emp.is_active ? 'Deactivate' : 'Activate'}><IconButton size="small" onClick={() => handleToggleActive(emp)} sx={{ color: emp.is_active ? '#d08c1e' : '#2e9466', '&:hover': { bgcolor: emp.is_active ? '#f59e0b15' : '#10b98115' } }}>{emp.is_active ? <PersonOffIcon sx={{ fontSize: 16 }} /> : <PersonIcon sx={{ fontSize: 16 }} />}</IconButton></Tooltip>
+                        {!hasPortal && <Tooltip title="Create portal account"><IconButton size="small" onClick={() => handleCreatePortal(emp)} sx={{ color: '#2a7f96', '&:hover': { bgcolor: '#6366f115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
                         {hasPortal && <>
                           <Tooltip title="Reset password"><IconButton size="small" onClick={() => handleResetPassword(emp)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#64748b15' } }}><KeyIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                           {portalActive
-                            ? <Tooltip title="Revoke access"><IconButton size="small" onClick={() => handleRevokeAccess(emp)} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}><ShieldOutlinedIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                            : <Tooltip title="Restore access"><IconButton size="small" onClick={() => handleRestoreAccess(emp)} sx={{ color: '#10b981', '&:hover': { bgcolor: '#10b98115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
+                            ? <Tooltip title="Revoke access"><IconButton size="small" onClick={() => handleRevokeAccess(emp)} sx={{ color: '#d04a40', '&:hover': { bgcolor: '#ef444415' } }}><ShieldOutlinedIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                            : <Tooltip title="Restore access"><IconButton size="small" onClick={() => handleRestoreAccess(emp)} sx={{ color: '#2e9466', '&:hover': { bgcolor: '#10b98115' } }}><ShieldIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>}
                         </>}
-                        <Tooltip title="Delete"><IconButton size="small" onClick={() => handleDelete(emp)} sx={{ color: '#ef4444', '&:hover': { bgcolor: '#ef444415' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                        <Tooltip title="Delete"><IconButton size="small" onClick={() => handleDelete(emp)} sx={{ color: '#d04a40', '&:hover': { bgcolor: '#ef444415' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -527,31 +527,31 @@ export default function Employees() {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Row 1: ID · Name · Email */}
-            <Grid item xs={3}>
+            <Grid size={{ xs: 3 }}>
               <TextField fullWidth label="Employee ID *" value={form.employee_id}
                 onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
                 size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             </Grid>
-            <Grid item xs={4}><TextField fullWidth label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={5}><TextField fullWidth label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid size={{ xs: 4 }}><TextField fullWidth label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid size={{ xs: 5 }}><TextField fullWidth label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             {/* Row 2: Dept · Position · Hire Date */}
-            <Grid item xs={4}><TextField fullWidth label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={5}><TextField fullWidth label="Position" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-            <Grid item xs={3}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid size={{ xs: 4 }}><TextField fullWidth label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid size={{ xs: 5 }}><TextField fullWidth label="Position" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+            <Grid size={{ xs: 3 }}><TextField fullWidth label="Hire Date" type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} size="small" slotProps={{ inputLabel: { shrink: true } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             {/* Row 3: Rate · Currency · Employee Type */}
             {!hideAmounts && (
-              <Grid item xs={3}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+              <Grid size={{ xs: 3 }}><TextField fullWidth label="Hourly Rate" type="number" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: parseFloat(e.target.value) }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
             )}
             {isSuperAdmin && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Overtime Pay</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>Overtime Pay</Typography>
                   <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mb: 1.5 }}>
                     Overtime is unpaid unless it is switched on here <strong>and</strong> an overtime rate is set.
                     Overtime hours are still recorded and shown on the payslip either way.
                   </Typography>
                   <Grid container spacing={2} sx={{ alignItems: 'center' }}>
-                    <Grid item xs={5}>
+                    <Grid size={{ xs: 5 }}>
                       <FormControlLabel
                         control={<Switch checked={Boolean(form.overtime_pay_enabled)} size="small"
                           onChange={e => setForm(f => ({ ...f, overtime_pay_enabled: e.target.checked }))} />}
@@ -560,7 +560,7 @@ export default function Employees() {
                         </Typography>}
                       />
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <TextField fullWidth label="Overtime Hourly Rate" type="number" size="small"
                         value={form.overtime_rate}
                         onChange={e => setForm(f => ({ ...f, overtime_rate: e.target.value }))}
@@ -574,7 +574,7 @@ export default function Employees() {
                 </Box>
               </Grid>
             )}
-            <Grid item xs={2}>
+            <Grid size={{ xs: 2 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Currency</InputLabel>
                 <Select label="Currency" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} sx={{ borderRadius: '10px' }}>
@@ -585,7 +585,7 @@ export default function Employees() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={7}>
+            <Grid size={{ xs: 7 }}>
               <FormControl fullWidth size="small">
                 <InputLabel shrink>Employee Type</InputLabel>
                 <Select
@@ -599,7 +599,7 @@ export default function Employees() {
                   }}
                   sx={{ borderRadius: '10px' }}
                   renderValue={val => {
-                    if (!val) return <em style={{ color: '#94a3b8', fontStyle: 'normal' }}>— Select type —</em>;
+                    if (!val) return <em style={{ color: '#8da3a9', fontStyle: 'normal' }}>— Select type —</em>;
                     return EMPLOYEE_TYPES.find(t => t.value === val)?.label ?? val;
                   }}
                 >
@@ -618,37 +618,37 @@ export default function Employees() {
 
             {/* Government IDs — shown for local types only after a type is selected */}
             {form.employee_type && form.hire_category === 'local' && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Government IDs</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>Government IDs</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={3}><TextField fullWidth label="SSS No." placeholder="XX-XXXXXXX-X" value={form.sss_number} onChange={e => setForm(f => ({ ...f, sss_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={3}><TextField fullWidth label="PhilHealth No." placeholder="XX-XXXXXXXXX-X" value={form.philhealth_number} onChange={e => setForm(f => ({ ...f, philhealth_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={3}><TextField fullWidth label="Pag-IBIG No." placeholder="XXXX-XXXX-XXXX" value={form.pagibig_number} onChange={e => setForm(f => ({ ...f, pagibig_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={3}><TextField fullWidth label="TIN (BIR)" placeholder="XXX-XXX-XXX-XXXX" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 3 }}><TextField fullWidth label="SSS No." placeholder="XX-XXXXXXX-X" value={form.sss_number} onChange={e => setForm(f => ({ ...f, sss_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 3 }}><TextField fullWidth label="PhilHealth No." placeholder="XX-XXXXXXXXX-X" value={form.philhealth_number} onChange={e => setForm(f => ({ ...f, philhealth_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 3 }}><TextField fullWidth label="Pag-IBIG No." placeholder="XXXX-XXXX-XXXX" value={form.pagibig_number} onChange={e => setForm(f => ({ ...f, pagibig_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 3 }}><TextField fullWidth label="TIN (BIR)" placeholder="XXX-XXX-XXX-XXXX" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   </Grid>
                 </Box>
               </Grid>
             )}
 
             {/* Name for payroll file */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Name (for payroll file)</Typography>
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>Name (for payroll file)</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={4}><TextField fullWidth label="Last Name" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="First Name" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="Middle Name" value={form.middle_name} onChange={e => setForm(f => ({ ...f, middle_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: 4 }}><TextField fullWidth label="Last Name" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: 4 }}><TextField fullWidth label="First Name" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: 4 }}><TextField fullWidth label="Middle Name" value={form.middle_name} onChange={e => setForm(f => ({ ...f, middle_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                 </Grid>
               </Box>
             </Grid>
 
             {/* Bank Details */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Bank Details</Typography>
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>Bank Details</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     {form.hire_category === 'local' ? (
                       <Autocomplete
                         freeSolo
@@ -681,11 +681,11 @@ export default function Employees() {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
                     )}
                   </Grid>
-                  <Grid item xs={6}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                  <Grid item xs={form.hire_category === 'foreign' ? 6 : 6}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                  <Grid item xs={form.hire_category === 'foreign' ? 3 : 6}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: 6 }}><TextField fullWidth label="Account Name" value={form.bank_account_name} onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: form.hire_category === 'foreign' ? 6 : 6 }}><TextField fullWidth label="Account Number" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                  <Grid size={{ xs: form.hire_category === 'foreign' ? 3 : 6 }}><TextField fullWidth label="Branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   {form.hire_category === 'foreign' && (
-                    <Grid item xs={3}>
+                    <Grid size={{ xs: 3 }}>
                       <Autocomplete
                         freeSolo
                         options={swiftOptions}
@@ -711,7 +711,7 @@ export default function Employees() {
                         renderOption={(props, o) => (
                           <Box component="li" {...props} key={o.swift}>
                             <Box>
-                              <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: '#6366f1' }}>{o.swift}</Typography>
+                              <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: '#2a7f96' }}>{o.swift}</Typography>
                               <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{o.name}</Typography>
                             </Box>
                           </Box>
@@ -730,18 +730,18 @@ export default function Employees() {
 
             {/* Address Details — local employees only */}
             {form.employee_type && form.hire_category === 'local' && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Address Details</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>Address Details</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField fullWidth label="Employee Address" multiline rows={2}
                         placeholder="House/Unit no., Street, Barangay, City, Province, ZIP"
                         value={form.employee_address}
                         onChange={e => setForm(f => ({ ...f, employee_address: e.target.value }))}
                         size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField fullWidth label="Bank Branch Address"
                         placeholder="Full address of the bank branch"
                         value={form.bank_address}
@@ -755,11 +755,11 @@ export default function Employees() {
 
             {/* DFT International Transfer Fields (foreign only) */}
             {form.employee_type && form.hire_category === 'foreign' && (<>
-              <Grid item xs={12}>
-                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>DFT Transfer Details</Typography>
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(42,127,150,0.02)' }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#2a7f96', mb: 1.5 }}>DFT Transfer Details</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <FormControl fullWidth size="small">
                         <InputLabel shrink>Remittance Type</InputLabel>
                         <Select label="Remittance Type" displayEmpty notched value={form.remittance_type}
@@ -772,11 +772,11 @@ export default function Employees() {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" helperText="Used for domestic remittance types (RTGS, PDDTS, PESONet, GSRT)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Beneficiary Code" value={form.beneficiary_code} onChange={e => setForm(f => ({ ...f, beneficiary_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Country of Destination" value={form.country_of_destination} onChange={e => setForm(f => ({ ...f, country_of_destination: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Beneficiary Address" value={form.beneficiary_address} onChange={e => setForm(f => ({ ...f, beneficiary_address: e.target.value }))} size="small" helperText="Used for domestic remittance types (RTGS, PDDTS, PESONet, GSRT)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Beneficiary Bank Address" value={form.bank_address} onChange={e => setForm(f => ({ ...f, bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 12 }}>
                       <FormControl fullWidth size="small">
                         <InputLabel shrink>Purpose / Nature of Transfer</InputLabel>
                         <Select label="Purpose / Nature of Transfer" displayEmpty notched value={form.purpose_nature}
@@ -793,52 +793,52 @@ export default function Employees() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12}>
-                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(99,102,241,0.02)' }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Beneficiary Address Parts</Typography>
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ border: '1px solid #6366f130', borderRadius: 1.5, p: 2, bgcolor: 'rgba(42,127,150,0.02)' }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#2a7f96', mb: 0.5 }}>Beneficiary Address Parts</Typography>
                   <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mb: 1.5 }}>
                     Metrobank requires the address split into these fields for Foreign Transfer uploads.
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={3}><TextField fullWidth label="Building No." value={form.beneficiary_building_no} onChange={e => setForm(f => ({ ...f, beneficiary_building_no: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Building Name" value={form.beneficiary_building_name} onChange={e => setForm(f => ({ ...f, beneficiary_building_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={5}><TextField fullWidth label="Street Name" value={form.beneficiary_street} onChange={e => setForm(f => ({ ...f, beneficiary_street: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Town / City" value={form.beneficiary_city} onChange={e => setForm(f => ({ ...f, beneficiary_city: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Postal Code" value={form.beneficiary_postal_code} onChange={e => setForm(f => ({ ...f, beneficiary_postal_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 3 }}><TextField fullWidth label="Building No." value={form.beneficiary_building_no} onChange={e => setForm(f => ({ ...f, beneficiary_building_no: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Building Name" value={form.beneficiary_building_name} onChange={e => setForm(f => ({ ...f, beneficiary_building_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 5 }}><TextField fullWidth label="Street Name" value={form.beneficiary_street} onChange={e => setForm(f => ({ ...f, beneficiary_street: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Town / City" value={form.beneficiary_city} onChange={e => setForm(f => ({ ...f, beneficiary_city: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Postal Code" value={form.beneficiary_postal_code} onChange={e => setForm(f => ({ ...f, beneficiary_postal_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   </Grid>
                 </Box>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>
                     Intermediary Bank
                     <Box component="span" sx={{ ml: 1, fontWeight: 400, textTransform: 'none', color: 'text.disabled' }}>(optional)</Box>
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}><TextField fullWidth label="Bank Name" value={form.intermediary_bank_name} onChange={e => setForm(f => ({ ...f, intermediary_bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Bank Address" value={form.intermediary_bank_address} onChange={e => setForm(f => ({ ...f, intermediary_bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="SWIFT Code" value={form.intermediary_bank_swift} onChange={e => setForm(f => ({ ...f, intermediary_bank_swift: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Bank Name" value={form.intermediary_bank_name} onChange={e => setForm(f => ({ ...f, intermediary_bank_name: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Bank Address" value={form.intermediary_bank_address} onChange={e => setForm(f => ({ ...f, intermediary_bank_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="SWIFT Code" value={form.intermediary_bank_swift} onChange={e => setForm(f => ({ ...f, intermediary_bank_swift: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   </Grid>
                 </Box>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 2 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>Tax / Withholding</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>Tax / Withholding</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}><TextField fullWidth label="Payee TIN" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Payee Zip Code" value={form.payee_zip_code} onChange={e => setForm(f => ({ ...f, payee_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={4}><TextField fullWidth label="Tax Code" value={form.tax_code} onChange={e => setForm(f => ({ ...f, tax_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Payee Foreign Address" value={form.payee_foreign_address} onChange={e => setForm(f => ({ ...f, payee_foreign_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
-                    <Grid item xs={6}><TextField fullWidth label="Payee Foreign Zip Code" value={form.payee_foreign_zip_code} onChange={e => setForm(f => ({ ...f, payee_foreign_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Payee TIN" value={form.payee_tin} onChange={e => setForm(f => ({ ...f, payee_tin: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Payee Zip Code" value={form.payee_zip_code} onChange={e => setForm(f => ({ ...f, payee_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 4 }}><TextField fullWidth label="Tax Code" value={form.tax_code} onChange={e => setForm(f => ({ ...f, tax_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Payee Foreign Address" value={form.payee_foreign_address} onChange={e => setForm(f => ({ ...f, payee_foreign_address: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
+                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Payee Foreign Zip Code" value={form.payee_foreign_zip_code} onChange={e => setForm(f => ({ ...f, payee_foreign_zip_code: e.target.value }))} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} /></Grid>
                   </Grid>
                 </Box>
               </Grid>
             </>)}
 
             {/* Wrike */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField fullWidth label="Wrike User ID" value={form.wrike_user_id} onChange={e => setForm(f => ({ ...f, wrike_user_id: e.target.value }))} placeholder="e.g. ABCDE123" size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
                 <Button variant="outlined" startIcon={loadingContacts ? <CircularProgress size={14} /> : <LinkIcon />} onClick={handleLookupWrike} disabled={loadingContacts}
@@ -854,7 +854,7 @@ export default function Employees() {
                   <Box sx={{ overflowY: 'auto' }}>
                     {filteredContacts.map(c => (
                       <Box key={c.id} onClick={() => { setForm(f => ({ ...f, wrike_user_id: c.id })); setShowContactPicker(false); toast.success(`Linked to ${c.firstName} ${c.lastName}`); }}
-                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(99,102,241,0.07)' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                        sx={{ px: 2, py: 1, cursor: 'pointer', bgcolor: form.wrike_user_id === c.id ? 'rgba(42,127,150,0.07)' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                         <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{c.firstName} {c.lastName}</Typography>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>{c.profiles?.[0]?.email || '—'} · {c.id}</Typography>
                       </Box>
@@ -863,7 +863,7 @@ export default function Employees() {
                 </Paper>
               )}
               {form.wrike_user_id && (
-                <Typography sx={{ mt: 0.5, fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography sx={{ mt: 0.5, fontSize: '0.72rem', color: '#2e9466', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <CheckCircleIcon sx={{ fontSize: 12 }} /> Wrike ID: {form.wrike_user_id}
                 </Typography>
               )}
@@ -873,7 +873,7 @@ export default function Employees() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeModal} sx={{ borderRadius: '10px', textTransform: 'none', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained" disabled={saving}
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', minWidth: 100 }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)', boxShadow: '0 4px 12px rgba(42,127,150,0.35)', minWidth: 100 }}>
             {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : editing ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
@@ -884,13 +884,13 @@ export default function Employees() {
         <DialogTitle sx={{ fontWeight: 700, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Bulk Upload Employees</span>
           <Button size="small" startIcon={<DownloadIcon />} onClick={downloadTemplate}
-            sx={{ textTransform: 'none', color: '#6366f1', fontWeight: 600 }}>
+            sx={{ textTransform: 'none', color: '#2a7f96', fontWeight: 600 }}>
             Download Template
           </Button>
         </DialogTitle>
         <DialogContent>
           {!bulkRows.length && !bulkResults && (
-            <Box sx={{ py: 4, textAlign: 'center', border: '2px dashed', borderColor: 'divider', borderRadius: 2, cursor: 'pointer', '&:hover': { borderColor: '#6366f1', bgcolor: '#6366f108' } }}
+            <Box sx={{ py: 4, textAlign: 'center', border: '2px dashed', borderColor: 'divider', borderRadius: 2, cursor: 'pointer', '&:hover': { borderColor: '#2a7f96', bgcolor: '#6366f108' } }}
               onClick={() => bulkFileRef.current?.click()}>
               <UploadFileIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
               <Typography sx={{ fontWeight: 600, color: 'text.secondary' }}>Click to select a CSV file</Typography>
@@ -906,8 +906,8 @@ export default function Employees() {
             return (
               <>
                 <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Chip label={`${valid} valid`}   size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700 }} />
-                  {invalid > 0 && <Chip label={`${invalid} invalid`} size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700 }} />}
+                  <Chip label={`${valid} valid`}   size="small" sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700 }} />
+                  {invalid > 0 && <Chip label={`${invalid} invalid`} size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 700 }} />}
                   <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', ml: 'auto' }}>
                     Reviewing {bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} — invalid rows will be skipped
                   </Typography>
@@ -930,16 +930,16 @@ export default function Employees() {
                       {bulkRows.map((r, i) => (
                         <TableRow key={i} sx={{ bgcolor: r._error ? '#ef444408' : 'transparent' }}>
                           <TableCell sx={{ ...TD, color: 'text.disabled', fontSize: '0.75rem' }}>{i + 2}</TableCell>
-                          <TableCell sx={TD}>{r.employee_id || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
-                          <TableCell sx={TD}>{r.name || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
-                          <TableCell sx={{ ...TD, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email || <span style={{ color: '#ef4444' }}>—</span>}</TableCell>
+                          <TableCell sx={TD}>{r.employee_id || <span style={{ color: '#d04a40' }}>—</span>}</TableCell>
+                          <TableCell sx={TD}>{r.name || <span style={{ color: '#d04a40' }}>—</span>}</TableCell>
+                          <TableCell sx={{ ...TD, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email || <span style={{ color: '#d04a40' }}>—</span>}</TableCell>
                           <TableCell sx={TD}>{r.department || '—'}</TableCell>
                           <TableCell sx={TD}>{r.employee_type || '—'}</TableCell>
                           <TableCell sx={TD}>{r.hourly_rate ? `${r.currency || 'PHP'} ${r.hourly_rate}` : '—'}</TableCell>
                           <TableCell sx={TD}>
                             {r._error
-                              ? <Tooltip title={r._error} arrow><Chip label="Error" size="small" sx={{ bgcolor: '#ef444415', color: '#ef4444', fontWeight: 700, fontSize: '0.68rem', cursor: 'help' }} /></Tooltip>
-                              : <Chip label="Ready" size="small" sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem' }} />}
+                              ? <Tooltip title={r._error} arrow><Chip label="Error" size="small" sx={{ bgcolor: '#ef444415', color: '#d04a40', fontWeight: 700, fontSize: '0.68rem', cursor: 'help' }} /></Tooltip>
+                              : <Chip label="Ready" size="small" sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.68rem' }} />}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -953,24 +953,24 @@ export default function Employees() {
           {bulkResults && (
             <Box sx={{ py: 2 }}>
               <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: '#10b981', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>{bulkResults.created}</Typography>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: '#2e9466', borderRadius: 2, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: '#2e9466' }}>{bulkResults.created}</Typography>
                   <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>Employees Created</Typography>
                 </Paper>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: bulkResults.skipped > 0 ? '#f59e0b' : 'divider', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: bulkResults.skipped > 0 ? '#f59e0b' : 'text.disabled' }}>{bulkResults.skipped}</Typography>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: bulkResults.skipped > 0 ? '#d08c1e' : 'divider', borderRadius: 2, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: bulkResults.skipped > 0 ? '#d08c1e' : 'text.disabled' }}>{bulkResults.skipped}</Typography>
                   <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 600 }}>Skipped</Typography>
                 </Paper>
               </Box>
               {bulkResults.errors.length > 0 && (
                 <>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Skip Details</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary', mb: 1 }}>Skip Details</Typography>
                   <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }}>
                     {bulkResults.errors.map((e, i) => (
                       <Box key={i} sx={{ px: 2, py: 1, borderBottom: '1px solid', borderBottomColor: 'divider', display: 'flex', gap: 2, alignItems: 'flex-start' }}>
                         <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', minWidth: 40 }}>Row {e.row}</Typography>
                         <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, minWidth: 80 }}>{e.employee_id}</Typography>
-                        <Typography sx={{ fontSize: '0.78rem', color: '#ef4444' }}>{e.error}</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#d04a40' }}>{e.error}</Typography>
                       </Box>
                     ))}
                   </Paper>
@@ -986,14 +986,14 @@ export default function Employees() {
           {!bulkResults && bulkRows.length > 0 && (
             <Button variant="contained" onClick={handleBulkUpload} disabled={bulkUploading || bulkRows.every(r => r._error)}
               startIcon={bulkUploading ? <CircularProgress size={14} color="inherit" /> : <UploadFileIcon />}
-              sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', bgcolor: '#2e9466', '&:hover': { bgcolor: '#237a53' } }}>
               {bulkUploading ? 'Uploading…' : `Upload ${bulkRows.filter(r => !r._error).length} Employee${bulkRows.filter(r => !r._error).length !== 1 ? 's' : ''}`}
             </Button>
           )}
           {bulkResults && (
             <Button variant="outlined" startIcon={<UploadFileIcon />}
               onClick={() => { setBulkRows([]); setBulkResults(null); bulkFileRef.current?.click(); }}
-              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#10b981', color: '#10b981' }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', borderColor: '#2e9466', color: '#2e9466' }}>
               Upload Another File
             </Button>
           )}
@@ -1018,7 +1018,7 @@ export default function Employees() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem', flex: 1 }}>{value}</Typography>
                 <IconButton size="small" onClick={() => { navigator.clipboard.writeText(value); toast.success('Copied'); }}>
-                  <ContentCopyIcon sx={{ fontSize: 16, color: '#6366f1' }} />
+                  <ContentCopyIcon sx={{ fontSize: 16, color: '#2a7f96' }} />
                 </IconButton>
               </Box>
             </Box>
@@ -1026,7 +1026,7 @@ export default function Employees() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setPortalCreds(null)} variant="contained"
-            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
+            sx={{ borderRadius: '10px', textTransform: 'none', background: 'linear-gradient(135deg, #2a7f96 0%, #4da3ba 100%)' }}>
             Done
           </Button>
         </DialogActions>

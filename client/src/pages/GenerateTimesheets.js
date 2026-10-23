@@ -5,18 +5,18 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Alert, IconButton, Tooltip, Divider, InputAdornment,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import PendingIcon from '@mui/icons-material/HourglassEmpty';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import VerifiedIcon from '@mui/icons-material/VerifiedUser';
-import EditIcon from '@mui/icons-material/Edit';
-import CloseIcon from '@mui/icons-material/Close';
-import SyncIcon from '@mui/icons-material/Sync';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
-import LockIcon from '@mui/icons-material/Lock';
-import SearchIcon from '@mui/icons-material/Search';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import CancelIcon from '@mui/icons-material/CancelOutlined';
+import PendingIcon from '@mui/icons-material/HourglassEmptyOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonthOutlined';
+import VerifiedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
+import SyncIcon from '@mui/icons-material/SyncOutlined';
+import AccessTimeIcon from '@mui/icons-material/AccessTimeOutlined';
+import FactCheckIcon from '@mui/icons-material/FactCheckOutlined';
+import LockIcon from '@mui/icons-material/LockOutlined';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
 import { timesheetAPI, verificationsAPI, wrikeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatHM, parseToMinutes } from '../utils/time';
@@ -26,7 +26,7 @@ const verMinutes = (ver) => ver?.verified_minutes != null
   ? ver.verified_minutes
   : (ver?.verified_hours != null ? Math.round(parseFloat(ver.verified_hours) * 60) : null);
 
-const TH = { fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', py: 1.5, px: 2 };
+const TH = { fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', py: 1.5, px: 2 };
 const TD = { fontSize: '0.875rem', color: 'text.primary', py: 1.25, px: 2 };
 const CURRENCY_SYMBOLS = { USD: '$', PHP: '₱', BDT: '৳' };
 function currSym(currency) { return CURRENCY_SYMBOLS[currency] || currency || '₱'; }
@@ -38,9 +38,9 @@ function fmtDate(d) {
 
 function StatusChip({ status }) {
   const map = {
-    verified: { label: 'Verified',  color: '#10b981', bg: '#10b98115', icon: <CheckCircleIcon sx={{ fontSize: 13 }} /> },
-    rejected: { label: 'Rejected',  color: '#ef4444', bg: '#ef444415', icon: <CancelIcon      sx={{ fontSize: 13 }} /> },
-    pending:  { label: 'Pending',   color: '#f59e0b', bg: '#f59e0b15', icon: <PendingIcon      sx={{ fontSize: 13 }} /> },
+    verified: { label: 'Verified',  color: '#2e9466', bg: '#10b98115', icon: <CheckCircleIcon sx={{ fontSize: 13 }} /> },
+    rejected: { label: 'Rejected',  color: '#d04a40', bg: '#ef444415', icon: <CancelIcon      sx={{ fontSize: 13 }} /> },
+    pending:  { label: 'Pending',   color: '#d08c1e', bg: '#f59e0b15', icon: <PendingIcon      sx={{ fontSize: 13 }} /> },
   };
   const s = map[status] || map.pending;
   return (
@@ -95,13 +95,13 @@ function EditRow({ row, periodId, onSaved }) {
         onChange={e => setNotes(e.target.value)} sx={{ width: 180 }} />
       <Button size="small" variant="contained" disabled={saving} onClick={() => save('verified')}
         startIcon={saving ? <CircularProgress size={13} sx={{ color: 'white' }} /> : <CheckCircleIcon />}
-        sx={{ textTransform: 'none', bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, borderRadius: '8px', fontSize: '0.78rem' }}>
+        sx={{ textTransform: 'none', bgcolor: '#2e9466', '&:hover': { bgcolor: '#237a53' }, borderRadius: '8px', fontSize: '0.78rem' }}>
         Verify
       </Button>
       <Button size="small" variant="outlined" disabled={saving} onClick={() => save('rejected')}
         startIcon={<CancelIcon />}
-        sx={{ textTransform: 'none', borderColor: '#ef4444', color: '#ef4444', borderRadius: '8px', fontSize: '0.78rem',
-          '&:hover': { borderColor: '#dc2626', bgcolor: '#ef444410' } }}>
+        sx={{ textTransform: 'none', borderColor: '#d04a40', color: '#d04a40', borderRadius: '8px', fontSize: '0.78rem',
+          '&:hover': { borderColor: '#b83a31', bgcolor: '#ef444410' } }}>
         Reject
       </Button>
     </Box>
@@ -109,8 +109,8 @@ function EditRow({ row, periodId, onSaved }) {
 }
 
 const TYPE_TABS = [
-  { value: 'local',   label: 'Local',         badge: '2× / month', color: '#6366f1' },
-  { value: 'foreign', label: 'International',  badge: '1× / month', color: '#0ea5e9' },
+  { value: 'local',   label: 'Local',         badge: '2× / month', color: '#2a7f96' },
+  { value: 'foreign', label: 'International',  badge: '1× / month', color: '#4f67c9' },
 ];
 
 export default function GenerateTimesheets() {
@@ -207,7 +207,7 @@ export default function GenerateTimesheets() {
   const allVerified    = withHours > 0 && verifiedCount === withHours;
   const periodLocked   = selectedPeriod?.status !== 'open' && !selectedPeriod?.unlocked_at;
 
-  const tabColor = TYPE_TABS.find(t => t.value === tab)?.color || '#6366f1';
+  const tabColor = TYPE_TABS.find(t => t.value === tab)?.color || '#2a7f96';
 
   // Filter the employee rows by search term + status
   const q = search.trim().toLowerCase();
@@ -224,9 +224,9 @@ export default function GenerateTimesheets() {
 
   const STATUS_FILTERS = [
     { value: 'all',      label: 'All',      count: data.length,    color: tabColor },
-    { value: 'verified', label: 'Verified', count: verifiedCount,  color: '#10b981' },
-    { value: 'pending',  label: 'Pending',  count: pendingCount,   color: '#f59e0b' },
-    { value: 'rejected', label: 'Rejected', count: rejectedCount,  color: '#ef4444' },
+    { value: 'verified', label: 'Verified', count: verifiedCount,  color: '#2e9466' },
+    { value: 'pending',  label: 'Pending',  count: pendingCount,   color: '#d08c1e' },
+    { value: 'rejected', label: 'Rejected', count: rejectedCount,  color: '#d04a40' },
   ];
 
   return (
@@ -234,8 +234,8 @@ export default function GenerateTimesheets() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IntegrationInstructionsIcon sx={{ color: 'white', fontSize: 18 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #2a7f96, #4da3ba)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FactCheckIcon sx={{ color: 'white', fontSize: 18 }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Generate Timesheets</Typography>
@@ -246,13 +246,13 @@ export default function GenerateTimesheets() {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="outlined" onClick={handleSyncWrike} disabled={syncing}
               startIcon={syncing ? <CircularProgress size={14} /> : <SyncIcon />}
-              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#6366f1', color: '#6366f1', '&:hover': { bgcolor: '#6366f110' } }}>
+              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#2a7f96', color: '#2a7f96', '&:hover': { bgcolor: '#6366f110' } }}>
               {syncing ? 'Syncing…' : 'Sync from Wrike'}
             </Button>
             {!allVerified && (
               <Button variant="outlined" onClick={handleBulkVerify} disabled={bulking || !data.length}
                 startIcon={bulking ? <CircularProgress size={14} /> : <VerifiedIcon />}
-                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: '#10b98110' } }}>
+                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderColor: '#2e9466', color: '#2e9466', '&:hover': { bgcolor: '#10b98110' } }}>
                 {bulking ? 'Verifying…' : `Verify All with Hours (${withHours})`}
               </Button>
             )}
@@ -302,7 +302,7 @@ export default function GenerateTimesheets() {
             {/* Period list */}
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {loading ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#6366f1' }} /></Box>
+                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress size={22} sx={{ color: '#2a7f96' }} /></Box>
               ) : filteredPeriods.length === 0 ? (
                 <Box sx={{ py: 6, textAlign: 'center' }}>
                   <CalendarMonthIcon sx={{ fontSize: 32, color: 'text.disabled', opacity: 0.3, mb: 1 }} />
@@ -360,17 +360,17 @@ export default function GenerateTimesheets() {
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
                     <Chip icon={<AccessTimeIcon sx={{ fontSize: '13px !important' }} />} label={`${formatHM(totalMinutes)} total`} size="small"
                       sx={{ bgcolor: `${tabColor}15`, color: tabColor, fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { color: tabColor } }} />
-                    {[{ label: `${verifiedCount} Verified`, color: '#10b981' }, { label: `${pendingCount} Pending`, color: '#f59e0b' }, ...(rejectedCount > 0 ? [{ label: `${rejectedCount} Rejected`, color: '#ef4444' }] : [])].map(s => (
+                    {[{ label: `${verifiedCount} Verified`, color: '#2e9466' }, { label: `${pendingCount} Pending`, color: '#d08c1e' }, ...(rejectedCount > 0 ? [{ label: `${rejectedCount} Rejected`, color: '#d04a40' }] : [])].map(s => (
                       <Chip key={s.label} label={s.label} size="small"
                         sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 700, fontSize: '0.68rem' }} />
                     ))}
                     {allVerified && !periodLocked && (
                       <Chip icon={<CheckCircleIcon />} label="All verified — ready for payroll" size="small"
-                        sx={{ bgcolor: '#10b98115', color: '#10b981', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { fontSize: 13, color: '#10b981' } }} />
+                        sx={{ bgcolor: '#10b98115', color: '#2e9466', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { fontSize: 13, color: '#2e9466' } }} />
                     )}
                     {periodLocked && (
                       <Chip icon={<LockIcon sx={{ fontSize: '13px !important' }} />} label="Period locked — payroll processed" size="small"
-                        sx={{ bgcolor: '#94a3b815', color: '#64748b', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { color: '#64748b' } }} />
+                        sx={{ bgcolor: '#94a3b815', color: '#5a7178', fontWeight: 700, fontSize: '0.68rem', '& .MuiChip-icon': { color: '#5a7178' } }} />
                     )}
                   </>
                 )}
@@ -392,7 +392,7 @@ export default function GenerateTimesheets() {
                   ) : (
                     <Alert severity="info" icon={false}
                       sx={{ borderRadius: 0, fontSize: '0.78rem', border: '1px solid', borderTop: 'none', borderBottom: 'none', borderColor: 'divider',
-                        bgcolor: 'rgba(99,102,241,0.04)', color: 'text.secondary', py: 0.75, px: 2.5 }}>
+                        bgcolor: 'rgba(42,127,150,0.04)', color: 'text.secondary', py: 0.75, px: 2.5 }}>
                       Review hours below. Override if needed, add cash advances/deductions, then <strong>Verify</strong> each employee. Only verified employees proceed to payroll.
                     </Alert>
                   )}
@@ -485,10 +485,10 @@ export default function GenerateTimesheets() {
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                     {verMinutes(ver) != null ? (
                                       <Box>
-                                        <Typography sx={{ fontWeight: 700, color: overridden ? '#f59e0b' : 'text.primary' }}>
+                                        <Typography sx={{ fontWeight: 700, color: overridden ? '#d08c1e' : 'text.primary' }}>
                                           {formatHM(verMinutes(ver))}
                                         </Typography>
-                                        {overridden && <Typography sx={{ fontSize: '0.62rem', color: '#f59e0b' }}>overridden</Typography>}
+                                        {overridden && <Typography sx={{ fontSize: '0.62rem', color: '#d08c1e' }}>overridden</Typography>}
                                       </Box>
                                     ) : (
                                       <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>—</Typography>
@@ -496,7 +496,7 @@ export default function GenerateTimesheets() {
                                   </TableCell>
                                   <TableCell sx={{ ...TD, textAlign: 'center' }}>
                                     {ver?.cash_advance > 0 ? (
-                                      <Typography sx={{ fontWeight: 700, color: '#ef4444', fontSize: '0.875rem' }}>
+                                      <Typography sx={{ fontWeight: 700, color: '#d04a40', fontSize: '0.875rem' }}>
                                         {currSym(row.employee?.currency)}{Number(ver.cash_advance).toLocaleString()}
                                       </Typography>
                                     ) : (
@@ -526,7 +526,7 @@ export default function GenerateTimesheets() {
                                                 startIcon={<EditIcon sx={{ fontSize: 14 }} />}
                                                 onClick={() => setEditingId(emp.id)}
                                                 sx={{ textTransform: 'none', borderRadius: '8px', fontSize: '0.75rem',
-                                                  borderColor: '#6366f1', color: '#6366f1', '&:hover': { borderColor: '#4f46e5', bgcolor: '#6366f110' } }}>
+                                                  borderColor: '#2a7f96', color: '#2a7f96', '&:hover': { borderColor: '#1f6e84', bgcolor: '#6366f110' } }}>
                                                 Edit & Verify
                                               </Button>
                                             </span>
@@ -539,7 +539,7 @@ export default function GenerateTimesheets() {
                                                   fetchData(selectedPeriod.id);
                                                 } catch { toast.error('Failed to reset'); }
                                               }}
-                                              sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#f59e0b' } }}>
+                                              sx={{ textTransform: 'none', fontSize: '0.72rem', color: 'text.disabled', '&:hover': { color: '#d08c1e' } }}>
                                               Reset
                                             </Button>
                                           )}
