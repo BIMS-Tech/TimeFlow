@@ -207,8 +207,8 @@ export const payslipsAPI = {
     // The extension is not cosmetic — MBOS rejects the ISO 20022 EFT batch unless
     // it is a *.xls (Excel 97-2003) workbook, so follow whatever the server built.
     const serverName = res.headers.get('Content-Disposition') || '';
-    const ext = (serverName.match(/filename="?[^"]*\.([A-Za-z0-9]+)"?/) || [])[1]
-      || (type === 'foreign' ? 'xls' : 'xlsx');
+    // Both MBOS formats are Excel 97-2003 (*.xls); the server name wins when readable.
+    const ext = (serverName.match(/filename="?[^"]*\.([A-Za-z0-9]+)"?/) || [])[1] || 'xls';
     const filename = `BT_${typeLabel}_${safeName}.${ext.toLowerCase()}`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

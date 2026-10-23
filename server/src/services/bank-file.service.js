@@ -37,9 +37,12 @@ const ISO_HEADERS = [
   'Ultimate Creditor Town/City', 'Ultimate Creditor Postal Code', 'Ultimate Creditor Country',
 ];
 
+// Taken from a TAMA file MBOS actually accepted (Oct 2026), NOT from the
+// "STANDARD TAMA XLS FILE FORMAT" handout — that one describes nine columns
+// including a Corporate Code, which this MBOS setup does not want. The accepted
+// file is five columns, sheet "Sheet 1", every cell text, saved as *.xls.
 const TAMA_HEADERS = [
-  'Corporate Code', 'Client Reference Number', 'Last Name', 'First Name',
-  'Middle Name', 'Destination Account', 'Amount', 'Remarks', 'Beneficiary E-mail',
+  'Last Name', 'First Name', 'Middle Name', 'Employee Account Number', 'Amount',
 ];
 
 // Max field lengths per the ISO 20022 EFT XLS spec, by column index.
@@ -186,7 +189,6 @@ function senderConfig() {
     country:    sanitize(process.env.BANK_SENDER_COUNTRY || process.env.PAYOR_COUNTRY || 'Philippines', 35),
     chargeType: /^[0-2]$/.test(chargeTypeRaw) ? parseInt(chargeTypeRaw, 10) : 0,
     debtorName: sanitize(process.env.PAYOR_NAME, 140),
-    corporateCode: sanitize(process.env.BANK_CORPORATE_CODE, 255),
   };
 }
 
@@ -358,17 +360,13 @@ function buildIsoRow({ emp, netAmount, reference, remarks }, cfg) {
 }
 
 /** One TAMA row. */
-function buildTamaRow({ emp, netAmount, reference, remarks }, cfg) {
+function buildTamaRow({ emp, netAmount }) {
   return [
-    cfg.corporateCode || null,
-    sanitize(reference, 255) || null,
     sanitize(emp.last_name, 255),
     sanitize(emp.first_name, 255),
     sanitize(emp.middle_name, 100) || null,
     accountNumber(emp.bank_account_number, 13),
     amountText(netAmount),
-    sanitize(remarks, 255) || null,
-    sanitize(emp.email, 255, { email: true }) || null,
   ];
 }
 
@@ -398,13 +396,11 @@ function buildIsoFile(entries) {
 
 /** TAMA file — matches the bank's *.xlsx template. */
 function buildTamaFile(entries) {
-  const cfg = senderConfig();
-  if (!cfg.corporateCode) throw configError(['BANK_CORPORATE_CODE']);
-  const sheetData = [TAMA_HEADERS, ...entries.map(e => buildTamaRow(e, cfg))];
+  const sheetData = [TAMA_HEADERS, ...entries.map(e => buildTamaRow(e))];
   return {
-    content: writeWorkbook(sheetData, 'Sheet1', 'xlsx'),
-    extension: 'xlsx',
-    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    content: writeWorkbook(sheetData, 'Sheet 1', 'biff8'),
+    extension: 'xls',
+    contentType: 'application/vnd.ms-excel',
   };
 }
 
