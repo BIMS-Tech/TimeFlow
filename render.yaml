@@ -6,8 +6,10 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerContext: ./server
-    dockerfilePath: ./server/Dockerfile
+    # Paths below are relative to rootDir; it also limits auto-deploys to server/ changes
+    rootDir: server
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     autoDeploy: true
     branch: main
