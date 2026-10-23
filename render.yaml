@@ -1,0 +1,73 @@
+# Render blueprint — temporary free hosting for the LIVE backend while moving off GCP.
+# Values marked `sync: false` are entered in the Render dashboard (never committed).
+services:
+  - type: web
+    name: timeflow-backend-live
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./server
+    dockerfilePath: ./server/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Aiven MySQL
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: timesheet_live_db
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_CA
+        sync: false
+      # Auth
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      # Wrike
+      - key: WRIKE_API_KEY
+        sync: false
+      - key: WRIKE_API_BASE_URL
+        value: "https://www.wrike.com/api/v4"
+      - key: WRIKE_FOLDER_ID
+        value: "MQAAAAEGIc4Y"
+      - key: WRIKE_WEBHOOK_SECRET
+        sync: false
+      # App
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CRON_SCHEDULE
+        value: "0 9 * * 1"
+      - key: DEFAULT_HOURLY_RATE
+        value: "2"
+      - key: CURRENCY
+        value: "USD"
+      # Bank file (BANK_CHARGE_TYPE=1: BIMS pays international transfer charges)
+      - key: BANK_SOURCE_ACCOUNT
+        sync: false
+      - key: BANK_SOURCE_ACCOUNTS
+        sync: false
+      - key: BANK_CORPORATE_CODE
+        sync: false
+      - key: PAYOR_NAME
+        value: "BIMS TECHNOLOGIES INC"
+      - key: BANK_SENDER_CITY
+        value: "Cebu City"
+      - key: BANK_SENDER_POSTAL_CODE
+        value: "6000"
+      - key: BANK_SENDER_COUNTRY
+        value: "Philippines"
+      - key: BANK_CHARGE_TYPE
+        value: "1"

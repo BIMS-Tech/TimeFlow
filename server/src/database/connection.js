@@ -11,9 +11,18 @@ const mysql = require('mysql2/promise');
 const dbHost = process.env.DB_HOST || 'localhost';
 const isSocketPath = dbHost.startsWith('/');
 
+// Hosted MySQL (e.g. Aiven) requires TLS. DB_SSL=true turns it on; DB_SSL_CA holds the
+// provider's CA certificate (PEM, literal "\n" allowed) so the server cert is verified.
+const ssl = process.env.DB_SSL === 'true'
+  ? (process.env.DB_SSL_CA
+    ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n'), rejectUnauthorized: true }
+    : { rejectUnauthorized: false })
+  : undefined;
+
 const pool = mysql.createPool({
   // Cloud SQL on Cloud Run uses a Unix socket; local dev uses TCP host+port
   ...(isSocketPath ? { socketPath: dbHost } : { host: dbHost, port: parseInt(process.env.DB_PORT) || 3306 }),
+  ...(ssl ? { ssl } : {}),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'timesheet_db',
