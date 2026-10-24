@@ -4,6 +4,23 @@ const { getHireCategory } = require('../services/payroll-deductions.service');
 /**
  * Employee Model
  */
+/**
+ * Columns that are not text: a cleared form field arrives as '' and MySQL in
+ * strict mode refuses it ("Incorrect decimal value: '' for column ..."), so an
+ * empty value has to become NULL before the write.
+ */
+const NON_TEXT_COLUMNS = [
+  'hourly_rate', 'overtime_rate', 'overtime_pay_enabled', 'hire_date',
+];
+
+function blankToNull(data) {
+  const out = { ...data };
+  for (const column of NON_TEXT_COLUMNS) {
+    if (out[column] === '') out[column] = null;
+  }
+  return out;
+}
+
 class Employee {
   /**
    * Find employee by ID
@@ -67,6 +84,7 @@ class Employee {
    * Create a new employee
    */
   static async create(data) {
+    data = blankToNull(data);
     const employeeType   = data.employee_type || null;
     const derivedCategory = employeeType ? getHireCategory(employeeType) : null;
     const id = await db.insert('employees', {
@@ -127,7 +145,7 @@ class Employee {
    * Update an employee
    */
   static async update(id, data) {
-    const updateData = { ...data };
+    const updateData = blankToNull(data);
     if (updateData.employee_type) {
       updateData.hire_category = getHireCategory(updateData.employee_type);
     }
