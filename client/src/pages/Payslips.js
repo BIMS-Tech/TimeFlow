@@ -8,8 +8,10 @@ import {
   List, ListItem, ListItemText, LinearProgress,
   Menu, MenuItem, ListItemIcon,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/SearchOutlined';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNewOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import PublishIcon from '@mui/icons-material/PublishOutlined';
@@ -113,7 +115,12 @@ export default function Payslips() {
   const fetchPayslips = async (periodId) => {
     try {
       const res = await timesheetAPI.getPeriodPayslips(periodId);
-      if (res.success) setPayslips(res.data);
+      if (res.success) {
+        setPayslips(res.data);
+        // Keep the sidebar's unreleased badge in step after generate / release / delete
+        const unreleasedNow = res.data.filter(p => p.status === 'generated').length;
+        setPeriods(prev => prev.map(x => x.id === periodId ? { ...x, unreleased_payslips: unreleasedNow } : x));
+      }
     } catch { toast.error('Failed to load payslips'); }
   };
 
@@ -240,6 +247,8 @@ export default function Payslips() {
   const bankUploaded    = !!selectedPeriod?.bank_uploaded_at;
   const canRelease      = bankUploaded && !isReadOnly;
   const payslipsLocked  = payslips.length > 0;
+  const hiddenPeriods   = periods.filter(p => Number(p.unreleased_payslips) > 0);
+  const hiddenTotal     = hiddenPeriods.reduce((s, p) => s + Number(p.unreleased_payslips), 0);
 
   const rangeInvalid = Boolean(rangeStart && rangeEnd && rangeStart > rangeEnd);
   const rangeReady    = Boolean(rangeStart && rangeEnd) && !rangeInvalid;
@@ -386,6 +395,17 @@ export default function Payslips() {
         </Box>
       </Box>
 
+      {/* Unreleased payslips across all periods */}
+      {!isReadOnly && hiddenTotal > 0 && (
+        <Paper elevation={0} sx={{ mb: 2.5, px: 2.5, py: 1.5, borderRadius: '16px', border: '1px solid', borderColor: t => alpha(t.palette.warning.main, 0.3), bgcolor: t => alpha(t.palette.warning.main, 0.07), display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <VisibilityOffIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+          <Typography sx={{ fontSize: '0.82rem', color: 'warning.dark' }}>
+            <strong>{hiddenTotal} payslip{hiddenTotal !== 1 ? 's' : ''}</strong> across {hiddenPeriods.length} period{hiddenPeriods.length !== 1 ? 's' : ''} {hiddenTotal !== 1 ? 'are' : 'is'} not visible to employees yet.
+            Generated payslips only appear in the employee portal once released. Periods marked <strong>hidden</strong> on the left still need releasing.
+          </Typography>
+        </Paper>
+      )}
+
       {/* Bulk Generate Panel */}
       {!isReadOnly && showBulkPanel && !payslipsLocked && (
         <Paper elevation={0} sx={{ mb: 2.5, borderRadius: '16px', border: '1px solid', borderColor: '#6366f130', overflow: 'hidden' }}>
@@ -501,6 +521,12 @@ export default function Payslips() {
                       sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
                         bgcolor: p.period_type === 'foreign' ? '#0ea5e918' : '#6366f118',
                         color:   p.period_type === 'foreign' ? '#4f67c9'   : '#2a7f96' }} />
+                    {Number(p.unreleased_payslips) > 0 && (
+                      <Tooltip title={`${p.unreleased_payslips} payslip(s) not yet released — employees can't see them`} arrow>
+                        <Chip label={`${p.unreleased_payslips} hidden`} size="small"
+                          sx={{ height: 16, ml: 0.5, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: t => alpha(t.palette.warning.main, 0.12), color: 'warning.main' }} />
+                      </Tooltip>
+                    )}
                     {p.bank_uploaded_at
                       ? <Tooltip title="Bank uploaded — ready to release" arrow><Box component="span" sx={{ fontSize: 12, color: '#2e9466' }}>✓</Box></Tooltip>
                       : <Tooltip title="Bank not yet uploaded" arrow><Box component="span" sx={{ fontSize: 12, color: '#d08c1e' }}>⚠</Box></Tooltip>}
@@ -537,6 +563,7 @@ export default function Payslips() {
               <Box sx={{ px: 2.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#f59e0b0d', borderBottom: '1px solid #f59e0b30' }}>
                 <Box sx={{ fontSize: 15, color: '#d08c1e' }}>⚠</Box>
                 <Typography sx={{ fontSize: '0.8rem', color: '#94600f' }}>
+                  {unreleased > 0 && <><strong>{unreleased} payslip{unreleased !== 1 ? 's' : ''} not visible to employees.</strong>{' '}</>}
                   Bank upload not yet confirmed for this period. Go to <strong>Generate Bank Upload</strong> → confirm upload before releasing payslips to employees.
                 </Typography>
               </Box>
@@ -545,7 +572,7 @@ export default function Payslips() {
               <Box sx={{ px: 2.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#10b9810a', borderBottom: '1px solid #10b98125' }}>
                 <Box sx={{ fontSize: 14, color: '#2e9466' }}>✓</Box>
                 <Typography sx={{ fontSize: '0.78rem', color: '#237a53' }}>
-                  Bank upload confirmed — you can now release payslips to employees.
+                  Bank upload confirmed — <strong>{unreleased} payslip{unreleased !== 1 ? 's' : ''}</strong> waiting to be released. Employees can't see {unreleased !== 1 ? 'them' : 'it'} until you click <strong>Release All</strong>.
                 </Typography>
               </Box>
             )}

@@ -33,7 +33,10 @@ class PayPeriod {
   static async findAll(limit = 20, offset = 0, type = null) {
     const where = type ? 'WHERE period_type = ?' : '';
     const params = type ? [type, limit, offset] : [limit, offset];
-    const sql = `SELECT p.*, u.username AS unlocked_by_name
+    // unreleased_payslips: generated but not yet visible in the employee portal
+    const sql = `SELECT p.*, u.username AS unlocked_by_name,
+                   (SELECT COUNT(*) FROM payslips ps
+                     WHERE ps.period_id = p.id AND ps.status = 'generated') AS unreleased_payslips
                  FROM pay_periods p
                  LEFT JOIN users u ON p.unlocked_by = u.id
                  ${where.replace('WHERE', 'WHERE p.')}
